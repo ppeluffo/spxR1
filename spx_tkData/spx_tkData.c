@@ -233,7 +233,7 @@ void pub_tkdata_read_frame(st_data_frame *dframe)
 	pv_tkData_update_remote_channels( dframe);
 	
 	// Agrego el timestamp
-	RTC79410_read_dtime( &dframe->rtc);
+	RTC_read_dtime( &dframe->rtc);
 
 	// Leo el ancho de pulso ( rangeMeter ). Demora 5s.
 	pub_rangeMeter_ping( &dframe->range);

@@ -10,6 +10,7 @@
 
 #include "frtos-io.h"
 #include "l_i2c.h"
+#include "stdint.h"
 
 //------------------------------------------------------------------------------------
 // Identificacion en el bus I2C en el board sp6KX_LOGICA
@@ -19,10 +20,13 @@
 // EEADDRESS = 0xA | 0 A17 A16 r/w
 // Esto lo controlamos en I2C.C
 
+//--------------------------------------------------------------------------------
+// API START
+
 #define EE_read( rdAddress, data, length ) I2C_read( BUSADDR_EEPROM_M2402, rdAddress, data, length );
 #define EE_write( wrAddress, data, length ) I2C_write( BUSADDR_EEPROM_M2402, wrAddress, data, length );
 
-bool EE_test_write(char *s0, char *s1);
-bool EE_test_read(char *s0, char *s1, char *s2);
+// API END
+//--------------------------------------------------------------------------------
 
 #endif /* SRC_SPX_LIBS_L_EEPROM_H_ */

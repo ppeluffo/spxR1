@@ -109,7 +109,7 @@ uint8_t wdg;
 	xprintf_P( PSTR("RCD size %d bytes.\r\n\0"),recSize);
 
 	// Arranco el RTC. Si hay un problema lo inicializo.
-	RTC79410_start();
+	RTC_start();
 
 	// Habilito a arrancar al resto de las tareas
 	startTask = true;

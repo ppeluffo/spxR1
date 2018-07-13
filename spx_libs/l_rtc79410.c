@@ -8,15 +8,9 @@
  *
  *
  */
-//------------------------------------------------------------------------------------
-
-// --------------------------------------------------------------------------------
-// SPV5 LIB
 // --------------------------------------------------------------------------------
 
-#include <l_rtc79410.h>
-
-#include "spx.h"
+#include "l_rtc79410.h"
 
 static char pv_bcd2dec(char num);
 static char pv_dec2bcd(char num);
@@ -24,7 +18,7 @@ static char pv_dec2bcd(char num);
 //------------------------------------------------------------------------------------
 // Funciones de uso general
 //------------------------------------------------------------------------------------
-void RTC79410_start(void)
+void RTC_start(void)
 {
 
 RtcTimeType_t rtc;
@@ -35,24 +29,24 @@ uint8_t data;
 	// Por otro lado, puede estar reseteado con lo que la fecha aparece en 01 01 2000.
 
 	// Leo la hora
-	RTC79410_read_dtime( &rtc);
+	RTC_read_dtime( &rtc);
 
 	// Si esta reseteado la reconfiguro
 	if ( ( rtc.year < 2018 ) || ( rtc.year > 2040) ){
 		RTC_str2rtc("1801010000", &rtc);
-		RTC79410_write_dtime(&rtc);
+		RTC_write_dtime(&rtc);
 
 	} else {
 	// Escribo ST = 1 para asegurarme de haber activado el RTC
 		// Habilito el OSCILADOR
 		data = 0x80;
-		RTC79410_write(0x00, &data , 1);
+		RTC_write(0x00, (char *)&data , 1);
 	}
 	return;
 
 }
 //------------------------------------------------------------------------------------
-bool RTC79410_read_dtime(RtcTimeType_t *rtc)
+bool RTC_read_dtime(RtcTimeType_t *rtc)
 {
 	// Retorna la hora formateada en la estructura RtcTimeType_t
 	// No retornamos el valor de EOSC ni los bytes adicionales.
@@ -60,13 +54,7 @@ bool RTC79410_read_dtime(RtcTimeType_t *rtc)
 uint8_t data[8];
 uint8_t rdBytes = 0;
 
-	// Lo primero es obtener el semaforo
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
-
-	rdBytes = RTC79410_read(0x00, &data, 7);
-
-	// Y libero el semaforo.
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+	rdBytes = RTC_read(0x00, (char *)&data, 7);
 
 	if (rdBytes != 7 ) {
 		return ( false );
@@ -84,7 +72,7 @@ uint8_t rdBytes = 0;
 	return(true);
 }
 //------------------------------------------------------------------------------------
-bool RTC79410_write_dtime(RtcTimeType_t *rtc)
+bool RTC_write_dtime(RtcTimeType_t *rtc)
 {
 	// Setea el RTC con la hora pasada en la estructura RtcTimeType
 	// El procedimiento es:
@@ -95,18 +83,16 @@ bool RTC79410_write_dtime(RtcTimeType_t *rtc)
 
 uint8_t data[8];
 
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
-
 	// Pongo ST en 0.
 	// Como está en el registro que corresponde a los segundos, pongo todo el
 	// byte en 0.
 	data[0] = 0x00;
-	RTC79410_write(0x00, &data, 1 );
+	RTC_write(0x00, (char *)&data, 1 );
 	//
 	// Espero que el OSCRUN quede en 0.
 	while ( ( data[0] & 0x20 ) != 0 ) {
-		RTC79410_read( 0x03, &data, 1 );
-		vTaskDelay( ( TickType_t) 1 );
+		RTC_read( 0x03, (char *)&data, 1 );
+		vTaskDelay( ( TickType_t) 5 );
 	}
 
 	// Ahora puedo grabar la nueva hora.
@@ -119,71 +105,21 @@ uint8_t data[8];
 	data[5] = pv_dec2bcd(rtc->month & 0x1F);	// RTCMONTH
 	data[6] = pv_dec2bcd(rtc->year - 2000);		// RTCYEAR
 
-	RTC79410_write(0x00, &data, 7);
+	RTC_write(0x00, (char *)&data, 7);
 
 	// Habilito el OSCILADOR
 	data[0] = 0x80;
-	RTC79410_write(0x00, &data, 1 );
-
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+	RTC_write(0x00, (char *)&data, 1 );
 
 	return(true);
 
 }
 //------------------------------------------------------------------------------------
-bool RTC79410_test_write(char *s0, char *s1)
-{
-	/* Se usa para testear desde el modo comando las funciones de escribir la sram del RTC.
-	 * Desde el modo comando ingresamos 2 parametros que son 2 strings: la direccion y el texto
-	 * Para usar RTC79410_write_sram debemos calcular el largo del texto antes de invocarla
-	 *
-	 * Aqui es donde usamos el SEMAFORO !!!
-	 */
-
-uint8_t length = 1;
-//char *p;
-size_t xReturn = 0U;
-
-	// Calculamos el largo del texto a escribir en la eeprom.
-	// !!! IMPORTANTE
-	// Por ahora, s1 es solo 1 byte.
-
-//	p = s1;
-//	while (*p != 0) {
-//		p++;
-//		length++;
-//	}
-
-uint8_t value;
-
-	// El valor viene dado en un nro decimal que lo debo convertir
-	value = atoi(s1);
-
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
-	xReturn = RTC79410_write( (uint8_t)(atoi(s0)), &value, length );
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
-	return(true);
-}
-//-----------------------------------------------------------------------------------
-bool RTC79410_test_read(char *s0, char *s1, char *s2)
-{
-	/* Se usa para testear desde el modo comando las funciones de leer la sram del RTC.
-	 * Desde el modo comando ingresamos 2 parametros que son 2 strings: la direccion y el largo
-	 */
-
-size_t xReturn = 0U;
-
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
-	xReturn = RTC79410_read( (uint8_t)(atoi(s0)), s1, (uint8_t)(atoi(s2)) );
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
-	return(true);
-}
-//-----------------------------------------------------------------------------------
 void RTC_rtc2str(char *str, RtcTimeType_t *rtc)
 {
 	// Convierte los datos del RTC a un string con formato DD/MM/YYYY hh:mm:ss
 
-	FRTOS_snprintf( str, 32 ,"%02d/%02d/%04d %02d:%02d:%02d\r\n",rtc->day,rtc->month, rtc->year, rtc->hour,rtc->min, rtc->sec );
+	snprintf( str, 32 ,"%02d/%02d/%04d %02d:%02d:%02d\r\n",rtc->day,rtc->month, rtc->year, rtc->hour,rtc->min, rtc->sec );
 
 }
 //------------------------------------------------------------------------------------
@@ -218,52 +154,6 @@ bool retS;
 		rtc->min = atoi(tmp);
 
 		return(retS);
-
-}
-//------------------------------------------------------------------------------------
-// FUNCIONES DE ALARMA
-// Solo se implementan para la ALARMA_0
-//-----------------------------------------------------------------------------------
-void RTC79410_alarm0_reset(void)
-{
-	// Borra la flag ALM0IF del registro ALM0WKDAY de modo de limpiar la condicion
-	// que genera la alarma y el pin MFP cambie de estado
-
-size_t xReturn = 0U;
-uint8_t alm_register;
-
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
-
-	xReturn = RTC79410_read( RTC79410_ALM0WKDAY, &alm_register, 1 );
-	alm_register &= 0xF7;	// Pongo el bit 3 (IF) en 0.
-	xReturn = RTC79410_write( RTC79410_ALM0WKDAY, &alm_register, 1 );
-
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
-
-}
-//------------------------------------------------------------------------------------
-void RTC79410_alarm0_set( char *secs)
-{
-	// Configura la alarma 0 para activarse reiteradamente en secs.
-
-size_t xReturn = 0U;
-uint8_t alm_register;
-
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
-
-	// Configuro para que ponga un 1 el la salida cuando haga matching de segundos.
-	alm_register = 0x81;
-	xReturn = RTC79410_write( RTC79410_ALM0WKDAY, &alm_register, 1 );
-	// Escribo en que segundos quiero el matching
-	alm_register = atoi(secs);
-	xReturn = RTC79410_write( RTC79410_ALM0SEC, &alm_register, 1 );
-	// Habilito la alarma
-	xReturn = RTC79410_read( RTC79410_CONTROL, &alm_register, 1 );
-	alm_register = 0x10;	// Pongo el bit 3 (IF) en 0.
-	xReturn = RTC79410_write( RTC79410_CONTROL, &alm_register, 1);
-
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
-
 
 }
 //------------------------------------------------------------------------------------

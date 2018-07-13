@@ -14,14 +14,14 @@ int8_t I2C_read( uint8_t i2c_bus_address, uint32_t rdAddress, char *data, uint8_
 	// y los deja en el buffer apuntado por 'data'
 	// No utilizan el semaforo del bus I2C por lo que debe hacerlo
 	// quien invoca !!!!!
-	// El tema es que cada operacion en el bus, requiere de varios pasos de frtos_ioctl y
-	// conviene que el semaforo se tenga toda la operacion.
 
 size_t xReturn = 0U;
 uint8_t bus_address;
 uint8_t	dev_address_length = 1;
 uint16_t device_address;
 uint8_t xBytes = 0;
+
+	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
 
 	// 1) Indicamos el periferico i2c en el cual queremos leer ( variable de 8 bits !!! )
 	bus_address = i2c_bus_address;
@@ -47,6 +47,7 @@ uint8_t xBytes = 0;
 		return ( -1 );
 	}
 
+	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
 	return(xReturn);
 
 }
@@ -57,14 +58,14 @@ int8_t I2C_write( uint8_t i2c_bus_address, uint32_t wrAddress, char *data, uint8
 	// 'length' de bytes apuntados por 'data'
 	// Puedo estar escribiendo un pageWrite entonces debo controlar no
 	// salime de la pagina.
-	// No utilizan el semafor del bus I2C por lo que debe hacerlo
-	// quien invoca !!!!!
 
 size_t xReturn = 0U;
 uint8_t bus_address;
 uint8_t	dev_address_length = 1;
 uint16_t device_address;
 uint8_t xBytes = 0;
+
+	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
 
 	// 1) Indicamos el periferico i2c en el cual queremos leer ( variable de 8 bits !!! )
 	bus_address = i2c_bus_address;
@@ -90,6 +91,7 @@ uint8_t xBytes = 0;
 		return ( -1 );
 	}
 
+	frtos_ioctl(fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
 	return(xReturn);
 
 }

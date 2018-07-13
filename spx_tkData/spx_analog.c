@@ -20,8 +20,8 @@ char res[3];
 
 	res[0] = ( conf_reg_value & 0xFF00 ) >> 8;
 	res[1] = ( conf_reg_value & 0x00FF );
-	INA3221_write( INA3221_id2busaddr(0), INA3231_CONF, res, 2 );
-	INA3221_write( INA3221_id2busaddr(1), INA3231_CONF, res, 2 );
+	INA_write( INA_id2busaddr(0), INA3231_CONF, res, 2 );
+	INA_write( INA_id2busaddr(1), INA3231_CONF, res, 2 );
 
 }
 //------------------------------------------------------------------------------------
@@ -152,7 +152,7 @@ uint16_t D;
 	}
 
 	// Leo el valor del INA.
-	INA3221_read( INA3221_id2busaddr(ina_id), ina_reg, res ,2 );
+	INA_read( INA_id2busaddr(ina_id), ina_reg, res ,2 );
 	an_raw_val = 0;
 	an_raw_val = ( res[0]<< 8 ) + res[1];
 	an_raw_val = an_raw_val >> 3;
@@ -197,7 +197,7 @@ char res[3];
 	// La bateria esta en el canal 1 (bus) del INA 1.
 	ina_reg = INA3221_CH1_BUSV;
 	ina_id = 1;
-	INA3221_read( INA3221_id2busaddr(ina_id), ina_reg, res ,2 );
+	INA_read( INA_id2busaddr(ina_id), ina_reg, res ,2 );
 	an_raw_val = 0;
 	an_raw_val = ( res[0]<< 8 ) + res[1];
 	an_raw_val = an_raw_val >> 3;

@@ -42,7 +42,6 @@
 #include "limits.h"
 
 #include "frtos-io.h"
-#include "FRTOS_stdio.h"
 
 #include "l_iopines.h"
 #include "l_eeprom.h"
@@ -56,7 +55,7 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "0.0.1"
+#define SPX_FW_REV "0.0.2"
 #define SPX_FW_DATE "@ 20180713"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"

@@ -1,23 +1,26 @@
 /*------------------------------------------------------------------------------------
- * rtc_sp5KFRTOS.h
+ * l_rtc.h
  * Autor: Pablo Peluffo @ 2015
  * Basado en Proycon AVRLIB de Pascal Stang.
  *
- * Son funciones que impelementan la API de acceso al RTC del sistema SP5K con FRTOS.
- * Para su uso debe estar inicializado el semaforo del bus I2C, que se hace llamando a i2cInit().
+ * Son funciones que impelementan la API de acceso al RTC del sistema con FRTOS.
  *
  *
 */
 
 // --------------------------------------------------------------------------------
-// SPV5 LIB
+// LIBRERIA PARA EL RTC M79410 USADO EN LOS DATALOGGER SERIE SPX.
 // --------------------------------------------------------------------------------
 
 #ifndef AVRLIBFRTOS_RTC_SP5KFRTOS_H_
 #define AVRLIBFRTOS_RTC_SP5KFRTOS_H_
 
 #include "frtos-io.h"
-#include "stdio.h"
+#include "l_i2c.h"
+#include "stdint.h"
+
+//--------------------------------------------------------------------------------
+// API START
 
 typedef struct
 {
@@ -33,12 +36,18 @@ typedef struct
 
 } RtcTimeType_t;
 
+#define RTC_read( rdAddress, data, length ) I2C_read( BUSADDR_RTC_M79410, rdAddress, data, length );
+#define RTC_write( wrAddress, data, length ) I2C_write( BUSADDR_RTC_M79410, wrAddress, data, length );
 
-#define RTC79410_read( rdAddress, data, length ) I2C_read( BUSADDR_RTC_M79410, rdAddress, data, length );
-#define RTC79410_write( wrAddress, data, length ) I2C_write( BUSADDR_RTC_M79410, wrAddress, data, length );
+void RTC_start(void);
+bool RTC_read_dtime(RtcTimeType_t *rtc);
+bool RTC_write_dtime(RtcTimeType_t *rtc);
 
-bool RTC79410_test_write(char *s0, char *s1);
-bool RTC79410_test_read(char *s0, char *s1, char *s2);
+void RTC_rtc2str(char *str, RtcTimeType_t *rtc);
+bool RTC_str2rtc(char *str, RtcTimeType_t *rtc);
+
+// API END
+//--------------------------------------------------------------------------------
 
 // Direccion del bus I2C donde esta el RTC79410
 #define RTC79410_DEVADDR		   	0xDE
@@ -64,15 +73,5 @@ bool RTC79410_test_read(char *s0, char *s1, char *s2);
 
 #define RTC79410_SRAM_INIT			0x20
 #define FAT_ADDRESS					0x20
-
-void RTC79410_start(void);
-bool RTC79410_read_dtime(RtcTimeType_t *rtc);
-bool RTC79410_write_dtime(RtcTimeType_t *rtc);
-
-void RTC_rtc2str(char *str, RtcTimeType_t *rtc);
-bool RTC_str2rtc(char *str, RtcTimeType_t *rtc);
-
-void RTC79410_alarm0_reset(void);
-void RTC79410_alarm0_set( char *secs);
 
 #endif /* AVRLIBFRTOS_RTC_SP5KFRTOS_H_ */

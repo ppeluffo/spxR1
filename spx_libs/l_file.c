@@ -21,7 +21,7 @@ bool FF_open(void)
 
 bool retS = false;
 
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL );
+//	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL );
 	retS = FAT_load( &FCB.fat);
 
 	// Ajustes iniciales.
@@ -35,7 +35,7 @@ bool retS = false;
 	FAT_save( &FCB.fat);
 
 	FCB.errno = pdFF_ERRNO_NONE;
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+//	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
 	return(retS);
 
 }
@@ -74,7 +74,7 @@ int8_t bytes_written = -1;
 //bool write_ok;
 
 	// Lo primero es obtener el semaforo del I2C
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
+//	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
 	FCB.errno = pdFF_ERRNO_NONE;
 
 	// Si la memoria esta llena no puedo escribir: salgo
@@ -99,7 +99,7 @@ int8_t bytes_written = -1;
 	// Necesito esperar un poco entre c/ciclo
 	vTaskDelay( ( TickType_t)( 10 / portTICK_RATE_MS ) );
 	wrAddress = FF_ADDR_START + FCB.fat.wrPTR * FF_RECD_SIZE;
-	bytes_written = EE_write( wrAddress, &FCB.rw_buffer, FF_RECD_SIZE );
+	bytes_written = EE_write( wrAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE );
 	if ( bytes_written != FF_RECD_SIZE ) {
 		// Errores de escritura ?
 		FCB.errno = pdFF_ERRNO_MEMWR;
@@ -121,7 +121,7 @@ int8_t bytes_written = -1;
 
 quit:
 	// libero los semaforos
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+//	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
 	return(bytes_written);
 
 }
@@ -154,7 +154,7 @@ int8_t bytes_read = 0U;
 uint16_t rcdPos;
 
 	// Lo primero es obtener el semaforo del I2C
-	frtos_ioctl( fdI2C ,ioctl_OBTAIN_BUS_SEMPH, NULL );
+//	frtos_ioctl( fdI2C ,ioctl_OBTAIN_BUS_SEMPH, NULL );
 
 	FCB.errno = pdFF_ERRNO_NONE;
 
@@ -170,7 +170,7 @@ uint16_t rcdPos;
 	// Direccion interna en la EE.(comienzo del registro / frontera)
 	rcdPos = FCB.fat.rdPTR;
 	rdAddress = FF_ADDR_START + FCB.fat.rdPTR * FF_RECD_SIZE;
-	bytes_read = EE_read( rdAddress, &FCB.rw_buffer, FF_RECD_SIZE);
+	bytes_read = EE_read( rdAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE);
 
 	// Avanzo el puntero de RD en modo circular siempre !!
 	FCB.fat.rdPTR = (++FCB.fat.rdPTR == FF_MAX_RCDS) ?  0 : FCB.fat.rdPTR;
@@ -212,7 +212,7 @@ uint16_t rcdPos;
 
 quit:
 	// libero los semaforos
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+//	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
 
 	return(bytes_read);
 }
@@ -253,7 +253,7 @@ void FF_deleteRcd(void)
 uint16_t delAddress = 0;
 
 	// Lo primero es obtener el semaforo del I2C
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
+//	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
 
 	if ( FCB.fat.rcds4del == 0 ) {
 		// Memoria vacia.
@@ -263,7 +263,7 @@ uint16_t delAddress = 0;
 	// Borro fisicamente el registro
 	memset( FCB.rw_buffer,0xFF, FF_RECD_SIZE );
 	delAddress = FF_ADDR_START + FCB.fat.delPTR * FF_RECD_SIZE;
-	EE_write( delAddress, &FCB.rw_buffer, FF_RECD_SIZE );
+	EE_write( delAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE );
 
 	// Ajusto la FAT
 	FCB.fat.rcds4wr++;
@@ -271,7 +271,7 @@ uint16_t delAddress = 0;
 	FCB.fat.delPTR = (++FCB.fat.delPTR == FF_MAX_RCDS) ?  0 : FCB.fat.delPTR;
 	FAT_save(&FCB.fat);
 
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+//	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
 	return;
 }
 //------------------------------------------------------------------------------------
@@ -282,7 +282,7 @@ void FF_format(bool fullformat )
 uint16_t page;
 uint16_t wrAddress;
 
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
+//	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
 
 	FCB.fat.wrPTR = 0;
 	FCB.fat.rdPTR = 0;
@@ -331,7 +331,7 @@ uint16_t wrAddress;
 		}
 
 	}
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+//	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
 
 }
 //----------------------------------------------------------------------------------
@@ -361,7 +361,7 @@ uint8_t cks = 0x00;
 
 	cks = chksum8( fat, (sizeof( FAT_t) - 1));
 	fat->checksum = cks;
-	RTC79410_write( FAT_ADDRESS, fat, sizeof(FAT_t));
+	RTC_write( FAT_ADDRESS, (char *)fat, (uint8_t)sizeof(FAT_t) );
 	return(true);
 }
 //----------------------------------------------------------------------------------
@@ -371,7 +371,8 @@ bool FAT_load( FAT_t *fat )
 
 uint8_t cks = 0x00;
 
-	RTC79410_read( FAT_ADDRESS, fat, sizeof(FAT_t));
+	RTC_read( FAT_ADDRESS, (char *)fat, (uint8_t)sizeof(FAT_t) );
+
 	cks = chksum8( fat, (sizeof( FAT_t) - 1));
 	if ( cks != fat->checksum ) {
 		// Error al cargar la fat.

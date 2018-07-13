@@ -321,7 +321,7 @@ RtcTimeType_t rtc;
 	}
 
 	RTC_str2rtc(rtcStr, &rtc);		// Convierto el string YYMMDDHHMM a RTC.
-	RTC79410_write_dtime(&rtc);		// Grabo el RTC
+	RTC_write_dtime(&rtc);		// Grabo el RTC
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: Update rtc to: %s\r\n\0"), rtcStr );

@@ -19,9 +19,17 @@
  *  Para ver el uso de memoria usamos
  *  avr-nm -n test_io.elf | more
  *
+ *
  *------------------------------------------------------------------------------------------
  * 2018-07-13:
  * Implemento un sistema de impresion en consola xPrintf.
+ * Eliminamos todos los buffers locales.
+ * Elimino FRTOS-stdio
+ * Revisamos las librerias l_i2c/l_eeprom/l_ina3221/l_rtc79410 y las funciones asociadas en tkCmd.
+ * Paso los semaforos a estructcturas estaticas.
+ * Agrego la libreria l_ain
+ * Pongo un semaforo en l_file para acceder a la FAT
+ *
  *
  *------------------------------------------------------------------------------------------
  * 2018-07-12:
@@ -125,7 +133,6 @@ int main( void )
 
 	// Creo los semaforos
 	sem_SYSVars = xSemaphoreCreateMutex();
-	FRTOS_stdio_init();
 	xprintf_init();
 
 	startTask = false;

@@ -295,13 +295,6 @@ static void cmdResetFunction(void)
 
 	FRTOS_CMD_makeArgv();
 
-	// ALARM
-	// reset alarm
-	if (!strcmp_P( strupr(argv[1]), PSTR("ALARM\0"))) {
-		RTC79410_alarm0_reset();
-		return;
-	}
-
 	// Reset memory ??
 	if (!strcmp_P( strupr(argv[1]), PSTR("MEMORY\0"))) {
 
@@ -328,13 +321,6 @@ static void cmdWriteFunction(void)
 {
 
 	FRTOS_CMD_makeArgv();
-
-	// ALARM
-	// write alarm secs
-	if (!strcmp_P( strupr(argv[1]), PSTR("ALARM\0")) ) {
-		RTC79410_alarm0_set(argv[2]);
-		return;
-	}
 
 	// RTC
 	// write rtc YYMMDDhhmm
@@ -981,7 +967,7 @@ char data[3];
 			val = atoi( argv[4]);
 			data[0] = ( val & 0xFF00 ) >> 8;
 			data[1] = ( val & 0x00FF );
-			INA3221_write( INA3221_id2busaddr(ina_id), INA3231_CONF, data, 2 );
+			INA_write( INA_id2busaddr(ina_id), INA3231_CONF, data, 2 );
 			pv_snprintfP_OK();
 			return;
 		}
@@ -993,23 +979,23 @@ char data[3];
 		ina_id = atoi(argv[2]);
 
 		if (!strcmp_P( strupr(argv[3]), PSTR("CONF\0"))) {
-			INA3221_read(  INA3221_id2busaddr(ina_id), INA3231_CONF, data, 2 );
+			INA_read(  INA_id2busaddr(ina_id), INA3231_CONF, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH1SHV\0"))) {
-			INA3221_read(  INA3221_id2busaddr(ina_id), INA3221_CH1_SHV, data, 2 );
+			INA_read(  INA_id2busaddr(ina_id), INA3221_CH1_SHV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH1BUSV\0"))) {
-			INA3221_read(  INA3221_id2busaddr(ina_id), INA3221_CH1_BUSV, data, 2 );
+			INA_read(  INA_id2busaddr(ina_id), INA3221_CH1_BUSV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH2SHV\0"))) {
-			INA3221_read(  INA3221_id2busaddr(ina_id), INA3221_CH2_SHV, data, 2 );
+			INA_read(  INA_id2busaddr(ina_id), INA3221_CH2_SHV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH2BUSV\0"))) {
-			INA3221_read(  INA3221_id2busaddr(ina_id), INA3221_CH2_BUSV, data, 2 );
+			INA_read(  INA_id2busaddr(ina_id), INA3221_CH2_BUSV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH3SHV\0"))) {
-			INA3221_read(  INA3221_id2busaddr(ina_id), INA3221_CH3_SHV, data, 2 );
+			INA_read(  INA_id2busaddr(ina_id), INA3221_CH3_SHV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH3BUSV\0"))) {
-			INA3221_read(  INA3221_id2busaddr(ina_id), INA3221_CH3_BUSV, data, 2 );
+			INA_read(  INA_id2busaddr(ina_id), INA3221_CH3_BUSV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("MFID\0"))) {
-			INA3221_read(  INA3221_id2busaddr(ina_id), INA3221_MFID, data, 2 );
+			INA_read(  INA_id2busaddr(ina_id), INA3221_MFID, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("DIEID\0"))) {
-			INA3221_read(  INA3221_id2busaddr(ina_id), INA3221_DIEID, data, 2 );
+			INA_read(  INA_id2busaddr(ina_id), INA3221_DIEID, data, 2 );
 		} else {
 			pv_snprintfP_ERR();
 			return;
@@ -1084,15 +1070,16 @@ static void pv_cmd_pulse(void)
 static void pv_cmd_rwEE(uint8_t cmd_mode )
 {
 
-bool retS;
+
+bool retS = false;
+uint8_t length = 0;
 char buffer[32];
+char *p;
 
 	// read ee {pos} {lenght}
 	if ( cmd_mode == RD_CMD ) {
-		memset(buffer, '\0', sizeof(buffer));
-		retS = EE_test_read( argv[2], buffer, argv[3] );
+		retS = EE_read( (uint32_t)(atol(argv[2])), buffer, (uint8_t)(atoi(argv[3]) ) );
 		if ( retS ) {
-			// Al string leido le agrego el CR.
 			xprintf_P( PSTR( "%s\r\n\0"),buffer);
 		}
 		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
@@ -1101,7 +1088,14 @@ char buffer[32];
 
 	// write ee pos string
 	if ( cmd_mode == WR_CMD ) {
-		retS = EE_test_write( argv[2], argv[3]);
+		// Calculamos el largo del texto a escribir en la eeprom.
+		p = argv[3];
+		while (*p != 0) {
+			p++;
+			length++;
+		}
+
+		retS = EE_write( (uint32_t)(atol(argv[2])), argv[3], length );
 		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
@@ -1142,13 +1136,13 @@ bool retS;
 
 	if ( cmd_mode == WR_CMD ) {
 		RTC_str2rtc(argv[2], &rtc);				// Convierto el string YYMMDDHHMM a RTC.
-		retS = RTC79410_write_dtime(&rtc);		// Grabo el RTC
+		retS = RTC_write_dtime(&rtc);		// Grabo el RTC
 		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
 
 	if ( cmd_mode == RD_CMD ) {
-		RTC79410_read_dtime(&rtc);
+		RTC_read_dtime(&rtc);
 		RTC_rtc2str(datetime,&rtc);
 		xprintf_P( PSTR("%s\r\n\0"), datetime );
 		return;
@@ -1159,16 +1153,18 @@ bool retS;
 static void pv_cmd_rwRTC_SRAM(uint8_t cmd_mode )
 {
 	// Como se usa para leer memoria, la impresion la hacemos en hex
+	// La RTCram comienza en RTC79410_SRAM_INIT.
 
 uint8_t rtc_sram_buffer[32];
-uint8_t pos,i;
-
+uint8_t i;
 bool retS;
+uint8_t length = 0;
+char *p;
 
-	// read ee {pos} {lenght}
+	// read rtcram {pos} {lenght}
 	if ( cmd_mode == RD_CMD ) {
 		memset(rtc_sram_buffer, '\0', sizeof(rtc_sram_buffer));
-		retS = RTC79410_test_read( argv[2], rtc_sram_buffer, argv[3] );
+		retS = RTC_read( ( RTC79410_SRAM_INIT + (uint8_t)(atoi(argv[2]))), (char *)&rtc_sram_buffer, (uint8_t)(atoi(argv[3])) );
 		if ( retS ) {
 			// El string leido lo devuelve en cmd_printfBuff por lo que le agrego el CR.
 			xprintf_P ( PSTR( "\r\n\0 ") );
@@ -1181,9 +1177,16 @@ bool retS;
 		return;
 	}
 
-	// write ee pos string
+	// write rtcram pos string
 	if ( cmd_mode == WR_CMD ) {
-		retS = RTC79410_test_write( argv[2], argv[3]);
+		// Calculamos el largo del texto a escribir en la eeprom.
+		p = argv[3];
+		while (*p != 0) {
+			p++;
+			length++;
+		}
+
+		retS = RTC_write( ( RTC79410_SRAM_INIT + (uint32_t)(atol(argv[2]))), argv[3], length );
 		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}

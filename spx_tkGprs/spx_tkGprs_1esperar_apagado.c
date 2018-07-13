@@ -152,7 +152,7 @@ uint16_t now, pwr_save_start, pwr_save_end ;
 	// Estoy en modo PWR_DISCRETO con PWR SAVE ACTIVADO
 	if ( ( MODO_DISCRETO ) && ( systemVars.pwrSave.modo == modoPWRSAVE_ON )) {
 
-		RTC79410_read_dtime(&rtc);
+		RTC_read_dtime(&rtc);
 		now = rtc.hour * 60 + rtc.min;
 		pwr_save_start = systemVars.pwrSave.hora_start.hour * 60 + systemVars.pwrSave.hora_start.min;
 		pwr_save_end = systemVars.pwrSave.hora_fin.hour * 60 + systemVars.pwrSave.hora_fin.min;

@@ -70,7 +70,7 @@ static void pv_out_check_consignas(void)
 
 RtcTimeType_t rtcDateTime;
 
-	RTC79410_read_dtime(&rtcDateTime);
+	RTC_read_dtime(&rtcDateTime);
 
 	if ( ( rtcDateTime.hour == systemVars.outputs.consigna_diurna.hour ) &&
 			( rtcDateTime.min == systemVars.outputs.consigna_diurna.min )  ) {
@@ -149,7 +149,7 @@ uint16_t now, horaConsNoc, horaConsDia ;
 uint8_t consigna_a_aplicar = 99;
 
 	// Hora actual en minutos.
-	RTC79410_read_dtime(&rtcDateTime);
+	RTC_read_dtime(&rtcDateTime);
 
 	// Caso 1: C.Diurna < C.Nocturna
 	//           C.diurna                      C.nocturna
