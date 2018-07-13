@@ -10,7 +10,7 @@
  *  En este estado es donde entro en el modo tickless !!!.
  */
 
-#include <spx_tkGprs.h>
+#include "spx_tkGprs.h"
 
 static int32_t waiting_time;
 
@@ -29,8 +29,7 @@ bool exit_flag = false;
 	GPRS_stateVars.state = G_ESPERA_APAGADO;
 
 	// Secuencia para apagar el modem y dejarlo en modo low power.
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: modem off.\r\n\0"));
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("GPRS: modem off.\r\n\0"));
 
 	// Actualizo todas las variables para el estado apagado.
 	GPRS_stateVars.modem_prendido = false;
@@ -133,8 +132,7 @@ static bool starting_flag = true;
 EXIT:
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: await %lu s\r\n\0"), waiting_time );
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: await %lu s\r\n\0"), waiting_time );
 	}
 
 }
@@ -183,11 +181,10 @@ EXIT:
 
 	if ( systemVars.debug == DEBUG_GPRS) {
 		if ( insidePwrSave_flag == true ) {
-			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: inside pwrsave\r\n\0"));
+			xprintf_P( PSTR("GPRS: inside pwrsave\r\n\0"));
 		} else {
-			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: out pwrsave\r\n\0"));
+			xprintf_P( PSTR("GPRS: out pwrsave\r\n\0"));
 		}
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
 	}
 
 	return(insidePwrSave_flag);

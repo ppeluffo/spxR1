@@ -80,7 +80,7 @@ int8_t FF_readRcd( void *pvBuffer, uint8_t xSize );
 uint8_t FF_errno( void );
 void FF_rewind(void);
 void FF_deleteRcd(void);
-void FF_format( bool fullformat,char *print_buffer );
+void FF_format( bool fullformat );
 bool FAT_save( FAT_t *fat );
 bool FAT_load( FAT_t *fat );
 void FAT_read( FAT_t *fat );

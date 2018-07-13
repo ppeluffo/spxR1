@@ -312,13 +312,6 @@ uint16_t i;
 	return(true);
 }
 //------------------------------------------------------------------------------------
-void CMD_debug_write( t_debug debug_level, char *print_buff, uint16_t size )
-{
-	if ( systemVars.debug == debug_level ) {
-		CMD_write ( print_buff, size);
-	}
-}
-//------------------------------------------------------------------------------------
 void u_convert_str_to_time_t ( char *time_str, time_t *time_struct )
 {
 

@@ -5,7 +5,7 @@
  *      Author: pablo
  */
 
-#include <spx_tkGprs.h>
+#include "spx_tkGprs.h"
 
 static bool pv_gprs_CPIN(void);
 static bool pv_gprs_CGREG(void);
@@ -39,8 +39,7 @@ bool exit_flag = bool_RESTART;
 
 	GPRS_stateVars.state = G_CONFIGURAR;
 
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: configurar.\r\n\0"));
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("GPRS: configurar.\r\n\0"));
 
 	// Vemos que halla un pin presente.
 	if ( !pv_gprs_CPIN() ) {
@@ -91,13 +90,11 @@ static bool pv_gprs_CPIN(void)
 bool retS = false;
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: CPIN\r\n\0"));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: CPIN\r\n\0"));
 	}
 
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CPIN?\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CPIN?\r\0"));
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
@@ -125,15 +122,11 @@ static bool pv_gprs_CGREG(void)
 bool retS = false;
 uint8_t tryes;
 
-//	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NET registation\r\n\0"));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
-//	}
+	xprintf_P( PSTR("GPRS: NET registation\r\n\0"));
 
 	for ( tryes = 0; tryes < 3; tryes++ ) {
 		pub_gprs_flush_RX_buffer();
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CREG?\r\0"));
-		frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xCom_printf_P( fdGPRS,PSTR("AT+CREG?\r\0"));
 		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 		if ( systemVars.debug == DEBUG_GPRS ) {
 			pub_gprs_print_RX_Buffer();
@@ -164,14 +157,10 @@ static bool pv_gprs_CGATT(void)
 bool retS = false;
 uint8_t tryes;
 
-//	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NET attach\r\n\0"));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
-//	}
+	xprintf_P( PSTR("GPRS: NET attach\r\n\0"));
 
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGATT=1\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CGATT=1\r\0"));
 	vTaskDelay( (portTickType)( 2000 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
@@ -179,8 +168,7 @@ uint8_t tryes;
 
 	for ( tryes = 0; tryes < 3; tryes++ ) {
 		pub_gprs_flush_RX_buffer();
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGATT?\r\0"));
-		frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xCom_printf_P( fdGPRS,PSTR("AT+CGATT?\r\0"));
 		vTaskDelay( (portTickType)( 2000 / portTICK_RATE_MS ) );
 		if ( systemVars.debug == DEBUG_GPRS ) {
 			pub_gprs_print_RX_Buffer();
@@ -226,8 +214,7 @@ uint8_t tryes;
 	for ( tryes = 0; tryes < 5; tryes++ ) {
 
 		pub_gprs_flush_RX_buffer();
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGACT=1,1\r\0"));
-		frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xCom_printf_P( fdGPRS,PSTR("AT+CGACT=1,1\r\0"));
 		vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 		if ( systemVars.debug == DEBUG_GPRS ) {
 			pub_gprs_print_RX_Buffer();
@@ -250,8 +237,7 @@ static void pv_gprs_CSPN(void)
 {
 
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CSPN?\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CSPN?\r\0"));
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
@@ -265,8 +251,7 @@ static void pv_gprs_CNSMOD(void)
 
 	// AT+CNSMOD?
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CNSMOD?\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CNSMOD?\r\0"));
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
@@ -280,8 +265,7 @@ static void pv_gprs_CCINFO(void)
 	// AT+CCINFO
 
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CCINFO\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CCINFO\r\0"));
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
@@ -295,8 +279,7 @@ static void pv_gprs_CNTI(void)
 
 	// AT*CNTI?
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT*CNTI?\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT*CNTI?\r\0"));
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
@@ -309,8 +292,7 @@ static void pg_gprs_CIPMODE(void)
 	// Funcion que configura el modo transparente.
 
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CIPMODE=1\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CIPMODE=1\r\0"));
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
@@ -324,30 +306,26 @@ static void pg_gprs_DCDMODE(void)
 	// el estado del socket.
 
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT&D1\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT&D1\r\0"));
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
 	}
 
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CSUART=1\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CSUART=1\r\0"));
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
 	}
 
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CDCDMD=0\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CDCDMD=0\r\0"));
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 	pub_gprs_print_RX_Buffer();
 
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT&C1\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT&C1\r\0"));
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 	pub_gprs_print_RX_Buffer();
 
@@ -358,12 +336,11 @@ static void pg_gprs_APN(void)
 {
 	//Defino el PDP indicando cual es el APN.
 
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Set APN\r\n\0") );
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("GPRS: Set APN\r\n\0") );
 
 	// AT+CGDCONT
 /*	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGDCONT=1,\"IP\",\"%s\"\r\0"),systemVars.apn);
+	snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGDCONT=1,\"IP\",\"%s\"\r\0"),systemVars.apn);
 	FreeRTOS_write( &pdUART_GPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 	pub_gprs_print_RX_Buffer();
@@ -371,8 +348,7 @@ static void pg_gprs_APN(void)
 
 	// AT+CGDCONT
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGSOCKCONT=1,\"IP\",\"%s\"\r\0"),systemVars.apn);
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CGSOCKCONT=1,\"IP\",\"%s\"\r\0"),systemVars.apn);
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
@@ -381,8 +357,7 @@ static void pg_gprs_APN(void)
 	// Como puedo tener varios PDP definidos, indico cual va a ser el que se deba activar
 	// al usar el comando NETOPEN.
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CSOCKSETPN=1\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CSOCKSETPN=1\0"));
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();

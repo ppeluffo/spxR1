@@ -51,12 +51,13 @@
 #include "l_ina3221.h"
 #include "l_rtc79410.h"
 #include "l_file.h"
+#include "l_printf.h"
 
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "0.0.2"
-#define SPX_FW_DATE "@ 20180712"
+#define SPX_FW_REV "0.0.1"
+#define SPX_FW_DATE "@ 20180713"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
@@ -242,7 +243,6 @@ void initMCU(void);
 void pub_load_defaults(void);
 uint8_t pub_save_params_in_EE(void);
 bool u_load_params_from_EE(void);
-void CMD_debug_write( t_debug debug_level, char *print_buff, uint16_t size );
 void u_convert_str_to_time_t ( char *time_str, time_t *time_struct );
 void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
 void pub_convert_str_to_time_t ( char *time_str, time_t *time_struct );

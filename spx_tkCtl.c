@@ -14,7 +14,6 @@ static void pv_tkCtl_wink_led(void);
 static void pv_tkCtl_check_terminal(void);
 static void pv_tkCtl_check_wdg(void);
 
-static char ctl_printfBuff[CHAR128];
 static bool f_terminal_is_on;
 static uint16_t watchdog_timers[NRO_WDGS];
 
@@ -43,8 +42,7 @@ void tkCtl(void * pvParameters)
 
 	vTaskDelay( ( TickType_t)( 500 / portTICK_RATE_MS ) );
 
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("\r\nstarting tkControl..\r\n\0"));
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("\r\nstarting tkControl..\r\n\0"));
 
 	pv_tkCtl_init_system();
 
@@ -86,34 +84,29 @@ uint8_t wdg;
 	pv_tkCtl_check_terminal();
 	// Si prendi el bluetooth, lo configuro antes que nada para 115200.
 	if ( f_terminal_is_on ) {
-		FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("AT+BAUD8\r\n\0"));
-		CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+		xCom_printf_P( fdBT, PSTR("AT+BAUD8\r\n\0"));
 	}
 
 	// Leo los parametros del la EE y si tengo error, cargo por defecto
 	if ( ! u_load_params_from_EE() ) {
 		pub_load_defaults();
-		FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("\r\nLoading defaults !!\r\n\0"));
-		CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+		xprintf_P( PSTR("\r\nLoading defaults !!\r\n\0"));
 	}
 
 	// Inicializo la memoria EE ( fileSysyem)
 	if ( FF_open() ) {
-		FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("FSInit OK\r\n\0"));
+		xprintf_P( PSTR("FSInit OK\r\n\0"));
 	} else {
-		FF_format(false,ctl_printfBuff);	// Reformateo soft.( solo la FAT )
-		FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("FSInit FAIL !!.Reformatted...\r\n\0"));
+		FF_format(false );	// Reformateo soft.( solo la FAT )
+		xprintf_P( PSTR("FSInit FAIL !!.Reformatted...\r\n\0"));
 	}
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
 
 	FAT_read(&l_fat);
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("MEMsize=%d,wrPtr=%d,rdPtr=%d,delPtr=%d,r4wr=%d,r4rd=%d,r4del=%d \r\n\0"),FF_MAX_RCDS, l_fat.wrPTR,l_fat.rdPTR, l_fat.delPTR,l_fat.rcds4wr,l_fat.rcds4rd,l_fat.rcds4del );
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("MEMsize=%d,wrPtr=%d,rdPtr=%d,delPtr=%d,r4wr=%d,r4rd=%d,r4del=%d \r\n\0"),FF_MAX_RCDS, l_fat.wrPTR,l_fat.rdPTR, l_fat.delPTR,l_fat.rcds4wr,l_fat.rcds4rd,l_fat.rcds4del );
 
 	// Imprimo el tamanio de registro de memoria
 	recSize = sizeof(st_data_frame);
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("RCD size %d bytes.\r\n\0"),recSize);
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("RCD size %d bytes.\r\n\0"),recSize);
 
 	// Arranco el RTC. Si hay un problema lo inicializo.
 	RTC79410_start();
@@ -194,8 +187,7 @@ char buffer[10];
 		if ( --watchdog_timers[wdg] <= 0 ) {
 			memset(buffer,'\0', 10);
 			strcpy_P(buffer, (PGM_P)pgm_read_word(&(wdg_names[wdg])));
-			FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("CTL: WDG TO(%s) !!\r\n\0"),buffer);
-			CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+			xprintf_P( PSTR("CTL: WDG TO(%s) !!\r\n\0"),buffer);
 			vTaskDelay( ( TickType_t)( 500 / portTICK_RATE_MS ) );
 
 			// Me reseteo por watchdog
@@ -241,14 +233,12 @@ char buffer[10];
 	for ( wdg = 0; wdg < NRO_WDGS; wdg++ ) {
 		memset(buffer,'\0', 10);
 		strcpy_P(buffer, (PGM_P)pgm_read_word(&(wdg_names[wdg])));
-		FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("%d(%s)->%d \r\n\0"),wdg,buffer,watchdog_timers[wdg]);
-		CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+		xprintf_P( PSTR("%d(%s)->%d \r\n\0"),wdg,buffer,watchdog_timers[wdg]);
 	}
 
 	xSemaphoreGive( sem_SYSVars );
 
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("\r\n\0"));
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("\r\n\0"));
 
 }
 //------------------------------------------------------------------------------------
@@ -259,48 +249,39 @@ UBaseType_t uxHighWaterMark;
 
 	// tkIdle
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_idle );
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("IDLE:%03d,%03d,[%03d]\r\n\0"),configMINIMAL_STACK_SIZE,uxHighWaterMark,(configMINIMAL_STACK_SIZE - uxHighWaterMark)) ;
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("IDLE:%03d,%03d,[%03d]\r\n\0"),configMINIMAL_STACK_SIZE,uxHighWaterMark,(configMINIMAL_STACK_SIZE - uxHighWaterMark)) ;
 
 	// tkCmd
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkCmd );
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("CMD: %03d,%03d,[%03d]\r\n\0"),tkCmd_STACK_SIZE,uxHighWaterMark,(tkCmd_STACK_SIZE - uxHighWaterMark)) ;
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("CMD: %03d,%03d,[%03d]\r\n\0"),tkCmd_STACK_SIZE,uxHighWaterMark,(tkCmd_STACK_SIZE - uxHighWaterMark)) ;
 
 	// tkControl
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkCtl );
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("CTL: %03d,%03d,[%03d]\r\n\0"),tkCtl_STACK_SIZE,uxHighWaterMark, (tkCtl_STACK_SIZE - uxHighWaterMark));
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("CTL: %03d,%03d,[%03d]\r\n\0"),tkCtl_STACK_SIZE,uxHighWaterMark, (tkCtl_STACK_SIZE - uxHighWaterMark));
 
 	// tkDigital
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkDigital );
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("DIN: %03d,%03d,[%03d]\r\n\0"),tkDigital_STACK_SIZE,uxHighWaterMark, ( tkDigital_STACK_SIZE - uxHighWaterMark));
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("DIN: %03d,%03d,[%03d]\r\n\0"),tkDigital_STACK_SIZE,uxHighWaterMark, ( tkDigital_STACK_SIZE - uxHighWaterMark));
 
 	// tkAnalog
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkData );
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("DAT: %03d,%03d,[%03d]\r\n\0"),tkData_STACK_SIZE,uxHighWaterMark, ( tkData_STACK_SIZE - uxHighWaterMark));
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("DAT: %03d,%03d,[%03d]\r\n\0"),tkData_STACK_SIZE,uxHighWaterMark, ( tkData_STACK_SIZE - uxHighWaterMark));
 
 	// tkOutputs
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkOutputs );
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("OUT: %03d,%03d,[%03d]\r\n\0"),tkOutputs_STACK_SIZE, uxHighWaterMark, ( tkOutputs_STACK_SIZE - uxHighWaterMark));
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("OUT: %03d,%03d,[%03d]\r\n\0"),tkOutputs_STACK_SIZE, uxHighWaterMark, ( tkOutputs_STACK_SIZE - uxHighWaterMark));
 
 	//kGprsTX
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkGprsTx );
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("GTX: %03d,%03d,[%03d]\r\n\0"),tkGprs_tx_STACK_SIZE, uxHighWaterMark, ( tkGprs_tx_STACK_SIZE - uxHighWaterMark));
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("GTX: %03d,%03d,[%03d]\r\n\0"),tkGprs_tx_STACK_SIZE, uxHighWaterMark, ( tkGprs_tx_STACK_SIZE - uxHighWaterMark));
 
 	// tkGprsRX
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkGprsRx );
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("GRX: %03d,%03d,[%03d]\r\n\0"),tkGprs_rx_STACK_SIZE,uxHighWaterMark, ( tkGprs_rx_STACK_SIZE - uxHighWaterMark));
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("GRX: %03d,%03d,[%03d]\r\n\0"),tkGprs_rx_STACK_SIZE,uxHighWaterMark, ( tkGprs_rx_STACK_SIZE - uxHighWaterMark));
 
 	// tkXBEE
 	uxHighWaterMark = uxTaskGetStackHighWaterMark( xHandle_tkXbee );
-	FRTOS_snprintf_P( ctl_printfBuff,sizeof(ctl_printfBuff),PSTR("XBE: %03d,%03d,[%03d]\r\n\0"),tkXbee_STACK_SIZE,uxHighWaterMark, ( tkXbee_STACK_SIZE - uxHighWaterMark));
-	CMD_write(ctl_printfBuff, sizeof(ctl_printfBuff) );
+	xprintf_P( PSTR("XBE: %03d,%03d,[%03d]\r\n\0"),tkXbee_STACK_SIZE,uxHighWaterMark, ( tkXbee_STACK_SIZE - uxHighWaterMark));
 	
 }
 //------------------------------------------------------------------------------------

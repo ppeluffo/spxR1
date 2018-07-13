@@ -41,7 +41,7 @@ uint8_t channel;
 		systemVars.mmin[channel] = 0;
 		systemVars.mmax[channel] = 6.0;
 		systemVars.a_ch_modo[channel] = 'L';	// Modo local
-		FRTOS_snprintf_P( systemVars.an_ch_name[channel], PARAMNAME_LENGTH, PSTR("A%d\0"),channel );
+		snprintf_P( systemVars.an_ch_name[channel], PARAMNAME_LENGTH, PSTR("A%d\0"),channel );
 
 	}
 }
@@ -55,7 +55,7 @@ void pub_analog_config_channel( uint8_t channel,char *s_aname,char *s_imin,char 
 		taskYIELD();
 
 	if ( ( channel >=  0) && ( channel < NRO_ANALOG_CHANNELS) ) {
-		FRTOS_snprintf_P( systemVars.an_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_aname );
+		snprintf_P( systemVars.an_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_aname );
 		if ( s_imin != NULL ) { systemVars.imin[channel] = atoi(s_imin); }
 		if ( s_imax != NULL ) { systemVars.imax[channel] = atoi(s_imax); }
 		if ( s_mmin != NULL ) { systemVars.mmin[channel] = atoi(s_mmin); }

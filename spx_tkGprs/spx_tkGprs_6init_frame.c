@@ -5,7 +5,7 @@
  *      Author: pablo
  */
 
-#include <spx_tkGprs.h>
+#include "spx_tkGprs.h"
 
 static bool pv_send_init_frame(void);
 static bool pv_process_init_response(void);
@@ -42,8 +42,7 @@ bool exit_flag = false;
 
 	pub_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_INIT );
 
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: iniframe.\r\n\0" ));
-	CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("GPRS: iniframe.\r\n\0" ));
 
 	// Intenteo MAX_INIT_TRYES procesar correctamente el INIT
 	for ( intentos = 0; intentos < MAX_INIT_TRYES; intentos++ ) {
@@ -51,8 +50,7 @@ bool exit_flag = false;
 		if ( pv_send_init_frame() && pv_process_init_response() ) {		// Intento madar el frame al servidor
 			// Aqui es que anduvo todo bien y debo salir para pasar al modo DATA
 			if ( systemVars.debug == DEBUG_GPRS ) {
-				FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Init frame OK.\r\n\0" ));
-				CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+				xprintf_P( PSTR("GPRS: Init frame OK.\r\n\0" ));
 			}
 
 			exit_flag = true;
@@ -61,8 +59,7 @@ bool exit_flag = false;
 		} else {
 
 			if ( systemVars.debug == DEBUG_GPRS ) {
-				FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: iniframe retry(%d)\r\n\0"),intentos);
-				CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+				xprintf_P( PSTR("GPRS: iniframe retry(%d)\r\n\0"),intentos);
 			}
 
 			// Espero 3s antes de reintentar
@@ -72,8 +69,7 @@ bool exit_flag = false;
 
 	// Aqui es que no puede enviar/procesar el INIT correctamente
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Init frame FAIL !!.\r\n\0" ));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: Init frame FAIL !!.\r\n\0" ));
 	}
 
 // Exit
@@ -176,83 +172,45 @@ static void pv_TX_init_frame(void)
 	// Host: www.spymovil.com
 	// Connection: close\r\r ( no mando el close )
 
-uint16_t pos = 0;
 uint8_t i;
 
 	if ( systemVars.debug == DEBUG_GPRS  ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: iniframe: Sent\r\n\0"));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: iniframe: Sent\r\n\0"));
 	}
 
 	// Trasmision: 1r.Parte.
 	// HEADER:
 	// Envio parcial ( no CR )
-	memset( gprs_printfBuff, '\0', sizeof(gprs_printfBuff));
 	pub_gprs_flush_RX_buffer();
-
-	pos = FRTOS_snprintf_P( gprs_printfBuff,CHAR256,PSTR("GET " ));
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("%s"), systemVars.serverScript );
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("?DLGID=%s"), systemVars.dlgId );
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&PASSWD=%s"), systemVars.passwd );
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&IMEI=%s"), &buff_gprs_imei );
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&VER=%s\0"), SPX_FW_REV );
-	// GPRS sent
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
-	// Para darle tiempo a vaciar el buffer y que no se corten los datos que se estan trasmitiendo
-	// por sobreescribir el gprs_printBuff.
+	xCom_printf_P( fdGPRS,PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV );
 	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
-
 	// DEBUG & LOG
 	if ( systemVars.debug ==  DEBUG_GPRS ) {
-		FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0"));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s\r\n\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV );
 	}
 
 	// BODY ( 1a parte) :
-	memset(gprs_printfBuff, '\0', sizeof(gprs_printfBuff));
-	pos = FRTOS_snprintf_P( gprs_printfBuff ,CHAR256, PSTR("&INIT"));
-
-	// timerpoll
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&TPOLL=%d"), systemVars.timerPoll);
-
-	// timerdial
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&TDIAL=%d"), systemVars.timerDial);
-
-	// pwrSave
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&PWRS=%d,"),systemVars.pwrSave.modo);
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("%02d%02d,"),systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min );
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("%02d%02d"), systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min);
-
-	// outputs:
-	// Solo trasmito el modo y los valores de las consignas.
-	// En modo normal no importan los valores de out0,out1 porque son dinamicos.
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&OUTS=%d,%02d%02d,%02d%02d"),systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min);
-
-	// csq ( Trasmito el DBM )
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("&CSQ=%d\0"), systemVars.dbm);
-
-	// GPRS sent
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
-	// Para darle tiempo a vaciar el buffer y que no se corten los datos que se estan trasmitiendo
-	// por sobreescribir el gprs_printBuff.
+	// timerpoll,timerdial,pwrSave,outputs,csq
+	xCom_printf_P( fdGPRS, PSTR("&INIT&TPOLL=%d&TDIAL=%d&PWRS=%d,%02d%02d,%02d%02d&OUTS=%d,%02d%02d,%02d%02d&CSQ=%d\0"), systemVars.timerPoll,systemVars.timerDial,systemVars.pwrSave.modo,systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min,systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min, systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min,systemVars.dbm );
 	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
 
 	// DEBUG & LOG
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0" ));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("&INIT&TPOLL=%d&TDIAL=%d&PWRS=%d,%02d%02d,%02d%02d&OUTS=%d,%02d%02d,%02d%02d&CSQ=%d\0"), systemVars.timerPoll,systemVars.timerDial,systemVars.pwrSave.modo,systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min,systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min, systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min,systemVars.dbm );
 	}
 
 	// BODY ( 2a parte) : Configuracion de canales
-	memset(gprs_printfBuff, '\0', sizeof(gprs_printfBuff));
-	pos = 0;
 	// Configuracion de canales analogicos
 	for ( i = 0; i < NRO_ANALOG_CHANNELS; i++) {
 		// No trasmito los canales que estan con X ( apagados )
 		if (!strcmp_P( systemVars.an_ch_name[i], PSTR("X"))) {
 			continue;
 		}
-		pos += FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ), PSTR("&A%d=%s,%d,%d,%.02f,%.02f"), i,systemVars.an_ch_name[i],systemVars.imin[i], systemVars.imax[i], systemVars.mmin[i], systemVars.mmax[i]);
+		xCom_printf_P( fdGPRS,PSTR("&A%d=%s,%d,%d,%.02f,%.02f\0"), i,systemVars.an_ch_name[i],systemVars.imin[i], systemVars.imax[i], systemVars.mmin[i], systemVars.mmax[i]);
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P( PSTR("&A%d=%s,%d,%d,%.02f,%.02f\0"), i,systemVars.an_ch_name[i],systemVars.imin[i], systemVars.imax[i], systemVars.mmin[i], systemVars.mmax[i]);
+		}
 	}
 
 	// Configuracion de canales digitales
@@ -261,34 +219,20 @@ uint8_t i;
 		if (!strcmp_P( systemVars.d_ch_name[i], PSTR("X"))) {
 			continue;
 		}
-		pos += FRTOS_snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ),PSTR("&D%d=%c,%s,%.02f"), i, systemVars.d_ch_type[i], systemVars.d_ch_name[i], systemVars.d_ch_magpp[i] );
-	}
-
-	// GPRS send
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
-
-	// DEBUG & LOG
-	if ( systemVars.debug ==  DEBUG_GPRS ) {
-		FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0") );
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xCom_printf_P( fdGPRS,PSTR("&D%d=%c,%s,%.02f\0"),i, systemVars.d_ch_type[i], systemVars.d_ch_name[i], systemVars.d_ch_magpp[i] );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P( PSTR("&D%d=%c,%s,%.02f\0"),i, systemVars.d_ch_type[i], systemVars.d_ch_name[i], systemVars.d_ch_magpp[i] );
+		}
 	}
 
 	// TAIL ( No mando el close ya que espero la respuesta y no quiero que el socket se cierre )
-	memset(gprs_printfBuff, '\0', sizeof(gprs_printfBuff));
-	pos = FRTOS_snprintf_P( gprs_printfBuff, ( sizeof(gprs_printfBuff) - pos ),PSTR(" HTTP/1.1\r\n") );
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos], ( sizeof(gprs_printfBuff) - pos ), PSTR("Host: www.spymovil.com\r\n"));
-	pos += FRTOS_snprintf_P( &gprs_printfBuff[pos], sizeof(gprs_printfBuff), PSTR("\r\n\r\n\0" ));
-
-	// GPRS sent
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
-	// Para darle tiempo a vaciar el buffer y que no se corten los datos que se estan trasmitiendo
-	// por sobreescribir el gprs_printBuff.
+	xCom_printf_P( fdGPRS, PSTR(" HTTP/1.1\r\nHost: www.spymovil.com\r\n\r\n\r\n\0") );
 	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
 
 	// DEBUG & LOG
 	if ( systemVars.debug ==  DEBUG_GPRS ) {
-		FRTOS_snprintf_P( &gprs_printfBuff[pos],( sizeof(gprs_printfBuff) - pos ),PSTR("\r\n\0" ));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR(" HTTP/1.1\r\nHost: www.spymovil.com\r\n\r\n\r\n\0") );
 	}
 
 }
@@ -327,8 +271,7 @@ uint8_t saveFlag = 0;
 
 		// DEBUG & LOG
 		if ( systemVars.debug ==  DEBUG_GPRS ) {
-			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Save params OK\r\n\0"));
-			CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+			xprintf_P( PSTR("GPRS: Save params OK\r\n\0"));
 		}
 	}
 
@@ -381,8 +324,7 @@ RtcTimeType_t rtc;
 	RTC79410_write_dtime(&rtc);		// Grabo el RTC
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Update rtc to: %s\r\n\0"), rtcStr );
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: Update rtc to: %s\r\n\0"), rtcStr );
 	}
 
 }
@@ -417,8 +359,7 @@ char *delim = ",=:><";
 
 	ret = 1;
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Reconfig TPOLL\r\n\0"));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: Reconfig TPOLL\r\n\0"));
 	}
 
 quit:
@@ -455,8 +396,7 @@ char *delim = ",=:><";
 	pub_gprs_config_timerdial(token);
 	ret = 1;
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Reconfig TDIAL\r\n\0"));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: Reconfig TDIAL\r\n\0"));
 	}
 
 quit:
@@ -500,8 +440,7 @@ char *p, *s;
 	pub_configPwrSave(modo, p1, p2);
 	ret = 1;
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Reconfig PWRSAVE\r\n\0"));
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: Reconfig PWRSAVE\r\n\0"));
 	}
 
 quit:
@@ -561,8 +500,7 @@ char *s;
 	pub_analog_config_channel( channel, chName,s_iMin,s_iMax,s_mMin,s_mMax );
 	ret = 1;
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Reconfig A%d\r\n\0"), channel);
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: Reconfig A%d\r\n\0"), channel);
 	}
 
 quit:
@@ -618,8 +556,7 @@ char *s;
 	pub_tkDigital_config_channel( channel, chType, chName, s_magPP );
 	ret = 1;
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Reconfig D%d\r\n\0"), channel);
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: Reconfig D%d\r\n\0"), channel);
 	}
 
 quit:
@@ -666,8 +603,7 @@ char *p, *s;
 	ret = 1;
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Reconfig OUTPUTS (modo=%d,p1=%s,p2=%s)\r\n\0"), modo, p1,p2);
-		CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: Reconfig OUTPUTS (modo=%d,p1=%s,p2=%s)\r\n\0"), modo, p1,p2);
 	}
 
 quit:

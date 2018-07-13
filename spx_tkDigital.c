@@ -57,7 +57,6 @@
 
 BaseType_t xHigherPriorityTaskWokenDigital = pdFALSE;
 
-static char digital_printfBuff[CHAR64];
 static st_digital_frame digital_frame;
 
 static bool wakeup_for_C0, wakeup_for_C1;
@@ -80,8 +79,7 @@ const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10000 );
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	FRTOS_snprintf_P( digital_printfBuff,sizeof(digital_printfBuff),PSTR("starting tkDigital..\r\n\0"));
-	CMD_write(digital_printfBuff, sizeof(digital_printfBuff) );
+	xprintf_P( PSTR("starting tkDigital..\r\n\0"));
 
 	pv_tkDigital_init();
 
@@ -112,8 +110,7 @@ const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10000 );
 			}
 
 			if ( systemVars.debug == DEBUG_DIGITAL) {
-				FRTOS_snprintf_P( digital_printfBuff,sizeof(digital_printfBuff),PSTR("DIGITAL: C0=%d,C1=%d\r\n\0"),digital_frame.counter[1],digital_frame.counter[2]);
-				CMD_write(digital_printfBuff, sizeof(digital_printfBuff) );
+				xprintf_P( PSTR("DIGITAL: C0=%d,C1=%d\r\n\0"),digital_frame.counter[1],digital_frame.counter[2]);
 			}
 			// Espero 100ms de debounced
 			vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
@@ -241,10 +238,10 @@ void pub_tkDigital_load_defaults(void)
 	// Realiza la configuracion por defecto de los canales digitales.
 
 	// Nombres
-	FRTOS_snprintf_P( systemVars.d_ch_name[0], PARAMNAME_LENGTH, PSTR("L0\0") );
-	FRTOS_snprintf_P( systemVars.d_ch_name[1], PARAMNAME_LENGTH, PSTR("C0\0") );
-	FRTOS_snprintf_P( systemVars.d_ch_name[2], PARAMNAME_LENGTH, PSTR("C1\0") );
-	FRTOS_snprintf_P( systemVars.d_ch_name[3], PARAMNAME_LENGTH, PSTR("L1\0") );
+	snprintf_P( systemVars.d_ch_name[0], PARAMNAME_LENGTH, PSTR("L0\0") );
+	snprintf_P( systemVars.d_ch_name[1], PARAMNAME_LENGTH, PSTR("C0\0") );
+	snprintf_P( systemVars.d_ch_name[2], PARAMNAME_LENGTH, PSTR("C1\0") );
+	snprintf_P( systemVars.d_ch_name[3], PARAMNAME_LENGTH, PSTR("L1\0") );
 
 	// Tipos
 	systemVars.d_ch_type[0] = 'L';	// JP15, D0 level
@@ -289,7 +286,7 @@ bool retS = false;
 	if ( ( channel == 3 ) && (tipo != 'L') ) goto EXIT;
 
 	systemVars.d_ch_type[channel] = tipo;
-	FRTOS_snprintf_P( systemVars.d_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_dname );
+	snprintf_P( systemVars.d_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_dname );
 	if ( s_magPP != NULL ) { systemVars.d_ch_magpp[channel] = atof(s_magPP); }
 
 	retS = true;

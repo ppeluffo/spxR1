@@ -71,9 +71,7 @@ void tkGprsTx(void * pvParameters)
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	memset(gprs_printfBuff,'\0', sizeof(gprs_printfBuff));
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("starting tkGprsTx..\r\n\0"));
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("starting tkGprsTx..\r\n\0"));
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 
 	pv_gprs_init_system();
@@ -129,9 +127,7 @@ BaseType_t xResult;
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	memset(gprs_printfBuff,'\0', sizeof(gprs_printfBuff));
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("starting tkGprsRX..\r\n\0"));
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("starting tkGprsRX..\r\n\0"));
 
 	pv_gprs_rxbuffer_flush();
 
@@ -159,29 +155,6 @@ BaseType_t xResult;
 
 			while ( frtos_read( fdGPRS, &c, 1 ) == 1 ) {
 				pv_gprs_rxbuffer_push(c);
-/*
-				// Los comandos vienen terminados en CR
-				if (c == '\r') {
-
-					if ( pub_gprs_check_response ("CONNECT\0")) {
-			//			GPRS_stateVars.dcd = 1;
-					//	CMD_write( "DEBUG ** MRSP_CONNECT\r\n\0", sizeof("DEBUG ** MRSP_CONNECT\r\n\0") );
-					}
-
-					if ( pub_gprs_check_response ("NO CARRIER\0")) {
-			//			GPRS_stateVars.dcd = 0;
-					//	CMD_write( "DEBUG ** MRSP_NO CARRIER\r\n\0", sizeof("DEBUG ** MRSP_NO CARRIER\r\n\0") );
-						pv_gprs_rxbuffer_flush();
-					}
-
-					if ( pub_gprs_check_response ("CLOSED\0")) {
-			//			GPRS_stateVars.dcd = 0;
-					//	CMD_write( "DEBUG ** MRSP_CLOSED\r\n\0", sizeof("DEBUG ** MRSP_CLOSED\r\n\0") );
-						pv_gprs_rxbuffer_flush();
-					}
-
-				}
-*/
 			}
 
 		} else {

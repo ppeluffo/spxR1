@@ -17,10 +17,9 @@
 static bool pv_tkData_guardar_BD(st_data_frame *dframe);
 static void pv_tkData_signal_to_tkgprs(void);
 static void pv_tkData_xbee_print_frame(st_data_frame *dframe);
-static pv_tkData_update_remote_channels(st_data_frame *dframe);
+static void pv_tkData_update_remote_channels(st_data_frame *dframe);
 
 // VARIABLES LOCALES
-static char data_printfBuff[CHAR256];
 static st_data_frame pv_data_frame;
 
 // La tarea pasa por el mismo lugar c/timerPoll secs.
@@ -39,8 +38,7 @@ TickType_t xLastWakeTime;
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	FRTOS_snprintf_P( data_printfBuff,sizeof(data_printfBuff),PSTR("starting tkData..\r\n\0"));
-	CMD_write(data_printfBuff, sizeof(data_printfBuff) );
+	xprintf_P( PSTR("starting tkData..\r\n\0"));
 
 	// Configuro los INA para promediar en 128 valores.
 	pub_analog_config_INAS(CONF_INAS_AVG128);
@@ -111,12 +109,10 @@ static bool primer_frame = true;
 
 	if ( bytes_written == -1 ) {
 		// Error de escritura o memoria llena ??
-		FRTOS_snprintf_P( data_printfBuff,sizeof(data_printfBuff),PSTR("DATA: WR ERROR (%d)\r\n\0"),FF_errno() );
-		CMD_write(data_printfBuff, sizeof(data_printfBuff) );
+		xprintf_P( PSTR("DATA: WR ERROR (%d)\r\n\0"),FF_errno() );
 		// Stats de memoria
 		FAT_read(&l_fat);
-		FRTOS_snprintf_P( data_printfBuff, sizeof(data_printfBuff), PSTR("DATA: MEM [wr=%d,rd=%d,del=%d]\0"), l_fat.wrPTR,l_fat.rdPTR, l_fat.delPTR );
-		CMD_write(data_printfBuff, sizeof(data_printfBuff) );
+		xprintf_P( PSTR("DATA: MEM [wr=%d,rd=%d,del=%d]\0"), l_fat.wrPTR,l_fat.rdPTR, l_fat.delPTR );
 		return(false);
 	}
 
@@ -138,10 +134,7 @@ static void pv_tkData_xbee_print_frame(st_data_frame *dframe)
 {
 	// Imprime el frame actual por el xbee.
 
-uint8_t pos;
 uint8_t channel;
-
-	pos = 0;
 
 	// Valores analogicos
 	// Solo muestro los que tengo configurados.
@@ -149,7 +142,7 @@ uint8_t channel;
 		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) )
 			continue;
 
-		pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR("%s=%.03f,"),systemVars.an_ch_name[channel],dframe->analog_frame.mag_val[channel] );
+		xprintf_P( PSTR("%s=%.03f,"),systemVars.an_ch_name[channel],dframe->analog_frame.mag_val[channel] );
 	}
 
 	// Valores digitales. Lo que mostramos depende de lo que tenemos configurado
@@ -161,29 +154,27 @@ uint8_t channel;
 		}
 		// Level ?
 		if ( systemVars.d_ch_type[channel] == 'L') {
-			pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR("%s=%d,"),systemVars.d_ch_name[channel],dframe->digital_frame.level[channel] );
+			xprintf_P( PSTR("%s=%d,"),systemVars.d_ch_name[channel],dframe->digital_frame.level[channel] );
 		} else {
 		// Counter ?
-			pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR("%s=%.02f,"),systemVars.d_ch_name[channel],dframe->digital_frame.magnitud[channel] );
+			xprintf_P( PSTR("%s=%.02f,"),systemVars.d_ch_name[channel],dframe->digital_frame.magnitud[channel] );
 		}
 	}
 
 	// Range Meter
 	if ( systemVars.rangeMeter_enabled ) {
-		pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR("PW=%d"), dframe->range );
-	} else {
-		pos--;	// Para eliminar la ultima coma.
+		xprintf_P( PSTR("PW=%d"), dframe->range );
 	}
 
 	// TAIL
-	pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR("\r\n\0") );
+	xprintf_P( PSTR("\r\n\0") );
 
 	// Envio por el XBEE uart
 	//FreeRTOS_write( &pdUART_XBEE, data_printfBuff, sizeof(data_printfBuff) );
 
 }
 //------------------------------------------------------------------------------------
-static pv_tkData_update_remote_channels(st_data_frame *dframe)
+static void pv_tkData_update_remote_channels(st_data_frame *dframe)
 {
 	// Para los canales que estan configurados como remotos, el valor lo leo
 	// del frame que trajo el XBEE.
@@ -253,14 +244,13 @@ void pub_tkData_print_frame(st_data_frame *dframe)
 {
 	// Imprime el frame actual en consola
 
-uint8_t pos;
 uint8_t channel;
 
 	// HEADER
-	pos = FRTOS_snprintf_P( data_printfBuff, sizeof(data_printfBuff), PSTR("frame: " ) );
+	xprintf_P ( PSTR("frame: " ) );
 	// timeStamp.
-	pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ),PSTR( "%04d%02d%02d,"),dframe->rtc.year,dframe->rtc.month,dframe->rtc.day );
-	pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR("%02d%02d%02d"),dframe->rtc.hour,dframe->rtc.min, dframe->rtc.sec );
+	xprintf_P ( PSTR( "%04d%02d%02d,"),dframe->rtc.year,dframe->rtc.month,dframe->rtc.day );
+	xprintf_P ( PSTR("%02d%02d%02d"),dframe->rtc.hour,dframe->rtc.min, dframe->rtc.sec );
 
 	// Valores analogicos
 	// Solo muestro los que tengo configurados.
@@ -268,7 +258,7 @@ uint8_t channel;
 		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) )
 			continue;
 
-		pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR(",%s=%.03f"),systemVars.an_ch_name[channel],dframe->analog_frame.mag_val[channel] );
+		xprintf_P ( PSTR(",%s=%.03f"),systemVars.an_ch_name[channel],dframe->analog_frame.mag_val[channel] );
 	}
 
 	// Valores digitales. Lo que mostramos depende de lo que tenemos configurado
@@ -280,26 +270,23 @@ uint8_t channel;
 		}
 		// Level ?
 		if ( systemVars.d_ch_type[channel] == 'L') {
-			pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR(",%s=%d"),systemVars.d_ch_name[channel],dframe->digital_frame.level[channel] );
+			xprintf_P ( PSTR(",%s=%d"),systemVars.d_ch_name[channel],dframe->digital_frame.level[channel] );
 		} else {
 		// Counter ?
-			pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR(",%s=%.02f"),systemVars.d_ch_name[channel],dframe->digital_frame.magnitud[channel] );
+			xprintf_P ( PSTR(",%s=%.02f"),systemVars.d_ch_name[channel],dframe->digital_frame.magnitud[channel] );
 		}
 	}
 
 	// Range Meter
 	if ( systemVars.rangeMeter_enabled ) {
-		pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR(",PW=%d"), dframe->range );
+		xprintf_P ( PSTR(",PW=%d"), dframe->range );
 	}
 
 	// bateria
-	pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR(",BAT=%.02f"), dframe->battery );
+	xprintf_P ( PSTR(",BAT=%.02f"), dframe->battery );
 
 	// TAIL
-	pos += FRTOS_snprintf_P( &data_printfBuff[pos], ( sizeof(data_printfBuff) - pos ), PSTR("\r\n\0") );
-
-	// Imprimo
-	CMD_write(data_printfBuff, sizeof(data_printfBuff) );
+	xprintf_P ( PSTR("\r\n\0") );
 
 }
 //------------------------------------------------------------------------------------

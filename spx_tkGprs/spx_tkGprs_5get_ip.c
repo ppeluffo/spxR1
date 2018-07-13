@@ -5,10 +5,9 @@
  *      Author: pablo
  */
 
-#include <spx_tkGprs.h>
+#include "spx_tkGprs.h"
 
 static bool pv_gprs_netopen(void);
-static bool pg_gprs_activate(void);
 static void pv_gprs_read_ip_assigned(void);
 
 // La tarea no puede demorar mas de 180s.
@@ -34,8 +33,7 @@ bool exit_flag = bool_RESTART;
 	} else {
 		// Aqui es que luego de tantos reintentos no consegui la IP.
 		exit_flag = bool_RESTART;
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: ERROR: ip no asignada !!.\r\n\0") );
-		CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: ERROR: ip no asignada !!.\r\n\0") );
 	}
 
 	return(exit_flag);
@@ -43,63 +41,6 @@ bool exit_flag = bool_RESTART;
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES PRIVADAS
-//------------------------------------------------------------------------------------
-static bool pg_gprs_activate(void)
-{
-	/* Intento varias veces activar el APN para que me de una IP.
-	 *
-	 */
-
-uint8_t net_tryes, qry_tryes;
-
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NET activation (get IP).\r\n\0"));
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
-
-	// Intento MAX_IP_QUERIES veces que me asignen una IP.
-	// AT+CGACT=1,1
-	for ( net_tryes = 0; net_tryes < MAX_IP_QUERIES; net_tryes++ ) {
-
-		// Envio el comando para activar el contexto y que me de una IP.
-		pub_gprs_flush_RX_buffer();
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGACT=1,1\r\0"));
-		frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
-		vTaskDelay( ( TickType_t)( 3000 / portTICK_RATE_MS ) );
-		if ( systemVars.debug == DEBUG_GPRS ) {
-			pub_gprs_print_RX_Buffer();
-		}
-
-		for ( qry_tryes = 0; qry_tryes < 5; qry_tryes++ ) {
-
-			// Envio el comando para ver si se activo el contexto
-			pub_gprs_flush_RX_buffer();
-			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGACT?\r\0"));
-			frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
-			vTaskDelay( ( TickType_t)( 2000 / portTICK_RATE_MS ) );
-			if ( systemVars.debug == DEBUG_GPRS ) {
-				pub_gprs_print_RX_Buffer();
-			}
-
-			// Analizo la respuesta
-			if ( pub_gprs_check_response("+CGACT: 1\0")) {
-				FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: ip address OK.\r\n\0") );
-				CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
-				pv_gprs_read_ip_assigned();	// Leo e informo cual IP me asigno la red
-				return(true);
-			}
-
-			if ( pub_gprs_check_response("ERROR\0")) {
-				// Error: salgo del loop de espera y voy a reintentar dar el comando
-				return(false);
-			}
-
-			// Espero 5s antes de consultar de nuevo
-			vTaskDelay( (portTickType)( 3000 / portTICK_RATE_MS ) );
-		}
-
-	}
-
-	return(false);
-}
 //------------------------------------------------------------------------------------
 static bool pv_gprs_netopen(void)
 {
@@ -110,8 +51,7 @@ static bool pv_gprs_netopen(void)
 uint8_t reintentos = MAX_TRYES_NET_ATTCH;
 uint8_t checks;
 
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: netopen (get IP).\r\n\0") );
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("GPRS: netopen (get IP).\r\n\0") );
 
 	while ( reintentos-- > 0 ) {
 
@@ -120,19 +60,16 @@ uint8_t checks;
 		vTaskDelay( ( TickType_t)( 2000 / portTICK_RATE_MS ) );
 		pub_gprs_flush_RX_buffer();
 		if ( systemVars.debug == DEBUG_GPRS ) {
-			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: send NETOPEN cmd (%d)\r\n\0"),reintentos );
-			CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+			xprintf_P( PSTR("GPRS: send NETOPEN cmd (%d)\r\n\0"),reintentos );
 		}
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+NETOPEN\r\0"));
-		frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xCom_printf_P( fdGPRS,PSTR("AT+NETOPEN\r\0"));
 		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 
 		// Intento 3 veces ver si respondio correctamente.
 		for ( checks = 0; checks < 5; checks++) {
 
 			if ( systemVars.debug == DEBUG_GPRS ) {
-				FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: netopen check.(%d)\r\n\0"),checks );
-				CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+				xprintf_P( PSTR("GPRS: netopen check.(%d)\r\n\0"),checks );
 			}
 
 			if ( systemVars.debug == DEBUG_GPRS ) {
@@ -140,8 +77,7 @@ uint8_t checks;
 			}
 
 			if ( pub_gprs_check_response("+NETOPEN: 0")) {
-				FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NETOPEN OK !.\r\n\0") );
-				CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+				xprintf_P( PSTR("GPRS: NETOPEN OK !.\r\n\0") );
 				pv_gprs_read_ip_assigned();
 				return(true);
 			}
@@ -157,8 +93,7 @@ uint8_t checks;
 	}
 
 	// Luego de varios reintentos no pude conectarme a la red.
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: NETOPEN FAIL !!.\r\n\0"));
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("GPRS: NETOPEN FAIL !!.\r\n\0"));
 	return(false);
 
 }
@@ -173,9 +108,8 @@ char c;
 
 	// AT+CGPADDR para leer la IP
 	pub_gprs_flush_RX_buffer();
-	//FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGPADDR\r\0"));
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+IPADDR\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	//xCom_printf_P( fdGPRS,PSTR("AT+CGPADDR\r\0"));
+	xCom_printf_P( fdGPRS,PSTR("AT+IPADDR\r\0"));
 	vTaskDelay( (portTickType)( 2000 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
@@ -193,8 +127,7 @@ char c;
 	}
 	systemVars.dlg_ip_address[i++] = '\0';
 
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: ip address=[%s]\r\n\0"), systemVars.dlg_ip_address);
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("GPRS: ip address=[%s]\r\n\0"), systemVars.dlg_ip_address);
 
 }
 //------------------------------------------------------------------------------------

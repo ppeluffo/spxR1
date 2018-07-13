@@ -5,8 +5,7 @@
  *      Author: pablo
  */
 
-#include <spx_tkGprs.h>
-#include "spx.h"
+#include "spx_tkGprs.h"
 
 //------------------------------------------------------------------------------------
 void pub_gprs_open_socket(void)
@@ -14,13 +13,11 @@ void pub_gprs_open_socket(void)
 	// Envio el comando AT para abrir el socket
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: try to open socket\r\n\0"));
-		CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P( PSTR("GPRS: try to open socket\r\n\0"));
 	}
 
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CIPOPEN=0,\"TCP\",\"%s\",%s\r\n\0"),systemVars.server_ip_address,systemVars.server_tcp_port);
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS, PSTR("AT+CIPOPEN=0,\"TCP\",\"%s\",%s\r\n\0"),systemVars.server_ip_address,systemVars.server_tcp_port);
 	vTaskDelay( (portTickType)( 1500 / portTICK_RATE_MS ) );
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
@@ -45,16 +42,14 @@ t_socket_status socket_status = SOCK_CLOSED;
 	//if ( ( GPRS_stateVars.modem_prendido == true ) && ( GPRS_stateVars.dcd == 1 ) ){
 
 		if ( systemVars.debug == DEBUG_GPRS ) {
-			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: sckt is open (dcd=%d)\r\n\0"),pin_dcd);
-			CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+			xprintf_P( PSTR("GPRS: sckt is open (dcd=%d)\r\n\0"),pin_dcd);
 		}
 		socket_status = SOCK_OPEN;
 
 	} else {
 
 		if ( systemVars.debug == DEBUG_GPRS ) {
-			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: sckt is close (dcd=%d)\r\n\0"),pin_dcd);
-			CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+			xprintf_P( PSTR("GPRS: sckt is close (dcd=%d)\r\n\0"),pin_dcd);
 		}
 		socket_status = SOCK_CLOSED;
 	}
@@ -122,7 +117,7 @@ void pub_gprs_load_defaults(void)
 
 	systemVars.timerDial = 900;
 
-	FRTOS_snprintf_P( systemVars.apn, APN_LENGTH, PSTR("SPYMOVIL.VPNANTEL\0") );
+	snprintf_P( systemVars.apn, APN_LENGTH, PSTR("SPYMOVIL.VPNANTEL\0") );
 	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),16);
 	strncpy_P(systemVars.server_tcp_port, PSTR("80\0"),PORT_LENGTH	);
 	strncpy_P(systemVars.passwd, PSTR("spymovil123\0"),PASSWD_LENGTH);
@@ -210,13 +205,9 @@ void pub_gprs_print_RX_response(void)
 	end = strstr(pv_gprsRxCbuffer.buffer, "</h1>");
 
 	if ( ( start != NULL ) && ( end != NULL) ) {
+		*end = '\0';
 		start += 4;
-		largo = end - start;
-		memset( gprs_printfBuff, '\0', sizeof(gprs_printfBuff));
-		pos = FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: rsp> "));
-		strncpy( &gprs_printfBuff[pos], start, largo);
-		FRTOS_snprintf_P( &gprs_printfBuff[pos+largo],sizeof(gprs_printfBuff),PSTR("\r\n\0"));
-		CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+		xprintf_P ( PSTR("GPRS: rsp>%s\r\n\0"), start );
 	}
 
 }
@@ -238,13 +229,8 @@ void pub_gprs_print_RX_Buffer(void)
 	// Imprime la respuesta a un comando.
 	// Utiliza el buffer de RX.
 
-//	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: rxbuff> \r\n\0"));
-//	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
 	// Imprimo todo el buffer de RX ( 640b). Sale por \0.
-	frtos_write( fdGPRS, pv_gprsRxCbuffer.buffer, UART_GPRS_RXBUFFER_LEN );
-	// Agrego un CRLF por las dudas
-//	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
-	CMD_write( "\r\n\0", sizeof("\r\n\0") );
+	xprintf_P( PSTR ("GPRS: rxbuff>%s\r\n\0"), pv_gprsRxCbuffer.buffer );
 
 }
 //------------------------------------------------------------------------------------
@@ -257,8 +243,7 @@ char *ts = NULL;
 
 	// AT+CSQ
 	pub_gprs_flush_RX_buffer();
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CSQ\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS, PSTR("AT+CSQ\r\0"));
 	vTaskDelay( (portTickType)( 500 / portTICK_RATE_MS ) );
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
@@ -273,8 +258,7 @@ char *ts = NULL;
 	}
 
 	// LOG & DEBUG
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: signalQ CSQ=%d,DBM=%d\r\n\0"), systemVars.csq,systemVars.dbm );
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P ( PSTR("GPRS: signalQ CSQ=%d,DBM=%d\r\n\0"), systemVars.csq,systemVars.dbm );
 
 }
 //------------------------------------------------------------------------------------

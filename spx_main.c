@@ -19,7 +19,11 @@
  *  Para ver el uso de memoria usamos
  *  avr-nm -n test_io.elf | more
  *
-  *------------------------------------------------------------------------------------------
+ *------------------------------------------------------------------------------------------
+ * 2018-07-13:
+ * Implemento un sistema de impresion en consola xPrintf.
+ *
+ *------------------------------------------------------------------------------------------
  * 2018-07-12:
  * - Previo elimino todo lo que tiene que ver con SPI que aun no esta implementado.
  * - En test probe el nuevo modelo de drivers y frtos en capas con servicios verticales.
@@ -122,6 +126,7 @@ int main( void )
 	// Creo los semaforos
 	sem_SYSVars = xSemaphoreCreateMutex();
 	FRTOS_stdio_init();
+	xprintf_init();
 
 	startTask = false;
 
@@ -161,8 +166,8 @@ void vApplicationStackOverflowHook( TaskHandle_t xTask, signed char *pcTaskName 
 	// En FreeRTOSConfig.h debemos habilitar
 	// #define configCHECK_FOR_STACK_OVERFLOW          2
 
-	FRTOS_snprintf_P( stdout_buff,sizeof(stdout_buff),PSTR("PANIC:%s !!\r\n\0"),pcTaskName);
-	CMD_write(stdout_buff, sizeof(stdout_buff) );
+	xprintf_P( PSTR("PANIC:%s !!\r\n\0"),pcTaskName);
+
 }
 //------------------------------------------------------------------------------------
 

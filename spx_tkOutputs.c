@@ -7,7 +7,6 @@
 
 #include "spx.h"
 
-static char out_printfBuff[80];	// Buffer de impresion
 static 	uint8_t l_out_A, l_out_B;
 
 static void pv_out_chequear(void);
@@ -31,8 +30,7 @@ void tkOutputs(void * pvParameters)
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("starting tkOutputs..\r\n\0"));
-	CMD_write(out_printfBuff, sizeof(out_printfBuff) );
+	xprintf_P( PSTR("starting tkOutputs..\r\n\0"));
 
 	pv_out_init();
 
@@ -204,7 +202,7 @@ uint8_t consigna_a_aplicar = 99;
 	switch (consigna_a_aplicar) {
 	case 99:
 		// Incompatibilidad: seteo por default.
-		FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("OUTPUTS: INIT ERROR al setear consignas: horas incompatibles\r\n\0"));
+		xprintf_P( PSTR("OUTPUTS: INIT ERROR al setear consignas: horas incompatibles\r\n\0"));
 		systemVars.outputs.modo = OUT_CONSIGNA;
 		systemVars.outputs.consigna_diurna.hour = 05;
 		systemVars.outputs.consigna_diurna.min = 30;
@@ -298,8 +296,7 @@ void pub_output_set_consigna_diurna(void)
 	DRV8814_close_valve_B();
 
 	systemVars.outputs.consigna_aplicada = CONSIGNA_DIURNA;
-	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("OUTPUTS: Aplico Consigna Diurna\r\n\0") );
-	CMD_write(out_printfBuff, sizeof(out_printfBuff) );
+	xprintf_P( PSTR("OUTPUTS: Aplico Consigna Diurna\r\n\0") );
 }
 //----------------------------------------------------------------------------------------
 void pub_output_set_consigna_nocturna(void)
@@ -310,8 +307,7 @@ void pub_output_set_consigna_nocturna(void)
 	DRV8814_close_valve_B();
 
 	systemVars.outputs.consigna_aplicada = CONSIGNA_NOCTURNA;
-	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("OUTPUTS: Aplico Consigna Nocturna\r\n\0") );
-	CMD_write(out_printfBuff, sizeof(out_printfBuff) );
+	xprintf_P( PSTR("OUTPUTS: Aplico Consigna Nocturna\r\n\0") );
 }
 //----------------------------------------------------------------------------------------
 void pub_output_set_outputs( char id_output, uint8_t value)
@@ -328,8 +324,7 @@ void pub_output_set_outputs( char id_output, uint8_t value)
 		break;
 	}
 
-	FRTOS_snprintf_P( out_printfBuff,sizeof(out_printfBuff),PSTR("OUTPUTS: Set out_%c=%d\r\n\0"),id_output,value );
-	CMD_write(out_printfBuff, sizeof(out_printfBuff) );
+	xprintf_P( PSTR("OUTPUTS: Set out_%c=%d\r\n\0"),id_output,value );
 
 }
 //----------------------------------------------------------------------------------------

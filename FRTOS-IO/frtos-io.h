@@ -33,8 +33,10 @@
 // Identificador de los file descriptor.
 typedef enum {
 	fdUSB = 1,
-	fdGPRS = 2,
-	fdI2C = 3,
+	fdGPRS,
+	fdXBEE,
+	fdBT,
+	fdI2C,
 
 } file_descriptor_t;
 

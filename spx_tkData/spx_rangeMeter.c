@@ -80,8 +80,7 @@ int16_t ping = 0;
 	}
 
 	if ( systemVars.debug == DEBUG_RANGEMETER ) {
-		FRTOS_snprintf_P( rangeMeter_printfBuff,sizeof(rangeMeter_printfBuff),PSTR("RANGE: Start\r\n\0"));
-		CMD_write(rangeMeter_printfBuff, sizeof(rangeMeter_printfBuff) );
+		xprintf_P( PSTR("RANGE: Start\r\n\0"));
 	}
 
 	// Prendo el sensor
@@ -104,8 +103,7 @@ int16_t ping = 0;
 	pv_rangeMeter_stop();
 	//
 	if ( systemVars.debug == DEBUG_RANGEMETER ) {
-		FRTOS_snprintf_P( rangeMeter_printfBuff,sizeof(rangeMeter_printfBuff),PSTR("RANGE: Stop\r\n\0"));
-		CMD_write(rangeMeter_printfBuff, sizeof(rangeMeter_printfBuff) );
+		xprintf_P( PSTR("RANGE: Stop\r\n\0"));
 	}
 	// Calculo valores y muestro resultados
 	ping = pv_rangeMeter_calcular_distancia();
@@ -191,8 +189,7 @@ int16_t ping;
 	}
 
 	if ( systemVars.debug == DEBUG_RANGEMETER ) {
-		FRTOS_snprintf_P( rangeMeter_printfBuff,sizeof(rangeMeter_printfBuff),PSTR("RANGE: avg=%d, var=%.03f, us=%.1f, distancia=%d \r\n\0"),avg, var, us, distancia);
-		CMD_write(rangeMeter_printfBuff, sizeof(rangeMeter_printfBuff) );
+		xprintf_P( PSTR("RANGE: avg=%d, var=%.03f, us=%.1f, distancia=%d \r\n\0"),avg, var, us, distancia);
 	}
 
 	return(ping);
@@ -216,8 +213,7 @@ uint8_t i, items;
 		}
 
 		if ( systemVars.debug == DEBUG_RANGEMETER ) {
-			FRTOS_snprintf_P( rangeMeter_printfBuff,sizeof(rangeMeter_printfBuff),PSTR("RANGE: [%02d][%02d] %d %lu"), i,items,s_rangeMeter_stack.stack[i], sum );
-			CMD_write(rangeMeter_printfBuff, sizeof(rangeMeter_printfBuff) );
+			xprintf_P( PSTR("RANGE: [%02d][%02d] %d %lu"), i,items,s_rangeMeter_stack.stack[i], sum );
 		}
 	}
 	*avg = (uint16_t) (sum / items);

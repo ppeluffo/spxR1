@@ -11,7 +11,7 @@
  *
  */
 
-#include <spx_tkGprs.h>
+#include "spx_tkGprs.h"
 
 static void pv_gprs_readImei(void);
 
@@ -38,8 +38,7 @@ bool exit_flag = bool_RESTART;
 	GPRS_stateVars.modem_prendido = true;
 	vTaskDelay( (portTickType)( 3000 / portTICK_RATE_MS ) );
 
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: prendo modem...\r\n\0"));
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("GPRS: prendo modem...\r\n\0"));
 
 // Loop:
 	for ( hw_tries = 0; hw_tries < MAX_HW_TRIES_PWRON; hw_tries++ ) {
@@ -50,8 +49,7 @@ bool exit_flag = bool_RESTART;
 		for ( sw_tries = 0; sw_tries < MAX_SW_TRIES_PWRON; sw_tries++ ) {
 
 			if ( systemVars.debug == DEBUG_GPRS ) {
-				FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: intentos: HW=%d,SW=%d\r\n\0"), hw_tries, sw_tries);
-				CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+				xprintf_P( PSTR("GPRS: intentos: HW=%d,SW=%d\r\n\0"), hw_tries, sw_tries);
 			}
 
 			// Genero el toggle del switch pin para prenderlo.
@@ -63,8 +61,7 @@ bool exit_flag = bool_RESTART;
 
 			// Mando un AT y espero un OK para ver si prendio y responde.
 			pub_gprs_flush_RX_buffer();
-			FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT\r\0"));
-			frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+			xCom_printf_P( fdGPRS, PSTR("AT\r\0"));
 			vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 
 			if ( systemVars.debug == DEBUG_GPRS ) {
@@ -73,14 +70,12 @@ bool exit_flag = bool_RESTART;
 
 			if ( pub_gprs_check_response("OK\0") ) {
 				// Respondio OK. Esta prendido; salgo
-				FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Modem on.\r\n\0"));
-				CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+				xprintf_P( PSTR("GPRS: Modem on.\r\n\0"));
 				exit_flag = bool_CONTINUAR;
 				goto EXIT;
 			} else {
 				if ( systemVars.debug == DEBUG_GPRS ) {
-					FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: Modem No prendio!!\r\n\0"));
-					CMD_write(gprs_printfBuff, sizeof(gprs_printfBuff) );
+					xprintf_P( PSTR("GPRS: Modem No prendio!!\r\n\0"));
 				}
 			}
 
@@ -93,8 +88,7 @@ bool exit_flag = bool_RESTART;
 
 	// Si salgo por aqui es que el modem no prendio luego de todos los reintentos
 	exit_flag = bool_RESTART;
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: ERROR!! Modem no prendio en HW%d y SW%d intentos\r\n\0"), MAX_HW_TRIES_PWRON, MAX_SW_TRIES_PWRON);
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("GPRS: ERROR!! Modem no prendio en HW%d y SW%d intentos\r\n\0"), MAX_HW_TRIES_PWRON, MAX_SW_TRIES_PWRON);
 
 	// Exit:
 EXIT:
@@ -118,9 +112,7 @@ uint8_t i,j,start, end;
 
 	// Envio un AT+CGSN para leer el IMEI
 	pub_gprs_flush_RX_buffer();
-//	memset(gprs_printfBuff,'\0', sizeof(gprs_printfBuff));
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGSN\r\0"));
-	frtos_write( fdGPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xCom_printf_P( fdGPRS,PSTR("AT+CGSN\r\0"));
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
@@ -159,9 +151,8 @@ uint8_t i,j,start, end;
 // Exit
 EXIT:
 
-//	memset(gprs_printfBuff,'\0', sizeof(gprs_printfBuff));
-	FRTOS_snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("GPRS: IMEI[%s]\r\n\0"),buff_gprs_imei);
-	CMD_write( gprs_printfBuff, sizeof(gprs_printfBuff) );
+	xprintf_P( PSTR("GPRS: IMEI[%s]\r\n\0"),buff_gprs_imei);
+
 
 }
 //--------------------------------------------------------------------------------------

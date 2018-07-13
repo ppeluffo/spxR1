@@ -5,7 +5,7 @@
  *      Author: pablo
  */
 
-#include <spx_tkGprs.h>
+#include "spx_tkGprs.h"
 
 // Estoy en modo comando por lo que no importa tanto el wdg.
 // Le doy 15 minutos

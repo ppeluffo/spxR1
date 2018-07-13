@@ -275,7 +275,7 @@ uint16_t delAddress = 0;
 	return;
 }
 //------------------------------------------------------------------------------------
-void FF_format(bool fullformat, char *print_buffer )
+void FF_format(bool fullformat )
 {
 	// Inicializa la memoria reseteando solo la FAT.
 
@@ -294,17 +294,39 @@ uint16_t wrAddress;
 	FAT_save(&FCB.fat);
 
 	if ( fullformat ) {
+		// Para que no salga por watchdog, apago las tareas
+		vTaskSuspend( xHandle_tkData );
+		pub_watchdog_kick(WDG_DAT, 0xFFFF);
+
+		vTaskSuspend( xHandle_tkDigital );
+		pub_watchdog_kick(WDG_DIN, 0xFFFF);
+
+		vTaskSuspend( xHandle_tkGprsTx );
+		pub_watchdog_kick(WDG_GPRSTX, 0xFFFF);
+
+		vTaskSuspend( xHandle_tkGprsRx );
+		pub_watchdog_kick(WDG_GPRSRX, 0xFFFF);
+
+		vTaskSuspend( xHandle_tkOutputs );
+		pub_watchdog_kick(WDG_OUT, 0xFFFF);
+
+		vTaskSuspend( xHandle_tkXbee );
+		pub_watchdog_kick(WDG_XBEE, 0xFFFF);
+
 		// Borro fisicamente los registros
 		memset( FCB.rw_buffer,0xFF, FF_RECD_SIZE );
 		for ( page = 0; page < FF_MAX_RCDS; page++) {
 			wrAddress = FF_ADDR_START + page * FF_RECD_SIZE;
-			EE_write( wrAddress, &FCB.rw_buffer, FF_RECD_SIZE );
+			EE_write( wrAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE );
 			vTaskDelay( ( TickType_t)( 10 ) );
 
-			if ( (page % 32) == 0 ) {
-				FRTOS_snprintf_P( print_buffer,16,PSTR(" %04d\0"),page);
-				CMD_write(print_buffer, 16 );
+			if ( ( page > 0 ) && (page % 32) == 0 ) {
+				xprintf_P( PSTR(" %04d\0"),page);
+				if ( ( page > 0 ) && (page % 256) == 0 ) {
+					xprintf_P( PSTR("\r\n\0"));
+				}
 			}
+
 
 		}
 
