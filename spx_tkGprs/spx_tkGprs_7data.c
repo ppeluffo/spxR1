@@ -59,7 +59,7 @@ bool trasmision_OK;
 		// Si por algun problema no puedo trasmitir, salgo asi me apago y reinicio.
 		// Si pude trasmitir o simplemente no hay datos, en modo continuo retorno TRUE.
 
-		pub_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_DATA );
+		pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_DATA );
 
 		if ( pv_hay_datos_para_trasmitir() ) {			// Si hay datos, intento trasmitir
 

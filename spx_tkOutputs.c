@@ -37,7 +37,7 @@ void tkOutputs(void * pvParameters)
 	for( ;; )
 	{
 
-		pub_watchdog_kick(WDG_OUT, WDG_OUT_TIMEOUT);
+		pub_ctl_watchdog_kick(WDG_OUT, WDG_OUT_TIMEOUT);
 
 		// Espero con lo que puedo entrar en tickless
 		// Con 25s aseguro chequear 2 veces por minuto.
@@ -239,7 +239,7 @@ static void pv_out_init_outputs_normales(void)
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS
 //------------------------------------------------------------------------------------
-void pub_outputs_load_defaults(void)
+void pub_output_load_defaults(void)
 {
 
 	systemVars.outputs.modo = OUT_OFF;
@@ -252,7 +252,7 @@ void pub_outputs_load_defaults(void)
 
 }
 //------------------------------------------------------------------------------------
-void pub_outputs_config( char *param0, char *param1, char *param2 )
+void pub_output_config( char *param0, char *param1, char *param2 )
 {
 	// Configura las salidas en el systemVars.
 

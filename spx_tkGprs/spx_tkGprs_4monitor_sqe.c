@@ -22,7 +22,7 @@ uint8_t MON_timer = 1;
 
 	GPRS_stateVars.state = G_MON_SQE;
 
-	pub_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_SQE );
+	pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_SQE );
 
 	while ( GPRS_stateVars.monitor_sqe ) {
 

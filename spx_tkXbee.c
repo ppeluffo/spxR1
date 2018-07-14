@@ -59,7 +59,7 @@ uint8_t channel;
 	{
 
 loop:
-		pub_watchdog_kick(WDG_XBEE, WDG_XBEE_TIMEOUT);
+		pub_ctl_watchdog_kick(WDG_XBEE, WDG_XBEE_TIMEOUT);
 		
 		// En modo slave u off no hago nada y entro en tickless
 		if ( systemVars.xbee != XBEE_MASTER ) {

@@ -29,7 +29,7 @@ uint8_t hw_tries, sw_tries;
 bool exit_flag = bool_RESTART;
 
 
-	pub_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_PRENDER);
+	pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_PRENDER);
 
 	GPRS_stateVars.state = G_PRENDER;
 

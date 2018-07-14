@@ -320,22 +320,22 @@ uint16_t wrAddress;
 	if ( fullformat ) {
 		// Para que no salga por watchdog, apago las tareas
 		vTaskSuspend( xHandle_tkData );
-		pub_watchdog_kick(WDG_DAT, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_DAT, 0xFFFF);
 
 		vTaskSuspend( xHandle_tkDigital );
-		pub_watchdog_kick(WDG_DIN, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_DIN, 0xFFFF);
 
 		vTaskSuspend( xHandle_tkGprsTx );
-		pub_watchdog_kick(WDG_GPRSTX, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_GPRSTX, 0xFFFF);
 
 		vTaskSuspend( xHandle_tkGprsRx );
-		pub_watchdog_kick(WDG_GPRSRX, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_GPRSRX, 0xFFFF);
 
 		vTaskSuspend( xHandle_tkOutputs );
-		pub_watchdog_kick(WDG_OUT, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_OUT, 0xFFFF);
 
 		vTaskSuspend( xHandle_tkXbee );
-		pub_watchdog_kick(WDG_XBEE, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_XBEE, 0xFFFF);
 
 		// Borro fisicamente los registros
 		memset( FCB.rw_buffer,0xFF, FF_RECD_SIZE );

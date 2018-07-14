@@ -193,9 +193,9 @@ void pub_load_defaults(void)
 	systemVars.xbee = XBEE_OFF;
 
 	pub_analog_load_defaults();
-	pub_tkDigital_load_defaults();
+	pub_digital_load_defaults();
 	pub_gprs_load_defaults();
-	pub_outputs_load_defaults();
+	pub_output_load_defaults();
 	pub_rangeMeter_load_defaults();
 
 

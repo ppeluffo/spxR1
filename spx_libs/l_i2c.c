@@ -25,7 +25,7 @@ uint8_t xBytes = 0;
 
 	// 1) Indicamos el periferico i2c en el cual queremos leer ( variable de 8 bits !!! )
 	bus_address = i2c_bus_address;
-	frtos_ioctl(fdI2C,ioctl_I2C_SET_DEVADDRESS, & bus_address);
+	frtos_ioctl(fdI2C,ioctl_I2C_SET_DEVADDRESS, &bus_address);
 
 	// 2) Luego indicamos la direccion desde donde leer:
 	//    Largo: 1 byte indica el largo. El FRTOS espera 1 byte.

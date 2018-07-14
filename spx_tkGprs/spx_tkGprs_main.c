@@ -136,7 +136,7 @@ BaseType_t xResult;
 	for( ;; )
 	{
 
-		pub_watchdog_kick(WDG_GPRSRX, WDG_GPRSRX_TIMEOUT);
+		pub_ctl_watchdog_kick(WDG_GPRSRX, WDG_GPRSRX_TIMEOUT);
 
 		// Si el modem NO esta prendido, espero de a 5s antes de reintentar
 		// lo que me da tiempo de entrar en tickless.

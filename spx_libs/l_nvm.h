@@ -19,6 +19,7 @@ uint8_t signature[11];
 
 #define NVMEE_read( rdAddress, data, length ) NVMEE_read_buffer (  rdAddress, data, length );
 #define NVMEE_write( wrAddress, data, length ) NVMEE_write_buffer ( wrAddress, data, length );
+void NVMEE_readID( char *str );
 
 // API END
 //--------------------------------------------------------------------------------
@@ -74,8 +75,6 @@ int NVMEE_read_buffer(eeprom_addr_t address, char *buf, uint16_t len);
 uint8_t NVMEE_ReadByte( eeprom_addr_t address );
 void NVMEE_EraseAll( void );
 
-
-void NVM_readID(char *str );
 
 /*  Non-Volatile Memory Execute Command
  *  This macro set the CCP register before setting the CMDEX bit in the

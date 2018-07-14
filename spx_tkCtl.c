@@ -13,9 +13,12 @@ static void pv_tkCtl_init_system(void);
 static void pv_tkCtl_wink_led(void);
 static void pv_tkCtl_check_terminal(void);
 static void pv_tkCtl_check_wdg(void);
+static void pv_tkCtl_ajust_timerPoll(void);
 
 static bool f_terminal_is_on;
 static uint16_t watchdog_timers[NRO_WDGS];
+
+static uint16_t time_to_next_poll;
 
 // Timpo que espera la tkControl entre round-a-robin
 #define TKCTL_DELAY_S	5
@@ -49,7 +52,7 @@ void tkCtl(void * pvParameters)
 	for( ;; )
 	{
 
-		pub_watchdog_kick(WDG_CTL, WDG_CTL_TIMEOUT);
+		pub_ctl_watchdog_kick(WDG_CTL, WDG_CTL_TIMEOUT);
 
 		// Para entrar en tickless.
 		// Cada 5s hago un chequeo de todo. En particular esto determina el tiempo
@@ -59,6 +62,7 @@ void tkCtl(void * pvParameters)
 		pv_tkCtl_wink_led();
 		pv_tkCtl_check_terminal();
 		pv_tkCtl_check_wdg();
+		pv_tkCtl_ajust_timerPoll();
 
 	}
 }
@@ -92,6 +96,8 @@ uint8_t wdg;
 		pub_load_defaults();
 		xprintf_P( PSTR("\r\nLoading defaults !!\r\n\0"));
 	}
+
+	time_to_next_poll = systemVars.timerPoll;
 
 	// Inicializo la memoria EE ( fileSysyem)
 	if ( FF_open() ) {
@@ -201,14 +207,30 @@ char buffer[10];
 
 }
 //------------------------------------------------------------------------------------
+static void pv_tkCtl_ajust_timerPoll(void)
+{
+	if ( time_to_next_poll > TKCTL_DELAY_S )
+		time_to_next_poll -= TKCTL_DELAY_S;
+}
+//------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS
 //------------------------------------------------------------------------------------
-bool pub_terminal_is_on(void)
+uint16_t pub_ctl_readTimeToNextPoll(void)
+{
+	return(time_to_next_poll);
+}
+//------------------------------------------------------------------------------------
+void pub_ctl_reload_timerPoll(void)
+{
+	time_to_next_poll = systemVars.timerPoll;
+}
+//------------------------------------------------------------------------------------
+bool pub_ctl_terminal_is_on(void)
 {
 	return(f_terminal_is_on);
 }
 //------------------------------------------------------------------------------------
-void pub_watchdog_kick(uint8_t taskWdg, uint16_t timeout_in_secs )
+void pub_ctl_watchdog_kick(uint8_t taskWdg, uint16_t timeout_in_secs )
 {
 	// Reinicia el watchdog de la tarea taskwdg con el valor timeout.
 	// timeout es uint16_t por lo tanto su maximo valor en segundos es de 65536 ( 18hs )
@@ -221,7 +243,7 @@ void pub_watchdog_kick(uint8_t taskWdg, uint16_t timeout_in_secs )
 	xSemaphoreGive( sem_SYSVars );
 }
 //------------------------------------------------------------------------------------
-void pub_print_wdg_timers(void)
+void pub_ctl_print_wdg_timers(void)
 {
 
 uint8_t wdg;
@@ -242,7 +264,7 @@ char buffer[10];
 
 }
 //------------------------------------------------------------------------------------
-void pub_print_stack_watermarks(void)
+void pub_ctl_print_stack_watermarks(void)
 {
 
 UBaseType_t uxHighWaterMark;

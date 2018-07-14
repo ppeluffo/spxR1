@@ -17,15 +17,17 @@
  *  /usr/bin/avrdude -px256a3b -cavrispmkII -Pusb -u -Ufuse0:w:0xff:m -Ufuse1:w:0x0:m -Ufuse2:w:0xff:m -Ufuse4:w:0xff:m -Ufuse5:w:0xff:m
  *
  *  Para ver el uso de memoria usamos
- *  avr-nm -n test_io.elf | more
+ *  avr-nm -n spxR1.elf | more
  *
  *------------------------------------------------------------------------------------------
- * 2018-07-14:
- * Correcciones indicadas por Yosiniel y Juan Pablo
- * Reviso libreria NVM para poder leer el id
- * Revisar funciones de Cmd.
+ * Arreglar el tema de la lectura de los INA.
  * Incorporo la libreria l_ouptputs y revisar tkOutputs
- *
+ * Disminuyo el tiempo en el intercambio de consignas.
+ * Correcciones indicadas por Yosniel
+ * Revisar funciones de Cmd.
+ * Modem: Analisis de rxdata/tamanio de buffers, etc, netopen fail
+ *------------------------------------------------------------------------------------------
+ * 2018-07-14:
  * Agrego buffers y estructura para BT y XBEE.
  * Modifico la libreria l_printf y elimino l_uarts.
  * Pongo un semaforo en l_file para acceder a la FAT
@@ -34,25 +36,20 @@
  * Reviso port.c para que trabaje con memoria extendida
  * Modifico el menu para incorporar el concepto de usuario tecnico.
  * Los mensajes de init de las tareas los paso a luego de inicializarlas.
- *
+ * Reviso libreria NVM para poder leer el id
+ * Agrego que se pueda ver el tiempo que falta para el siguiente poleo
  *------------------------------------------------------------------------------------------
  * 2018-07-13:
  * Implemento un sistema de impresion en consola xPrintf.
  * Eliminamos todos los buffers locales.
  * Elimino FRTOS-stdio
  * Revisamos las librerias l_i2c/l_eeprom/l_ina3221/l_rtc79410 y las funciones asociadas en tkCmd.
- *
  *------------------------------------------------------------------------------------------
  * 2018-07-12:
  * - Previo elimino todo lo que tiene que ver con SPI que aun no esta implementado.
  * - En test probe el nuevo modelo de drivers y frtos en capas con servicios verticales.
  *   Hago la migracion.
  * - Migro el FRTOS a version 10.
- *
- * - Revisar I2C
- * - Agregar XBEE/BT
- * - Revisar GPRS
- * - Revisar librerias.
  *------------------------------------------------------------------------------------------
  * 2018-06-27:
  * - Trasmito en los init la potencia del modem en DBM y no CSQ

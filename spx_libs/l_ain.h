@@ -12,6 +12,8 @@
 #include "stdio.h"
 #include "string.h"
 #include "stdlib.h"
+#include <avr/pgmspace.h>
+#include "l_printf.h"
 
 #include "l_ina3221.h"
 

@@ -57,7 +57,7 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "0.0.3"
+#define SPX_FW_REV "0.0.4"
 #define SPX_FW_DATE "@ 20180714"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
@@ -256,26 +256,28 @@ void pub_analog_load_defaults(void);
 void pub_analog_config_channel( uint8_t channel,char *_s_aname,char *s_imin,char *s_imax,char *s_mmin,char *s_mmax );
 void pub_analog_config_timerpoll ( char *s_timerpoll );
 void pub_analog_config_spanfactor ( uint8_t channel, char *s_spanfactor );
-void pub_analog_prender_12vsensor ( void );
-void pub_analog_apagar_12vsensor ( void );
 void pub_analog_read_channel ( uint8_t channel, uint16_t *raw_val, float *mag_val );
 void pub_analog_read_battery ( float *mag_val );
 void pub_analog_read_frame(st_analog_frame *analog_frame );
+void pub_analog_prender_12vsensor ( void );
+void pub_analog_apagar_12vsensor ( void );
 
 // tkData
 void pub_data_print_frame(void);
 void pub_data_read_frame(void);
 
 // digital
-void pub_tkDigital_read_frame( st_digital_frame * dframe, bool reset_counters );
-void pub_tkDigital_load_defaults(void);
-bool pub_tkDigital_config_channel( uint8_t channel,char *s_type, char *s_dname, char *s_magPP );
+void pub_digital_read_frame( st_digital_frame * dframe, bool reset_counters );
+void pub_digital_load_defaults(void);
+bool pub_digital_config_channel( uint8_t channel,char *s_type, char *s_dname, char *s_magPP );
 
 // tkCtl
-bool pub_terminal_is_on(void);
-void pub_watchdog_kick(uint8_t taskWdg, uint16_t timeout_in_secs );
-void pub_print_wdg_timers(void);
-void pub_print_stack_watermarks(void);
+bool pub_ctl_terminal_is_on(void);
+void pub_ctl_watchdog_kick(uint8_t taskWdg, uint16_t timeout_in_secs );
+void pub_ctl_print_wdg_timers(void);
+void pub_ctl_print_stack_watermarks(void);
+uint16_t pub_ctl_readTimeToNextPoll(void);
+void pub_ctl_reload_timerPoll(void);
 
 // tkGprs
 int32_t pub_gprs_readTimeToNextDial(void);
@@ -285,8 +287,8 @@ void pub_gprs_load_defaults(void);
 bool pub_modem_prendido(void);
 
 // tkOutputs
-void pub_outputs_load_defaults(void);
-void pub_outputs_config( char *param0, char *param1, char *param2 );
+void pub_output_load_defaults(void);
+void pub_output_config( char *param0, char *param1, char *param2 );
 void pub_output_set_consigna_diurna(void);
 void pub_output_set_consigna_nocturna(void);
 void pub_output_set_outputs( char id_output, uint8_t value);

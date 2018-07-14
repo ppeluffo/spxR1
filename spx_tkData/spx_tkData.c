@@ -30,6 +30,8 @@ static st_data_frame pv_data_frame;
 //------------------------------------------------------------------------------------
 void tkData(void * pvParameters)
 {
+	// EL tiempo para hacer el siguiente poleo lo controlo desde tkCtl ya que aqui prefiero
+	// usar la modalidad de dormir hasta el proximo poleo por 2 razones: tickless y exactitud.
 
 ( void ) pvParameters;
 
@@ -57,7 +59,7 @@ TickType_t xLastWakeTime;
 	// loop
 	for( ;; )
 	{
-		pub_watchdog_kick(WDG_DAT, WDG_DAT_TIMEOUT);
+		pub_ctl_watchdog_kick(WDG_DAT, WDG_DAT_TIMEOUT);
 
 		vTaskDelayUntil( &xLastWakeTime, waiting_ticks ); // Da el tiempo para entrar en tickless.
 
@@ -84,8 +86,8 @@ TickType_t xLastWakeTime;
 		while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
 			taskYIELD();
 		waiting_ticks = (uint32_t)(systemVars.timerPoll) * 1000 / portTICK_RATE_MS;
+		pub_ctl_reload_timerPoll();
 		xSemaphoreGive( sem_SYSVars );
-
 	}
 
 }
@@ -219,7 +221,7 @@ void pub_data_read_frame(void)
 	ACH_prender_12V();
 	pub_analog_config_INAS(CONF_INAS_AVG128);	// Saco a los INA del modo pwr_down
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
-	pub_analog_read_frame(&pv_data_frame.analog_frame);
+	pub_analog_read_frame( &pv_data_frame.analog_frame );
 	pub_analog_config_INAS(CONF_INAS_SLEEP);	// Pongo a los INA a dormir.
 	ACH_apagar_12V();
 
@@ -227,15 +229,15 @@ void pub_data_read_frame(void)
 	pub_analog_read_battery ( &pv_data_frame.battery );
 
 	// Leo los canales digitales y borro los contadores.
-	pub_tkDigital_read_frame( &pv_data_frame.digital_frame, true );
+	pub_digital_read_frame( &pv_data_frame.digital_frame, true );
 
-	pv_data_update_remote_channels();
+	//pv_data_update_remote_channels();
 	
 	// Agrego el timestamp
 	RTC_read_dtime( &pv_data_frame.rtc);
 
 	// Leo el ancho de pulso ( rangeMeter ). Demora 5s.
-//	pub_rangeMeter_ping( &dframe->range);
+	pub_rangeMeter_ping( &pv_data_frame.range);
 
 }
 //------------------------------------------------------------------------------------

@@ -40,7 +40,7 @@ bool exit_flag = false;
 
 	GPRS_stateVars.state = G_INIT_FRAME;
 
-	pub_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_INIT );
+	pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_INIT );
 
 	xprintf_P( PSTR("GPRS: iniframe.\r\n\0" ));
 
@@ -553,7 +553,7 @@ char *s;
 	chType = strsep(&stringp,delim);	//tipo
 	chName = strsep(&stringp,delim);	//name
 	s_magPP = strsep(&stringp,delim);	//magPp
-	pub_tkDigital_config_channel( channel, chType, chName, s_magPP );
+	pub_digital_config_channel( channel, chType, chName, s_magPP );
 	ret = 1;
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: Reconfig D%d\r\n\0"), channel);
@@ -599,7 +599,7 @@ char *p, *s;
 	p1 = strsep(&stringp,delim);			// startTime
 	p2 = strsep(&stringp,delim); 			// endTime
 
-	pub_outputs_config(modo, p1, p2);
+	pub_output_config(modo, p1, p2);
 	ret = 1;
 
 	if ( systemVars.debug == DEBUG_GPRS ) {

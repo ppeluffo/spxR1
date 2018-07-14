@@ -92,10 +92,10 @@ uint8_t ticks;
 	for( ;; )
 	{
 
-		pub_watchdog_kick(WDG_CMD, WDG_CMD_TIMEOUT);
+		pub_ctl_watchdog_kick(WDG_CMD, WDG_CMD_TIMEOUT);
 
 		// Si no tengo terminal conectada, duermo 5s lo que me permite entrar en tickless.
-		if ( ! pub_terminal_is_on() ) {
+		if ( ! pub_ctl_terminal_is_on() ) {
 		//if ( IO_read_TERMCTL_PIN() == 1 )
 			vTaskDelay( ( TickType_t)( 5000 / portTICK_RATE_MS ) );
 
@@ -121,9 +121,9 @@ FAT_t l_fat;
 	xprintf_P( PSTR("Clock %d Mhz, Tick %d Hz\r\n\0"),SYSMAINCLK, configTICK_RATE_HZ );
 
 	// SIGNATURE ID
-//	memset(&aux_str,'\0', sizeof(aux_str));
-//	NVM_readID(aux_str);
-//	xprintf_P( PSTR("signature:1 %s\r\n\0"), aux_str);
+	memset(aux_buffer,'\0', sizeof(aux_buffer));
+	NVMEE_readID((char *)&aux_buffer);
+	xprintf_P( PSTR("uID=%s\r\n\0"), aux_buffer);
 
 	// Fecha y Hora
 	pv_cmd_rwRTC( RD_CMD );
@@ -205,7 +205,7 @@ FAT_t l_fat;
 	}
 
 	xprintf_P( PSTR("  timerDial: [%lu s]/%li\r\n\0"),systemVars.timerDial, pub_gprs_readTimeToNextDial() );
-	xprintf_P( PSTR("  timerPoll: [%d s]\r\n\0"),systemVars.timerPoll );
+	xprintf_P( PSTR("  timerPoll: [%d s]/%d\r\n\0"),systemVars.timerPoll, pub_ctl_readTimeToNextPoll() );
 
 	// PULSE WIDTH
 	if ( systemVars.rangeMeter_enabled ) {
@@ -294,7 +294,7 @@ static void cmdResetFunction(void)
 	if (!strcmp_P( strupr(argv[1]), PSTR("MEMORY\0"))) {
 
 		// Nadie debe usar la memoria !!!
-		pub_watchdog_kick(WDG_CMD, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_CMD, 0xFFFF);
 
 		if (!strcmp_P( strupr(argv[2]), PSTR("SOFT\0"))) {
 			FF_format(false );
@@ -459,13 +459,13 @@ float mag_val;
 
 	// WMK
  	if (!strcmp_P( strupr(argv[1]), PSTR("WMK\0"))) {
- 		pub_print_stack_watermarks();
+ 		pub_ctl_print_stack_watermarks();
  		return;
  	}
 
  	// WDT
  	if (!strcmp_P( strupr(argv[1]), PSTR("WDT\0"))) {
- 		pub_print_wdg_timers();
+ 		pub_ctl_print_wdg_timers();
  		return;
  	}
 
@@ -488,8 +488,8 @@ float mag_val;
 	// read id
 	if (!strcmp_P( strupr(argv[1]), PSTR("ID\0"))) {
 		memset(aux_buffer,'\0', sizeof(aux_buffer));
-		NVM_readID((char *)&aux_buffer);
-		xprintf_P( PSTR("uID=%s\r\n\0"),aux_buffer);
+		NVMEE_readID((char *)&aux_buffer);
+		xprintf_P( PSTR("uID=%s\r\n\0"), aux_buffer);
 		return;
 	}
 
@@ -644,7 +644,7 @@ bool retS = false;
 
 	// config outputs
 	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUTS\0")) ) {
-		pub_outputs_config( argv[2], argv[3], argv[4] );
+		pub_output_config( argv[2], argv[3], argv[4] );
 		pv_snprintfP_OK();
 		return;
 	}
@@ -701,7 +701,7 @@ bool retS = false;
 
 	// config digital {0..3} type dname magPP
 	if (!strcmp_P( strupr(argv[1]), PSTR("DIGITAL\0")) ) {
-		if ( pub_tkDigital_config_channel( atoi(argv[2]), argv[3], argv[4], argv[5] ) ) {
+		if ( pub_digital_config_channel( atoi(argv[2]), argv[3], argv[4], argv[5] ) ) {
 			pv_snprintfP_OK();
 		} else {
 			pv_snprintfP_ERR();
@@ -854,6 +854,7 @@ static void cmdHelpFunction(void)
 		xprintf_P( PSTR("-read\r\n\0"));
 		xprintf_P( PSTR("  rtc, frame\r\n\0"));
 		if ( tipo_usuario == USER_TECNICO ) {
+			xprintf_P( PSTR("  id\r\n\0"));
 			xprintf_P( PSTR("  ee,nvmee,rtcram {pos} {lenght}\r\n\0"));
 			xprintf_P( PSTR("  ina {id} {conf|chXshv|chXbusv|mfid|dieid}\r\n\0"));
 			xprintf_P( PSTR("  memory\r\n\0"));
@@ -931,21 +932,21 @@ static void cmdKillFunction(void)
 	// KILL DATA
 	if (!strcmp_P( strupr(argv[1]), PSTR("DATA\0"))) {
 		vTaskSuspend( xHandle_tkData );
-		pub_watchdog_kick(WDG_DAT, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_DAT, 0xFFFF);
 		return;
 	}
 
 	// KILL DIGITAL
 	if (!strcmp_P( strupr(argv[1]), PSTR("DIGI\0"))) {
 		vTaskSuspend( xHandle_tkDigital );
-		pub_watchdog_kick(WDG_DIN, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_DIN, 0xFFFF);
 		return;
 	}
 
 	// KILL GPRS
 	if (!strcmp_P( strupr(argv[1]), PSTR("GPRSTX\0"))) {
 		vTaskSuspend( xHandle_tkGprsTx );
-		pub_watchdog_kick(WDG_GPRSTX, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_GPRSTX, 0xFFFF);
 		// Dejo la flag de modem prendido para poder leer comandos
 		GPRS_stateVars.modem_prendido = true;
 		return;
@@ -954,21 +955,21 @@ static void cmdKillFunction(void)
 	// KILL RX
 	if (!strcmp_P( strupr(argv[1]), PSTR("GPRSRX\0"))) {
 		vTaskSuspend( xHandle_tkGprsRx );
-		pub_watchdog_kick(WDG_GPRSRX, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_GPRSRX, 0xFFFF);
 		return;
 	}
 
 	// KILL OUTPUTS
 	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUTS\0"))) {
 		vTaskSuspend( xHandle_tkOutputs );
-		pub_watchdog_kick(WDG_OUT, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_OUT, 0xFFFF);
 		return;
 	}
 
 	// KILL XBEE
 	if (!strcmp_P( strupr(argv[1]), PSTR("XBEE\0"))) {
 		vTaskSuspend( xHandle_tkXbee );
-		pub_watchdog_kick(WDG_XBEE, 0xFFFF);
+		pub_ctl_watchdog_kick(WDG_XBEE, 0xFFFF);
 		return;
 	}
 
@@ -1001,7 +1002,7 @@ char data[3];
 			val = atoi( argv[4]);
 			data[0] = ( val & 0xFF00 ) >> 8;
 			data[1] = ( val & 0x00FF );
-			INA_write( INA_id2busaddr(ina_id), INA3231_CONF, data, 2 );
+			INA_write( ina_id, INA3231_CONF, data, 2 );
 			pv_snprintfP_OK();
 			return;
 		}
@@ -1013,29 +1014,30 @@ char data[3];
 		ina_id = atoi(argv[2]);
 
 		if (!strcmp_P( strupr(argv[3]), PSTR("CONF\0"))) {
-			INA_read(  INA_id2busaddr(ina_id), INA3231_CONF, data, 2 );
+			INA_read(  ina_id, INA3231_CONF, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH1SHV\0"))) {
-			INA_read(  INA_id2busaddr(ina_id), INA3221_CH1_SHV, data, 2 );
+			INA_read(  ina_id, INA3221_CH1_SHV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH1BUSV\0"))) {
-			INA_read(  INA_id2busaddr(ina_id), INA3221_CH1_BUSV, data, 2 );
+			INA_read(  ina_id, INA3221_CH1_BUSV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH2SHV\0"))) {
-			INA_read(  INA_id2busaddr(ina_id), INA3221_CH2_SHV, data, 2 );
+			INA_read(  ina_id, INA3221_CH2_SHV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH2BUSV\0"))) {
-			INA_read(  INA_id2busaddr(ina_id), INA3221_CH2_BUSV, data, 2 );
+			INA_read(  ina_id, INA3221_CH2_BUSV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH3SHV\0"))) {
-			INA_read(  INA_id2busaddr(ina_id), INA3221_CH3_SHV, data, 2 );
+			INA_read(  ina_id, INA3221_CH3_SHV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH3BUSV\0"))) {
-			INA_read(  INA_id2busaddr(ina_id), INA3221_CH3_BUSV, data, 2 );
+			INA_read(  ina_id, INA3221_CH3_BUSV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("MFID\0"))) {
-			INA_read(  INA_id2busaddr(ina_id), INA3221_MFID, data, 2 );
+			INA_read(  ina_id, INA3221_MFID, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("DIEID\0"))) {
-			INA_read(  INA_id2busaddr(ina_id), INA3221_DIEID, data, 2 );
+			INA_read(  ina_id, INA3221_DIEID, data, 2 );
 		} else {
 			pv_snprintfP_ERR();
 			return;
 		}
 
 		val = ( data[0]<< 8 ) + data	[1];
+		xprintf_P( PSTR("INAID=%d\r\n\0"), ina_id);
 		xprintf_P( PSTR("VAL=0x%04x\r\n\0"), val);
 		pv_snprintfP_OK();
 		return;
@@ -1255,7 +1257,7 @@ st_digital_frame digital_frame;
 uint8_t i;
 
 	// Leo los valores
-	pub_tkDigital_read_frame( &digital_frame , false );
+	pub_digital_read_frame( &digital_frame , false );
 
 	// Armo la respuesta
 	xprintf_P( PSTR("DIN: "));

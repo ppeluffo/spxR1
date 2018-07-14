@@ -87,7 +87,7 @@ const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10000 );
 	for( ;; )
 	{
 
-		pub_watchdog_kick(WDG_DIN, WDG_DIN_TIMEOUT);
+		pub_ctl_watchdog_kick(WDG_DIN, WDG_DIN_TIMEOUT);
 
 		// Cuando la interrupcion detecta un flanco, solo envia una notificacion
 		// Espero que me avisen. Si no me avisaron en 10s salgo y repito el ciclo.
@@ -180,7 +180,7 @@ ISR(PORTB_INT0_vect)
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS
 //------------------------------------------------------------------------------------
-void pub_tkDigital_read_frame( st_digital_frame * dframe, bool reset_counters )
+void pub_digital_read_frame( st_digital_frame * dframe, bool reset_counters )
 {
 
 	// Esta funcion la invoca tkData al completar un frame para agregar los datos
@@ -232,7 +232,7 @@ uint8_t i;
 
 }
 //------------------------------------------------------------------------------------
-void pub_tkDigital_load_defaults(void)
+void pub_digital_load_defaults(void)
 {
 
 	// Realiza la configuracion por defecto de los canales digitales.
@@ -264,7 +264,7 @@ void pub_tkDigital_load_defaults(void)
 
 }
 //------------------------------------------------------------------------------------
-bool pub_tkDigital_config_channel( uint8_t channel,char *s_type, char *s_dname, char *s_magPP )
+bool pub_digital_config_channel( uint8_t channel,char *s_type, char *s_dname, char *s_magPP )
 {
 
 	// {0..3} type dname magPP

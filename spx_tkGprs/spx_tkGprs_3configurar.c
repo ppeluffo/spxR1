@@ -35,7 +35,7 @@ bool exit_flag = bool_RESTART;
 
 // Entry:
 
-	pub_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_CONFIG);
+	pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_CONFIG);
 
 	GPRS_stateVars.state = G_CONFIGURAR;
 

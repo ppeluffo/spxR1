@@ -25,7 +25,7 @@ bool exit_flag = bool_RESTART;
 
 // Entry:
 	GPRS_stateVars.state = G_GET_IP;
-	pub_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_IP);
+	pub_ctl_watchdog_kick(WDG_GPRSTX, WDG_GPRS_TO_IP);
 
 	//if ( pg_gprs_activate() ) {
 	if ( pv_gprs_netopen() ) {

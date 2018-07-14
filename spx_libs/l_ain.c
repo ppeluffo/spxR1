@@ -48,6 +48,8 @@ char res[3];
 	an_raw_val = ( res[0]<< 8 ) + res[1];
 	an_raw_val = an_raw_val >> 3;
 
+	xprintf_P( PSTR("ACH: ch=%d, ina_id=%d ina_reg=%0x, res0=%0x, res1=%0x\r\n\0"),channel_id,ina_id,ina_reg,res[0], res[1] );
+
 	return( an_raw_val );
 }
 //------------------------------------------------------------------------------------

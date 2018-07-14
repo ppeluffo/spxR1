@@ -12,8 +12,6 @@ static void pv_NVMEE_FlushBuffer( void );
 static void pv_NVMEE_WaitForNVM( void );
 
 static uint8_t pv_ReadSignatureByte(uint16_t Address);
-static void pv_NVM_GetGUID(void);
-
 bool signature_ok = false;
 //------------------------------------------------------------------------------------
 // NVM EEPROM
@@ -137,10 +135,31 @@ static void pv_NVMEE_WaitForNVM( void )
 	} while ((NVM.STATUS & NVM_NVMBUSY_bm) == NVM_NVMBUSY_bm);
 }
 //------------------------------------------------------------------------------------
+// NVM ID
+//------------------------------------------------------------------------------------
+void NVMEE_readID( char *str )
+{
 
+	if ( ! signature_ok ) {
+		// Paso los bytes de identificacion a un string para su display.
+		signature[ 0]=pv_ReadSignatureByte(LOTNUM0);
+		signature[ 1]=pv_ReadSignatureByte(LOTNUM1);
+		signature[ 2]=pv_ReadSignatureByte(LOTNUM2);
+		signature[ 3]=pv_ReadSignatureByte(LOTNUM3);
+		signature[ 4]=pv_ReadSignatureByte(LOTNUM4);
+		signature[ 5]=pv_ReadSignatureByte(LOTNUM5);
+		signature[ 6]=pv_ReadSignatureByte(WAFNUM );
+		signature[ 7]=pv_ReadSignatureByte(COORDX0);
+		signature[ 8]=pv_ReadSignatureByte(COORDX1);
+		signature[ 9]=pv_ReadSignatureByte(COORDY0);
+		signature[10]=pv_ReadSignatureByte(COORDY1);
 
+		signature_ok = true;
+	}
 
-
+	snprintf( str, 32 ,"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",signature[0],signature[1],signature[2],signature[3],signature[4],signature[5],signature[6],signature[7],signature[8],signature[9],signature[10]  );
+}
+//------------------------------------------------------------------------------------
 static uint8_t pv_ReadSignatureByte(uint16_t Address) {
 
 	// Funcion que lee la memoria NVR, la calibration ROW de a una posicion ( de 16 bits )
@@ -153,39 +172,3 @@ static uint8_t pv_ReadSignatureByte(uint16_t Address) {
 	return Result;
 }
 //----------------------------------------------------------------------------------------
-static void pv_NVM_GetGUID(void) {
-
-	// Lee todos los registros de identificacion y los deja en una variable global
-
-	signature[ 0]=pv_ReadSignatureByte(LOTNUM0);
-	
-	signature[ 1]=pv_ReadSignatureByte(LOTNUM1);
-	signature[ 2]=pv_ReadSignatureByte(LOTNUM2);
-	signature[ 3]=pv_ReadSignatureByte(LOTNUM3);
-	signature[ 4]=pv_ReadSignatureByte(LOTNUM4);
-	signature[ 5]=pv_ReadSignatureByte(LOTNUM5);
-	signature[ 6]=pv_ReadSignatureByte(WAFNUM );
-	signature[ 7]=pv_ReadSignatureByte(COORDX0);
-	signature[ 8]=pv_ReadSignatureByte(COORDX1);
-	signature[ 9]=pv_ReadSignatureByte(COORDY0);
-	signature[10]=pv_ReadSignatureByte(COORDY1);
-
-	signature_ok = true;
-
-}
-//----------------------------------------------------------------------------------------
-void NVM_readID( char *str )
-{
-	// Paso los bytes de identificacion a un string para su display.
-
-	// Una vez que lei el id no tengo porque leerlo mas.
-	if ( !signature_ok ) {
-		pv_NVM_GetGUID();
-	}
-
-//	snprintf( str, 32 ,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",signature[0],signature[1],signature[2],signature[3],signature[4],signature[5],signature[6],signature[7],signature[8],signature[9],signature[10]  );
-//	FRTOS_snprintf( str, 32 ,"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\r\n",signature[0],signature[1],signature[2],signature[3],signature[4],signature[5],signature[6],signature[7],signature[8],signature[9],signature[10]  );
-
-
-}
-//------------------------------------------------------------------------------------
