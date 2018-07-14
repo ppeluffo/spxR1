@@ -83,6 +83,7 @@
  * See http://www.freertos.org/a00110.html.
  *----------------------------------------------------------*/
 
+
 #define configUSE_PREEMPTION		1
 #define configUSE_IDLE_HOOK			1
 #define configUSE_TICK_HOOK			0
@@ -125,6 +126,10 @@ to exclude the API function. */
 #define configUSE_MUTEXES               1
 #define configUSE_RECURSIVE_MUTEXES     0
 #define configUSE_COUNTING_SEMAPHORES   0
+
+/* Memory allocation related definitions. */
+#define configSUPPORT_STATIC_ALLOCATION         1
+#define configSUPPORT_DYNAMIC_ALLOCATION        1
 
 /* Software timer related definitions. */
 //#define configUSE_TIMERS                        0

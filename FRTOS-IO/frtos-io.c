@@ -19,13 +19,19 @@ int8_t retS = -1;
 
 	switch(fd) {
 	case fdUSB:
-		retS = frtos_uart_open( &xComUSB, fd, iUART_USB, flags );
+		retS = frtos_uart_open( &xComUSB, fd, &USB_xMutexBuffer, iUART_USB, flags );
 		break;
 	case fdGPRS:
-		retS = frtos_uart_open( &xComGPRS, fd, iUART_GPRS, flags );
+		retS = frtos_uart_open( &xComGPRS, fd, &GPRS_xMutexBuffer, iUART_GPRS, flags );
+		break;
+	case fdXBEE:
+		retS = frtos_uart_open( &xComXBEE, fd, &XBEE_xMutexBuffer, iUART_XBEE, flags );
+		break;
+	case fdBT:
+		retS = frtos_uart_open( &xComBT, fd, &BT_xMutexBuffer, iUART_BT, flags );
 		break;
 	case fdI2C:
-		retS = frtos_i2c_open( &xBusI2C, fd, flags );
+		retS = frtos_i2c_open( &xBusI2C, fd, &I2C_xMutexBuffer, flags );
 		break;
 	default:
 		break;
@@ -44,6 +50,12 @@ int8_t retS = -1;
 		break;
 	case fdGPRS:
 		retS = frtos_uart_ioctl( &xComGPRS, ulRequest, pvValue );
+		break;
+	case fdXBEE:
+		retS = frtos_uart_ioctl( &xComXBEE, ulRequest, pvValue );
+		break;
+	case fdBT:
+		retS = frtos_uart_ioctl( &xComBT, ulRequest, pvValue );
 		break;
 	case fdI2C:
 		retS = frtos_i2c_ioctl( &xBusI2C, ulRequest, pvValue );
@@ -66,6 +78,12 @@ int8_t retS = -1;
 	case fdGPRS:
 		retS = frtos_uart_write( &xComGPRS, pvBuffer, xBytes );
 		break;
+	case fdXBEE:
+		retS = frtos_uart_write( &xComXBEE, pvBuffer, xBytes );
+		break;
+	case fdBT:
+		retS = frtos_uart_write( &xComBT, pvBuffer, xBytes );
+		break;
 	case fdI2C:
 		retS = frtos_i2c_write( &xBusI2C, pvBuffer, xBytes );
 		break;
@@ -87,6 +105,12 @@ int8_t retS = -1;
 	case fdGPRS:
 		retS = frtos_uart_read( &xComGPRS, pvBuffer, xBytes );
 		break;
+	case fdXBEE:
+		retS = frtos_uart_read( &xComXBEE, pvBuffer, xBytes );
+		break;
+	case fdBT:
+		retS = frtos_uart_read( &xComBT, pvBuffer, xBytes );
+		break;
 	case fdI2C:
 		retS = frtos_i2c_read( &xBusI2C, pvBuffer, xBytes );
 		break;
@@ -99,11 +123,11 @@ int8_t retS = -1;
 //------------------------------------------------------------------------------------
 // FUNCIONES ESPECIFICAS DE UART's
 //------------------------------------------------------------------------------------
-int frtos_uart_open( periferico_serial_port_t *xCom, file_descriptor_t fd, uart_id_t uart_id, uint32_t flags)
+int frtos_uart_open( periferico_serial_port_t *xCom, file_descriptor_t fd, StaticSemaphore_t *xCom_semph, uart_id_t uart_id, uint32_t flags)
 {
 
 	xCom->fd = fd;
-	xCom->xBusSemaphore = xSemaphoreCreateMutex();
+	xCom->xBusSemaphore = xSemaphoreCreateMutexStatic(xCom_semph);
 	xCom->xBlockTime = (10 / portTICK_RATE_MS );
 	// Inicializo la uart del usb (iUART_USB) y la asocio al periferico
 	xCom->uart = drv_uart_init( uart_id, flags );
@@ -241,11 +265,11 @@ xTimeOutType xTimeOut;
 //------------------------------------------------------------------------------------
 // FUNCIONES ESPECIFICAS DEL BUS I2C/TWI
 //------------------------------------------------------------------------------------
-int frtos_i2c_open( periferico_i2c_port_t *xI2c, file_descriptor_t fd, uint32_t flags)
+int frtos_i2c_open( periferico_i2c_port_t *xI2c, file_descriptor_t fd, StaticSemaphore_t *i2c_semph, uint32_t flags)
 {
 	// Asigno las funciones particulares ed write,read,ioctl
 	xI2c->fd = fd;
-	xI2c->xBusSemaphore = xSemaphoreCreateMutex();
+	xI2c->xBusSemaphore = xSemaphoreCreateMutexStatic( i2c_semph );
 	xI2c->xBlockTime = (10 / portTICK_RATE_MS );
 	//
 	// Abro e inicializo el puerto I2C solo la primera vez que soy invocado

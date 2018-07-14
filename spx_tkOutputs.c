@@ -30,9 +30,9 @@ void tkOutputs(void * pvParameters)
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	xprintf_P( PSTR("starting tkOutputs..\r\n\0"));
-
 	pv_out_init();
+
+	xprintf_P( PSTR("starting tkOutputs..\r\n\0"));
 
 	for( ;; )
 	{

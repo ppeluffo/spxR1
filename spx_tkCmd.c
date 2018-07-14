@@ -26,7 +26,7 @@ static void cmdStatusFunction(void);
 static void cmdConfigFunction(void);
 static void cmdKillFunction(void);
 
-static void pv_cmd_ina3221(uint8_t cmd_mode );
+static void pv_cmd_INA(uint8_t cmd_mode );
 static void pv_cmd_sens12V(void);
 static void pv_cmd_rwEE(uint8_t cmd_mode );
 static void pv_cmd_rwNVMEE(uint8_t cmd_mode );
@@ -41,12 +41,17 @@ static void pv_cmd_pulse(void);
 static void pv_cmd_bt(void);
 static void pv_cmd_range(void);
 static void pv_cmd_rwXBEE(uint8_t cmd_mode );
+static void pv_cmd_rwACH(uint8_t cmd_mode );
 static void pv_config_modo( char *tipo_canal, char *nro_canal, char *modo );
 
 #define WR_CMD 0
 #define RD_CMD 1
 
 #define WDG_CMD_TIMEOUT	60
+
+static usuario_t tipo_usuario;
+RtcTimeType_t rtc;
+char aux_buffer[32];
 
 //------------------------------------------------------------------------------------
 void tkCmd(void * pvParameters)
@@ -73,12 +78,14 @@ uint8_t ticks;
 	FRTOS_CMD_register( "config\0", cmdConfigFunction );
 	FRTOS_CMD_register( "kill\0", cmdKillFunction );
 
-	xprintf_P( PSTR("starting tkCmd..\r\n\0") );
-
 	// Fijo el timeout del READ
 	ticks = 5;
 	frtos_ioctl( fdUSB,ioctl_SET_TIMEOUT, &ticks );
-//	frtos_ioctl( fdBT,ioctl_SET_TIMEOUT, &ticks );
+	frtos_ioctl( fdBT,ioctl_SET_TIMEOUT, &ticks );
+
+	tipo_usuario = USER_TECNICO;
+
+	xprintf_P( PSTR("starting tkCmd..\r\n\0") );
 
 	//FRTOS_CMD_regtest();
 	// loop
@@ -89,13 +96,15 @@ uint8_t ticks;
 
 		// Si no tengo terminal conectada, duermo 5s lo que me permite entrar en tickless.
 		if ( ! pub_terminal_is_on() ) {
+		//if ( IO_read_TERMCTL_PIN() == 1 )
 			vTaskDelay( ( TickType_t)( 5000 / portTICK_RATE_MS ) );
 
 		} else {
 
 			c = '\0';	// Lo borro para que luego del un CR no resetee siempre el timer.
 			// el read se bloquea 50ms. lo que genera la espera.
-			while ( CMD_read( (char *)&c, 1 ) == 1 ) {
+			//while ( CMD_read( (char *)&c, 1 ) == 1 ) {
+			while ( frtos_read( fdUSB, (char *)&c, 1 ) == 1 ) {
 				FRTOS_CMD_process(c);
 			}
 		}
@@ -128,26 +137,13 @@ FAT_t l_fat;
 
 	// SERVER
 	xprintf_P( PSTR(">Server:\r\n\0"));
-
-	// APN
 	xprintf_P( PSTR("  apn: %s\r\n\0"), systemVars.apn );
-
-	// SERVER IP:SERVER PORT
 	xprintf_P( PSTR("  server ip:port: %s:%s\r\n\0"), systemVars.server_ip_address,systemVars.server_tcp_port );
-
-	// SERVER SCRIPT
 	xprintf_P( PSTR("  server script: %s\r\n\0"), systemVars.serverScript );
-
-	// SERVER PASSWD
 	xprintf_P( PSTR("  passwd: %s\r\n\0"), systemVars.passwd );
 
 	// MODEM
 	xprintf_P( PSTR(">Modem:\r\n\0"));
-
-	// DLG IP ADDRESS
-	xprintf_P( PSTR("  ip address: %s\r\n\0"), systemVars.dlg_ip_address);
-
-	/* CSQ */
 	xprintf_P( PSTR("  signalQ: csq=%d, dBm=%d\r\n\0"), systemVars.csq, systemVars.dbm );
 
 	// GPRS STATE
@@ -285,8 +281,7 @@ FAT_t l_fat;
 	}
 
 	// Valores actuales:
-	pub_tkData_print_frame( pub_tkData_get_data_frame_ptr() );
-
+	pub_data_print_frame();
 }
 //-----------------------------------------------------------------------------------
 static void cmdResetFunction(void)
@@ -299,13 +294,12 @@ static void cmdResetFunction(void)
 	if (!strcmp_P( strupr(argv[1]), PSTR("MEMORY\0"))) {
 
 		// Nadie debe usar la memoria !!!
-		vTaskSuspend( xHandle_tkData );
+		pub_watchdog_kick(WDG_CMD, 0xFFFF);
 
 		if (!strcmp_P( strupr(argv[2]), PSTR("SOFT\0"))) {
 			FF_format(false );
 		}
 		if (!strcmp_P( strupr(argv[2]), PSTR("HARD\0"))) {
-			pub_watchdog_kick(WDG_CMD, 0xFFFF);
 			FF_format(true);
 		}
 	}
@@ -329,44 +323,53 @@ static void cmdWriteFunction(void)
 		return;
 	}
 
-	// INA
-	// write ina confReg Value
-	// Solo escribimos el registro 0 de configuracion.
-	if (!strcmp_P( strupr(argv[1]), PSTR("INA\0")) ) {
-		pv_cmd_ina3221(WR_CMD);
-		return;
-	}
-
-	// SENS12V
-	if (!strcmp_P( strupr(argv[1]), PSTR("SENS12V\0")) ) {
-		pv_cmd_sens12V();
-		return;
-	}
-
-	// NVMEE
-	// write nvmee pos string
-	if (!strcmp_P( strupr(argv[1]), PSTR("NVMEE\0"))) {
-		pv_cmd_rwNVMEE(WR_CMD);
-		return;
-	}
-
 	// EE
 	// write ee pos string
-	if (!strcmp_P( strupr(argv[1]), PSTR("EE\0"))) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("EE\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rwEE(WR_CMD);
 		return;
 	}
 
 	// RTC SRAM
 	// write rtcram pos string
-	if (!strcmp_P( strupr(argv[1]), PSTR("RTCRAM\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("RTCRAM\0"))  && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rwRTC_SRAM(WR_CMD);
+		return;
+	}
+
+	// INA
+	// write ina confReg Value
+	// Solo escribimos el registro 0 de configuracion.
+	if (!strcmp_P( strupr(argv[1]), PSTR("INA\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_INA(WR_CMD);
+		return;
+	}
+
+	// ANALOG
+	// write analog {ina_id} conf128
+	if (!strcmp_P( strupr(argv[1]), PSTR("ANALOG\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_rwACH(WR_CMD);
+		return;
+	}
+
+
+	// SENS12V
+	// write sens12V {on|off}
+	if (!strcmp_P( strupr(argv[1]), PSTR("SENS12V\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_sens12V();
+		return;
+	}
+
+	// NVMEE
+	// write nvmee pos string
+	if (!strcmp_P( strupr(argv[1]), PSTR("NVMEE\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_rwNVMEE(WR_CMD);
 		return;
 	}
 
 	// CLRD
 	// write clrd {0|1}
-	if (!strcmp_P( strupr(argv[1]), PSTR("CLRD\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("CLRD\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		if ( atoi( argv[2]) == 0 ) { IO_clr_CLRD(); }
 		if ( atoi( argv[2]) == 1 ) { IO_set_CLRD(); }
 		return;
@@ -376,7 +379,7 @@ static void cmdWriteFunction(void)
 	// write out sleep|reset|phase(A/B)|enable(A/B)| {0|1}
 	//       out pulse (A/B) (+/-) (ms)
 	//       out power {on|off}
-	if (!strcmp_P( strupr(argv[1]), PSTR("OUT\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("OUT\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_wrOUT8814();
 		return;
 	}
@@ -384,7 +387,7 @@ static void cmdWriteFunction(void)
 	// GPRS
 	// write gprs pwr|sw|rts {on|off}
 	// write gprs cmd {atcmd}
-	if (!strcmp_P( strupr(argv[1]), PSTR("GPRS\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("GPRS\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rwGPRS(WR_CMD);
 		return;
 	}
@@ -392,19 +395,20 @@ static void cmdWriteFunction(void)
 	// XBEE
 	// write xbee pwr {on|off}
 	// write xbee msg
-	if (!strcmp_P( strupr(argv[1]), PSTR("XBEE\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("XBEE\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rwXBEE(WR_CMD);
 		return;
 	}
 
 	// BT
-	if (!strcmp_P( strupr(argv[1]), PSTR("BT\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("BT\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_bt();
 		return;
 	}
 
 	// PULSE
-	if (!strcmp_P( strupr(argv[1]), PSTR("PULSE\0")) ) {
+	// write pulse on|off
+	if (!strcmp_P( strupr(argv[1]), PSTR("PULSE\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_pulse();
 		return;
 	}
@@ -432,7 +436,7 @@ static void cmdWriteFunction(void)
 	// OUTPUTS
 	// write outputs {x,x}
 	// Debo esperar para que se carguen los condensadores
-	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUTS\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUTS\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pub_output_set_outputs( 'A', atoi(argv[2]) );
 		vTaskDelay( ( TickType_t)( 3000 / portTICK_RATE_MS ) );
 		pub_output_set_outputs( 'B', atoi(argv[3]) );
@@ -450,7 +454,6 @@ static void cmdReadFunction(void)
 
 uint16_t raw_val;
 float mag_val;
-st_data_frame data_frame;
 
 	FRTOS_CMD_makeArgv();
 
@@ -476,22 +479,23 @@ st_data_frame data_frame;
 	// FRAME
 	// read frame
 	if (!strcmp_P( strupr(argv[1]), PSTR("FRAME\0")) ) {
-		pub_tkdata_read_frame(&data_frame);
-		pub_tkData_print_frame(&data_frame);
+		pub_data_read_frame();
+		pub_data_print_frame();
 		return;
 	}
 
 	// SIGNATURE
 	// read id
 	if (!strcmp_P( strupr(argv[1]), PSTR("ID\0"))) {
-//		NVM_readID(cmd_printfBuff);
-//		CMD_write( cmd_printfBuff, sizeof(cmd_printfBuff) );
+		memset(aux_buffer,'\0', sizeof(aux_buffer));
+		NVM_readID((char *)&aux_buffer);
+		xprintf_P( PSTR("uID=%s\r\n\0"),aux_buffer);
 		return;
 	}
 
-	// INA3221
-	if (!strcmp_P( strupr(argv[1]), PSTR("INA\0"))) {
-		pv_cmd_ina3221(RD_CMD);
+	// INA
+	if (!strcmp_P( strupr(argv[1]), PSTR("INA\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_INA(RD_CMD);
 		return;
 	}
 
@@ -504,14 +508,14 @@ st_data_frame data_frame;
 
 	// EE
 	// read ee address length
-	if (!strcmp_P( strupr(argv[1]), PSTR("EE\0"))) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("EE\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rwEE(RD_CMD);
 		return;
 	}
 
 	// RTC SRAM
 	// read rtcram address length
-	if (!strcmp_P( strupr(argv[1]), PSTR("RTCRAM\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("RTCRAM\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rwRTC_SRAM(RD_CMD);
 		return;
 	}
@@ -523,8 +527,16 @@ st_data_frame data_frame;
 		return;
 	}
 
+	// ANALOG
+	// read analog {ch}, bat
+	if (!strcmp_P( strupr(argv[1]), PSTR("ANALOG\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		pv_cmd_rwACH(RD_CMD);
+		return;
+	}
+
+
 	// AN { 0..8}
-	if (!strcmp_P( strupr(argv[1]), PSTR("AN\0"))) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("AN\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pub_analog_read_channel( atoi(argv[2]),&raw_val, &mag_val );
 		xprintf_P( PSTR("CH[%02d] raw=%d,mag=%.02f\r\n\0"),atoi(argv[2]),raw_val, mag_val );
 		return;
@@ -532,27 +544,27 @@ st_data_frame data_frame;
 
 	// DIN
 	// read din {0,1} {P,L}
-	if (!strcmp_P( strupr(argv[1]), PSTR("DIN\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("DIN\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rdDIN();
 		return;
 	}
 
 	// MEMORY
-	if (!strcmp_P( strupr(argv[1]), PSTR("MEMORY\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("MEMORY\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rdMEMORY();
 		return;
 	}
 
 	// GPRS
 	// read gprs (rsp,cts,dcd,ri)
-	if (!strcmp_P( strupr(argv[1]), PSTR("GPRS\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("GPRS\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rwGPRS(RD_CMD);
 		return;
 	}
 
 	// PULSES
 	// read pulses
-	if (!strcmp_P( strupr(argv[1]), PSTR("PULSES\0")) ) {
+	if (!strcmp_P( strupr(argv[1]), PSTR("PULSES\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_range();
 		return;
 	}
@@ -575,6 +587,22 @@ static void cmdConfigFunction(void)
 bool retS = false;
 
 	FRTOS_CMD_makeArgv();
+
+	// USER
+	if (!strcmp_P( strupr(argv[1]), PSTR("USER\0"))) {
+		if (!strcmp_P( strupr(argv[2]), PSTR("TECNICO\0"))) {
+			tipo_usuario = USER_TECNICO;
+			pv_snprintfP_OK();
+			return;
+		}
+			if (!strcmp_P( strupr(argv[2]), PSTR("NORMAL\0"))) {
+			tipo_usuario = USER_NORMAL;
+			pv_snprintfP_OK();
+			return;
+		}
+		pv_snprintfP_ERR();
+		return;
+	}
 
 	// DLGID
 	if (!strcmp_P( strupr(argv[1]), PSTR("DLGID\0"))) {
@@ -659,7 +687,7 @@ bool retS = false;
 
 	// config save
 	if (!strcmp_P( strupr(argv[1]), PSTR("SAVE\0"))) {
-		pub_save_params_in_EE();
+		pub_save_params_in_NVMEE();
 		pv_snprintfP_OK();
 		return;
 	}
@@ -802,34 +830,39 @@ static void cmdHelpFunction(void)
 		xprintf_P( PSTR("-write\r\n\0"));
 		xprintf_P( PSTR("  rtc YYMMDDhhmm\r\n\0"));
 		xprintf_P( PSTR("  consigna {diurna|nocturna}, outputs {x,x}\r\n\0"));
-		xprintf_P( PSTR("  ee,nvmee,rtcram {pos} {string}\r\n\0"));
-		xprintf_P( PSTR("  ina {id} conf {value}, sens12V {on|off}\r\n\0"));
-		xprintf_P( PSTR("  clrd {0|1}\r\n\0"));
-		xprintf_P( PSTR("  out sleep|reset|phase(A/B)|enable(A/B) {0|1}\r\n\0"));
-		xprintf_P( PSTR("  out pulse (A/B) (+/-) (ms)\r\n\0"));
-		xprintf_P( PSTR("  out power {on|off}\r\n\0"));
-		xprintf_P( PSTR("  bt {on|off}\r\n\0"));
-		xprintf_P( PSTR("  gprs (pwr|sw|cts|dtr) {on|off}\r\n\0"));
-		xprintf_P( PSTR("  gprs cmd {atcmd}, redial\r\n\0"));
-		xprintf_P( PSTR("  xbee (pwr|sleep|reset) {on|off}\r\n\0"));
-		xprintf_P( PSTR("  xbee msg\r\n\0"));
-		xprintf_P( PSTR("  pulse {on|off}\r\n\0"));
-		xprintf_P( PSTR("  alarm (secs)\r\n\0"));
+		if ( tipo_usuario == USER_TECNICO ) {
+			xprintf_P( PSTR("  ee,nvmee,rtcram {pos} {string}\r\n\0"));
+			xprintf_P( PSTR("  ina {id} conf {value}, sens12V {on|off}\r\n\0"));
+			xprintf_P( PSTR("  analog {ina_id} conf128 \r\n\0"));
+			xprintf_P( PSTR("  clrd {0|1}\r\n\0"));
+			xprintf_P( PSTR("  out {enable,disable,reset,sleep,awake,set01,set10} {A/B}\r\n\0"));
+			xprintf_P( PSTR("      pulse (A/B) (ms)\r\n\0"));
+			xprintf_P( PSTR("      power {on|off}\r\n\0"));
+			xprintf_P( PSTR("  gprs (pwr|sw|cts|dtr) {on|off}\r\n\0"));
+			xprintf_P( PSTR("      cmd {atcmd}, redial\r\n\0"));
+			xprintf_P( PSTR("  xbee (pwr|sleep|reset) {on|off}\r\n\0"));
+			xprintf_P( PSTR("       msg\r\n\0"));
+			xprintf_P( PSTR("  bt {on|off}\r\n\0"));
+			xprintf_P( PSTR("  pulse {on|off}\r\n\0"));
+			xprintf_P( PSTR("  alarm (secs)\r\n\0"));
+		}
 		return;
-
 	}
 
 	// HELP READ
 	else if (!strcmp_P( strupr(argv[1]), PSTR("READ\0"))) {
 		xprintf_P( PSTR("-read\r\n\0"));
 		xprintf_P( PSTR("  rtc, frame\r\n\0"));
-		xprintf_P( PSTR("  ee,nvmww,rtcram {pos} {lenght}\r\n\0"));
-		xprintf_P( PSTR("  ina {id} {conf|chXshv|chXbusv|mfid|dieid}\r\n\0"));
-		xprintf_P( PSTR("  memory\r\n\0"));
-		xprintf_P( PSTR("  an {0..4}, battery\r\n\0"));
-		xprintf_P( PSTR("  din\r\n\0"));
-		xprintf_P( PSTR("  gprs (rsp,rts,dcd,ri)\r\n\0"));
-		xprintf_P( PSTR("  pulse\r\n\0"));
+		if ( tipo_usuario == USER_TECNICO ) {
+			xprintf_P( PSTR("  ee,nvmee,rtcram {pos} {lenght}\r\n\0"));
+			xprintf_P( PSTR("  ina {id} {conf|chXshv|chXbusv|mfid|dieid}\r\n\0"));
+			xprintf_P( PSTR("  memory\r\n\0"));
+			xprintf_P( PSTR("  an {0..4}, battery\r\n\0"));
+			xprintf_P( PSTR("  analog {ch}, bat \r\n\0"));
+			xprintf_P( PSTR("  din\r\n\0"));
+			xprintf_P( PSTR("  gprs (rsp,rts,dcd,ri)\r\n\0"));
+			xprintf_P( PSTR("  pulse\r\n\0"));
+		}
 		return;
 
 	}
@@ -838,7 +871,7 @@ static void cmdHelpFunction(void)
 	else if (!strcmp_P( strupr(argv[1]), PSTR("RESET\0"))) {
 		xprintf_P( PSTR("-reset\r\n\0"));
 		xprintf_P( PSTR("  memory {soft|hard}\r\n\0"));
-		xprintf_P( PSTR("  alarm\r\n\0"));
+		//xprintf_P( PSTR("  alarm\r\n\0"));
 		return;
 
 	}
@@ -846,6 +879,7 @@ static void cmdHelpFunction(void)
 	// HELP CONFIG
 	else if (!strcmp_P( strupr(argv[1]), PSTR("CONFIG\0"))) {
 		xprintf_P( PSTR("-config\r\n\0"));
+		xprintf_P( PSTR("  user {normal|tecnico}\r\n\0"));
 		xprintf_P( PSTR("  analog {0..4} aname imin imax mmin mmax\r\n\0"));
 		xprintf_P( PSTR("  cfactor {ch} {coef}\r\n\0"));
 		xprintf_P( PSTR("  digital {0..3} type(L,C) dname magPP\r\n\0"));
@@ -864,7 +898,7 @@ static void cmdHelpFunction(void)
 	}
 
 	// HELP KILL
-	else if (!strcmp_P( strupr(argv[1]), PSTR("KILL\0"))) {
+	else if (!strcmp_P( strupr(argv[1]), PSTR("KILL\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		xprintf_P( PSTR("-kill {data,digi,gprstx,gprsrx,outputs}\r\n\0"));
 		return;
 
@@ -952,7 +986,7 @@ static void pv_snprintfP_ERR(void)
 	xprintf_P( PSTR("error\r\n\0"));
 }
 //------------------------------------------------------------------------------------
-static void pv_cmd_ina3221(uint8_t cmd_mode )
+static void pv_cmd_INA(uint8_t cmd_mode )
 {
 
 uint16_t val;
@@ -1070,19 +1104,18 @@ static void pv_cmd_pulse(void)
 static void pv_cmd_rwEE(uint8_t cmd_mode )
 {
 
-
-bool retS = false;
+int xBytes = 0;
 uint8_t length = 0;
 char buffer[32];
 char *p;
 
 	// read ee {pos} {lenght}
 	if ( cmd_mode == RD_CMD ) {
-		retS = EE_read( (uint32_t)(atol(argv[2])), buffer, (uint8_t)(atoi(argv[3]) ) );
-		if ( retS ) {
+		xBytes = EE_read( (uint32_t)(atol(argv[2])), buffer, (uint8_t)(atoi(argv[3]) ) );
+		if ( xBytes > 0 ) {
 			xprintf_P( PSTR( "%s\r\n\0"),buffer);
 		}
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
+		( xBytes > 0 ) ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
 
@@ -1095,8 +1128,8 @@ char *p;
 			length++;
 		}
 
-		retS = EE_write( (uint32_t)(atol(argv[2])), argv[3], length );
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
+		xBytes = EE_write( (uint32_t)(atol(argv[2])), argv[3], length );
+		( xBytes > 0 ) ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
 
@@ -1107,24 +1140,35 @@ static void pv_cmd_rwNVMEE(uint8_t cmd_mode )
 	// Hace prueba de lectura y escritura de la memoria internan EE del micro
 	// que es la que usamos para guardar la configuracion.
 
+int xBytes = 0;
+uint8_t length = 0;
+char buffer[32];
+char *p;
+
 	// read nvmee {pos} {lenght}
 	if ( cmd_mode == RD_CMD ) {
-//		memset(cmd_printfBuff, '\0', sizeof(cmd_printfBuff));
-//		NVM_EEPROM_test_read( argv[2], cmd_printfBuff, argv[3] );
-//		// El string leido lo devuelve en cmd_printfBuff por lo que le agrego el CR.
-//		snprintf_P( &cmd_printfBuff[atoi(argv[3])], sizeof(cmd_printfBuff),PSTR( "\r\n\0"));
-//		CMD_write( cmd_printfBuff, sizeof(cmd_printfBuff) );
-//		pv_snprintfP_OK();
+
+		xBytes = NVMEE_read( (uint16_t)(atoi(argv[2])), buffer, (uint8_t)(atoi(argv[3]) ) );
+		if ( xBytes > 0 ) {
+			xprintf_P( PSTR( "%s\r\n\0"),buffer);
+		}
+		( xBytes > 0 ) ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
 
 	// write nvmee pos string
 	if ( cmd_mode == WR_CMD ) {
-		NVM_EEPROM_test_write( argv[2], argv[3]);
-		pv_snprintfP_OK();
+		// Calculamos el largo del texto a escribir en la eeprom.
+		p = argv[3];
+		while (*p != 0) {
+			p++;
+			length++;
+		}
+
+		xBytes = NVMEE_write( (uint16_t)(atoi(argv[2])), argv[3], length );
+		( xBytes > 0 ) ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
-
 }
 //------------------------------------------------------------------------------------
 static void pv_cmd_rwRTC(uint8_t cmd_mode )
@@ -1208,13 +1252,13 @@ static void pv_cmd_rdDIN(void)
 	// Leo todas las entradas digitales.
 
 st_digital_frame digital_frame;
-uint8_t i,pos;
+uint8_t i;
 
 	// Leo los valores
 	pub_tkDigital_read_frame( &digital_frame , false );
 
 	// Armo la respuesta
-	pos = xprintf_P( PSTR("DIN: "));
+	xprintf_P( PSTR("DIN: "));
 
 	for (i = 0; i < NRO_DIGITAL_CHANNELS; i++) {
 		// Canales contadores
@@ -1236,42 +1280,7 @@ static void pv_cmd_rdMEMORY(void)
 	// resetearse el dlg.
 	// Para esto, cada 32 registros pateo el watchdog.
 
-//FAT_t l_fat;
-st_data_frame data_frame;
-int16_t bytes_read;
-
-	FF_rewind();
-	while(1) {
-		// Necesito esperar un poco entre c/ciclo
-		vTaskDelay( ( TickType_t)( 10 / portTICK_RATE_MS ) );
-		bytes_read = FF_readRcd( &data_frame, sizeof(st_data_frame));
-
-		// imprimo stats
-		//FAT_read(&l_fat);
-		//xprintf_P( PSTR("RD: wrPtr=%d,rdPtr=%d,delPtr=%d,r4wr=%d,r4rd=%d,r4del=%d \r\n\0"),l_fat.wrPTR,l_fat.rdPTR, l_fat.delPTR,l_fat.rcds4wr,l_fat.rcds4rd,l_fat.rcds4del );
-		//CMD_write( cmd_printfBuff, sizeof(cmd_printfBuff) );
-
-		// Controlo errores:
-		switch( FF_errno() ) {
-		case pdFF_ERRNO_MEMEMPTY:
-			xprintf_P( PSTR("Memory Empty.\r\n\0") );
-			return;
-			break;
-		case pdFF_ERRNO_MEMRD:
-			xprintf_P( PSTR("ERROR RD size\r\n\0") );
-			break;
-		case pdFF_ERRNO_RDCKS:
-			xprintf_P( PSTR("ERROR RD checksum\r\n\0") );
-			break;
-		case pdFF_ERRNO_RDNOTAG:
-			xprintf_P( PSTR("ERROR RD no tag\r\n\0") );
-			break;
-		default:
-			//xprintf_P( PSTR("RD OK: %d bytes\r\n\0"),bytes_read );
-			pub_tkData_print_frame(&data_frame);
-			break;
-		}
-	}
+	// No implementada
 }
 //------------------------------------------------------------------------------------
 static void pv_cmd_wrOUT8814(void)
@@ -1599,6 +1608,45 @@ int16_t range;
 
 }
 //------------------------------------------------------------------------------------
+static void pv_cmd_rwACH(uint8_t cmd_mode )
+{
+
+uint16_t val = 0;
+uint8_t channel;
+
+	// read aCh {ch}, bat
+	if ( cmd_mode == RD_CMD ) {
+		// Bateria
+		if (!strcmp_P( strupr( (char *)argv[2]), PSTR("BAT\0"))) {
+			val = ACH_read_battery();
+			xprintf_P( PSTR("BAT=%d\r\n\0"), val);
+			pv_snprintfP_OK();
+			return;
+		}
+
+		// Canales
+		channel = atoi(argv[2]);
+		if (  channel > 4 ) {
+			pv_snprintfP_ERR();
+			return;
+		} else {
+			val = ACH_read_channel( channel );
+			xprintf_P( PSTR("CH%0d=%d\r\n\0"), channel, val);
+			pv_snprintfP_OK();
+			return;
+		}
+		pv_snprintfP_ERR();
+		return;
+	}
+
+	// write ach {id} conf128
+	if ( cmd_mode == WR_CMD ) {
+		ACH_config_avg128(atoi(argv[2]));
+		pv_snprintfP_OK();
+		return;
+	}
+}
+//------------------------------------------------------------------------------------
 static void pv_config_modo( char *tipo_canal, char *nro_canal, char *modo )
 {
 uint8_t channel;
@@ -1640,3 +1688,5 @@ uint8_t channel;
 	}
 
 }
+//------------------------------------------------------------------------------------
+

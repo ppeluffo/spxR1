@@ -33,13 +33,7 @@ void initMCU(void)
 	IO_config_CLRD();
 
 	// OUT8814
-	IO_config_ENA();
-	IO_config_PHA();
-	IO_config_ENB();
-	IO_config_PHB();
-	IO_config_V12_OUTS_CTL();
-	IO_config_RES();
-	IO_config_SLP();
+	OUT_config();
 
 	// GPRS
 	IO_config_GPRS_SW();
@@ -247,7 +241,7 @@ void u_configure_RTC32(void)
 	do { } while ( RTC32.SYNCCTRL & RTC32_SYNCBUSY_bm );
 }
 //-----------------------------------------------------------
-uint8_t pub_save_params_in_EE(void)
+uint8_t pub_save_params_in_NVMEE(void)
 {
 	// Calculo el checksum del systemVars.
 	// Considero el systemVars como un array de chars.
@@ -260,7 +254,7 @@ uint16_t i;
 	// Calculo el checksum del systemVars.
 	systemVars.checksum = 0;
 	data_length = sizeof(systemVars);
-	p = (char*)&systemVars;
+	p = (uint8_t *)&systemVars;
 	checksum = 0;
 	// Recorro todo el systemVars considerando c/byte como un char, hasta
 	// llegar al ultimo ( checksum ) que no lo incluyo !!!.
@@ -271,13 +265,13 @@ uint16_t i;
 	systemVars.checksum = checksum;
 
 	// Guardo systemVars en la EE
-	NVM_EEPROM_write_buffer(0x00, &systemVars, sizeof(systemVars));
+	NVMEE_write_buffer(0x00, &systemVars, sizeof(systemVars));
 
 	return(checksum);
 
 }
 //------------------------------------------------------------------------------------
-bool u_load_params_from_EE(void)
+bool u_load_params_from_NVMEE(void)
 {
 	// Leo el systemVars desde la EE.
 	// Calculo el checksum. Si no coincide es que hubo algun
@@ -290,7 +284,7 @@ uint16_t data_length;
 uint16_t i;
 
 	// Leo de la EE es systemVars.
-	NVM_EEPROM_read_buffer(0x00, &systemVars, sizeof(systemVars));
+	NVMEE_read_buffer(0x00, (char *)&systemVars, sizeof(systemVars));
 
 	// Guardo el checksum que lei.
 	stored_checksum = systemVars.checksum;
@@ -298,7 +292,7 @@ uint16_t i;
 	// Calculo el checksum del systemVars leido
 	systemVars.checksum = 0;
 	data_length = sizeof(systemVars);
-	p = (char*)&systemVars;	// Recorro el systemVars como si fuese un array de int8.
+	p = ( uint8_t *)&systemVars;	// Recorro el systemVars como si fuese un array de int8.
 	checksum = 0;
 	for ( i = 0; i < ( data_length - 1 ); i++) {
 		checksum += p[i];

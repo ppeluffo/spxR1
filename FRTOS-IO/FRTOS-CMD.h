@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "l_uarts.h"
+#include "l_printf.h"
 
 #define CMDLINE_MAX_CMD_LENGTH	10
 #define CMDLINE_MAX_COMMANDS	10

@@ -54,7 +54,7 @@ uint8_t channel;
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
 		remote_val.digital_val[channel] = 0;
 	}
-				
+
 	for( ;; )
 	{
 

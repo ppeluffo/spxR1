@@ -14,6 +14,17 @@ typedef uint16_t eeprom_addr_t;
 
 uint8_t signature[11];
 
+//--------------------------------------------------------------------------------
+// API START
+
+#define NVMEE_read( rdAddress, data, length ) NVMEE_read_buffer (  rdAddress, data, length );
+#define NVMEE_write( wrAddress, data, length ) NVMEE_write_buffer ( wrAddress, data, length );
+
+// API END
+//--------------------------------------------------------------------------------
+
+#define NVMEEPROM_SIZE	1024
+
 enum {
 	LOTNUM0=8,  // Lot Number Byte 0, ASCII
 	LOTNUM1,    // Lot Number Byte 1, ASCII
@@ -56,14 +67,15 @@ typedef enum NVM_PROD_SIGNATURES_offsets {
     DACBGAINCAL_offset = 0x33, ///< DACB Calibration Byte 1
 } NVM_PROD_SIGNATURES_offsets_t;
 
+
+int NVMEE_write_buffer(eeprom_addr_t address, const void *buf, uint16_t len);
+void NVMEE_write_byte(eeprom_addr_t address, uint8_t value);
+int NVMEE_read_buffer(eeprom_addr_t address, char *buf, uint16_t len);
+uint8_t NVMEE_ReadByte( eeprom_addr_t address );
+void NVMEE_EraseAll( void );
+
+
 void NVM_readID(char *str );
-void NVM_EEPROM_write_buffer(eeprom_addr_t address, const void *buf, uint16_t len);
-void NVM_EEPROM_write_byte(eeprom_addr_t address, uint8_t value);
-uint8_t NVM_EEPROM_ReadByte( eeprom_addr_t address );
-void NVM_EEPROM_read_buffer(eeprom_addr_t address, char *buf, uint16_t len);
-void NVM_EEPROM_EraseAll( void );
-void NVM_EEPROM_test_write(char *s0, char *s1);
-void NVM_EEPROM_test_read(char *s0, char *s1, char *s2);
 
 /*  Non-Volatile Memory Execute Command
  *  This macro set the CCP register before setting the CMDEX bit in the

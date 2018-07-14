@@ -19,6 +19,21 @@
  *  Para ver el uso de memoria usamos
  *  avr-nm -n test_io.elf | more
  *
+ *------------------------------------------------------------------------------------------
+ * 2018-07-14:
+ * Correcciones indicadas por Yosiniel y Juan Pablo
+ * Reviso libreria NVM para poder leer el id
+ * Revisar funciones de Cmd.
+ * Incorporo la libreria l_ouptputs y revisar tkOutputs
+ *
+ * Agrego buffers y estructura para BT y XBEE.
+ * Modifico la libreria l_printf y elimino l_uarts.
+ * Pongo un semaforo en l_file para acceder a la FAT
+ * Paso los semaforos a estructuras estaticas.
+ * Agrego la libreria l_ain
+ * Reviso port.c para que trabaje con memoria extendida
+ * Modifico el menu para incorporar el concepto de usuario tecnico.
+ * Los mensajes de init de las tareas los paso a luego de inicializarlas.
  *
  *------------------------------------------------------------------------------------------
  * 2018-07-13:
@@ -26,10 +41,6 @@
  * Eliminamos todos los buffers locales.
  * Elimino FRTOS-stdio
  * Revisamos las librerias l_i2c/l_eeprom/l_ina3221/l_rtc79410 y las funciones asociadas en tkCmd.
- * Paso los semaforos a estructcturas estaticas.
- * Agrego la libreria l_ain
- * Pongo un semaforo en l_file para acceder a la FAT
- *
  *
  *------------------------------------------------------------------------------------------
  * 2018-07-12:
@@ -132,8 +143,9 @@ int main( void )
 	frtos_open(fdI2C, 100 );
 
 	// Creo los semaforos
-	sem_SYSVars = xSemaphoreCreateMutex();
+	sem_SYSVars = xSemaphoreCreateMutexStatic( &SYSVARS_xMutexBuffer );
 	xprintf_init();
+	FAT_init();
 
 	startTask = false;
 
@@ -154,7 +166,6 @@ int main( void )
 
 }
 //-----------------------------------------------------------
-
 void vApplicationIdleHook( void )
 {
 	// Como trabajo en modo tickless no entro mas en modo sleep aqui.
@@ -175,6 +186,33 @@ void vApplicationStackOverflowHook( TaskHandle_t xTask, signed char *pcTaskName 
 
 	xprintf_P( PSTR("PANIC:%s !!\r\n\0"),pcTaskName);
 
+}
+//------------------------------------------------------------------------------------
+
+/* configSUPPORT_STATIC_ALLOCATION is set to 1, so the application must provide an
+implementation of vApplicationGetIdleTaskMemory() to provide the memory that is
+used by the Idle task. */
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer,
+                                    StackType_t **ppxIdleTaskStackBuffer,
+                                    uint32_t *pulIdleTaskStackSize )
+{
+/* If the buffers to be provided to the Idle task are declared inside this
+function then they must be declared static - otherwise they will be allocated on
+the stack and so not exists after this function exits. */
+static StaticTask_t xIdleTaskTCB;
+static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
+
+    /* Pass out a pointer to the StaticTask_t structure in which the Idle task's
+    state will be stored. */
+    *ppxIdleTaskTCBBuffer = &xIdleTaskTCB;
+
+    /* Pass out the array that will be used as the Idle task's stack. */
+    *ppxIdleTaskStackBuffer = uxIdleTaskStack;
+
+    /* Pass out the size of the array pointed to by *ppxIdleTaskStackBuffer.
+    Note that, as the array is necessarily of type StackType_t,
+    configMINIMAL_STACK_SIZE is specified in words, not bytes. */
+    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
 }
 //------------------------------------------------------------------------------------
 

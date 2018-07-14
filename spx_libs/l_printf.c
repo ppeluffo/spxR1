@@ -12,7 +12,8 @@
 #define PRINTF_BUFFER_SIZE        256U
 
 static uint8_t stdout_buff[PRINTF_BUFFER_SIZE];
-xSemaphoreHandle sem_stdout_buff;
+xSemaphoreHandle sem_STDOUT;
+StaticSemaphore_t STDOUT_xMutexBuffer;
 
 //-----------------------------------------------------------------------------------
 int xprintf_P( PGM_P fmt, ...)
@@ -26,8 +27,8 @@ va_list args;
 int i;
 
 	// Espero el semaforo del buffer en forma persistente.
-	while ( xSemaphoreTake( sem_stdout_buff, ( TickType_t ) 1 ) != pdTRUE )
-		vTaskDelay( ( TickType_t)( 1 ) );
+	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 5 ) );
 
 	// Ahora tengo en stdout_buff formateado para imprimir
 	memset(stdout_buff,'\0',PRINTF_BUFFER_SIZE);
@@ -35,9 +36,63 @@ int i;
 	vsnprintf_P( (char *)stdout_buff,sizeof(stdout_buff),fmt,args);
 	i = frtos_write(fdUSB, (char *)stdout_buff, PRINTF_BUFFER_SIZE );
 
-	xSemaphoreGive( sem_stdout_buff );
+	xSemaphoreGive( sem_STDOUT );
 	return(i);
 
+}
+//-----------------------------------------------------------------------------------
+int xprintf( const char *fmt, ...)
+{
+	// Imprime formateando en el uart fd.usando el buffer stdout_buff.
+	// Como se controla con semaforo, nos permite ahorrar los buffers de c/tarea.
+	// Si bien vsnprintf no es thread safe, al usarla aqui con el semaforo del buffer
+	// queda thread safe !!!
+
+va_list args;
+int i;
+
+	// Espero el semaforo del buffer en forma persistente.
+	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 5 ) );
+
+	// Ahora tengo en stdout_buff formateado para imprimir
+	memset(stdout_buff,'\0',PRINTF_BUFFER_SIZE);
+	va_start(args, fmt);
+	vsnprintf( (char *)stdout_buff,sizeof(stdout_buff),fmt,args);
+	i = frtos_write(fdUSB, (char *)stdout_buff, PRINTF_BUFFER_SIZE );
+
+	xSemaphoreGive( sem_STDOUT );
+	return(i);
+
+}
+//-----------------------------------------------------------------------------------
+int xnprint( const char *pvBuffer, const uint16_t xBytes )
+{
+	// Imprime en fdUSB sin formatear
+
+int bytes2wr = 0;
+
+	// SI la terminal esta desconectada salgo.
+	if ( IO_read_TERMCTL_PIN() == 1 )
+		return(bytes2wr);
+
+	frtos_ioctl (fdUSB,ioctl_OBTAIN_BUS_SEMPH, NULL );
+	bytes2wr = frtos_write( fdUSB, pvBuffer, xBytes );
+	frtos_ioctl (fdUSB,ioctl_RELEASE_BUS_SEMPH, NULL);
+	return(bytes2wr);
+
+}
+//-----------------------------------------------------------------------------------
+void xputChar(unsigned char c)
+{
+	// Funcion intermedia necesaria por cmdline para escribir de a 1 caracter en consola
+	// El tema es que el prototipo de funcion que requiere cmdlineSetOutputFunc no se ajusta
+	// al de FreeRTOS_UART_write, por lo que defino esta funcion intermedia.
+
+char cChar;
+
+	cChar = c;
+	xnprint( &cChar, sizeof(char));
 }
 //-----------------------------------------------------------------------------------
 int xCom_printf_P( file_descriptor_t fd, PGM_P fmt, ...)
@@ -48,8 +103,8 @@ va_list args;
 int i;
 
 	// Espero el semaforo del buffer en forma persistente.
-	while ( xSemaphoreTake( sem_stdout_buff, ( TickType_t ) 1 ) != pdTRUE )
-		vTaskDelay( ( TickType_t)( 1 ) );
+	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 5 ) );
 
 	// Ahora tengo en stdout_buff formateado para imprimir
 	memset(stdout_buff,'\0',PRINTF_BUFFER_SIZE);
@@ -57,14 +112,62 @@ int i;
 	vsnprintf_P( (char *)stdout_buff,sizeof(stdout_buff),fmt,args);
 	i = frtos_write(fd, (char *)stdout_buff, PRINTF_BUFFER_SIZE );
 
-	xSemaphoreGive( sem_stdout_buff );
+	xSemaphoreGive( sem_STDOUT );
 	return(i);
 
 }
 //-----------------------------------------------------------------------------------
+int xCom_printf( file_descriptor_t fd, const char *fmt, ...)
+{
+	// Idem que xCom_printf_P pero el formato esta en RAM.
+
+va_list args;
+int i;
+
+	// Espero el semaforo del buffer en forma persistente.
+	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 5 ) );
+
+	// Ahora tengo en stdout_buff formateado para imprimir
+	memset(stdout_buff,'\0',PRINTF_BUFFER_SIZE);
+	va_start(args, fmt);
+	vsnprintf( (char *)stdout_buff,sizeof(stdout_buff),fmt,args);
+	i = frtos_write(fd, (char *)stdout_buff, PRINTF_BUFFER_SIZE );
+
+	xSemaphoreGive( sem_STDOUT );
+	return(i);
+
+}
+//-----------------------------------------------------------------------------------
+int xCom_nprint( file_descriptor_t fd, const char *pvBuffer, const uint16_t xBytes )
+{
+	// Imprime en fd sin formatear
+
+int bytes2wr = 0;
+
+	// SI la terminal esta desconectada salgo.
+	if ( IO_read_TERMCTL_PIN() == 1 )
+		return(bytes2wr);
+
+	frtos_ioctl (fdUSB,ioctl_OBTAIN_BUS_SEMPH, NULL );
+	bytes2wr = frtos_write( fdUSB, pvBuffer, xBytes );
+	frtos_ioctl (fd,ioctl_RELEASE_BUS_SEMPH, NULL);
+	return(bytes2wr);
+
+}
+//-----------------------------------------------------------------------------------
+void xCom_putChar(file_descriptor_t fd, unsigned char c)
+{
+
+char cChar;
+
+	cChar = c;
+	xCom_nprint( fd, &cChar, sizeof(char));
+}
+//-----------------------------------------------------------------------------------
 void xprintf_init(void)
 {
-	sem_stdout_buff = xSemaphoreCreateMutex();
+	sem_STDOUT = xSemaphoreCreateMutexStatic( &STDOUT_xMutexBuffer );
 }
 //------------------------------------------------------------------------------------
 
@@ -72,61 +175,9 @@ void xprintf_init(void)
 // Formatea e imprime en el fdUSB
 //-----------------------------------------------------------------------------------
 /*
-void xprintf( const char * format, ...)
-{
-	// Formatea e imprime en fdUSB.
-	//
 
-va_list arg;
-
-	va_start(arg, format);
-
-	vsnprintf((char *)(xSerialPort.serialWorkBuffer), xSerialPort.serialWorkBufferSize, (const char *)format, arg);
-	xSerialPrint((uint8_t *)(xSerialPort.serialWorkBuffer));
-
-	va_end(arg);
-}
-//-----------------------------------------------------------------------------------
-void xprintf_P(PGM_P format, ...)
-{
-	va_list arg;
-
-	va_start(arg, format);
-
-	while(xSerialPort.serialWorkBufferInUse == ENGAGED ) taskYIELD();
-	xSerialPort.serialWorkBufferInUse = ENGAGED;
-
-	vsnprintf_P((char *)(xSerialPort.serialWorkBuffer), xSerialPort.serialWorkBufferSize, format, arg);
-	xSerialPrint((uint8_t *)(xSerialPort.serialWorkBuffer));
-
-	xSerialPort.serialWorkBufferInUse = VACANT;
-
-	va_end(arg);
-}
 //-----------------------------------------------------------------------------------
 // Imprime sin formatear en el fdUSB
-//-----------------------------------------------------------------------------------
-void xprint( const uint8_t * str)
-{
-	int16_t i = 0;
-	size_t stringlength;
-
-	stringlength = strlen((char *)str);
-
-	while(i < stringlength)
-		xSerialPutChar( &xSerialPort, str[i++] );
-}
-//-----------------------------------------------------------------------------------
-void xprint_P(PGM_P str)
-{
-	uint16_t i = 0;
-	size_t stringlength;
-
-	stringlength = strlen_P(str);
-
-	while(i < stringlength)
-		xSerialPutChar( &xSerialPort, pgm_read_byte(&str[i++]) );
-}
 //-----------------------------------------------------------------------------------
 // Formatea e imprime en un fd tipo uart
 //-----------------------------------------------------------------------------------

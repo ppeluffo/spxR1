@@ -79,9 +79,9 @@ const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10000 );
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	xprintf_P( PSTR("starting tkDigital..\r\n\0"));
-
 	pv_tkDigital_init();
+
+	xprintf_P( PSTR("starting tkDigital..\r\n\0"));
 
 	// loop
 	for( ;; )

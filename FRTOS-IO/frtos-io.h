@@ -61,9 +61,11 @@ typedef struct {
 } periferico_i2c_port_t;
 
 // Periferico real.
-periferico_serial_port_t xComUSB, xComGPRS;
-periferico_i2c_port_t xBusI2C;
+periferico_serial_port_t xComUSB, xComGPRS, xComXBEE, xComBT;
+StaticSemaphore_t USB_xMutexBuffer,GPRS_xMutexBuffer,XBEE_xMutexBuffer,BT_xMutexBuffer;
 
+periferico_i2c_port_t xBusI2C;
+StaticSemaphore_t I2C_xMutexBuffer;
 
 #define ioctl_OBTAIN_BUS_SEMPH			1
 #define ioctl_RELEASE_BUS_SEMPH			2
@@ -78,8 +80,8 @@ periferico_i2c_port_t xBusI2C;
 
 //-----------------------------------------------------------------------
 int frtos_open( file_descriptor_t fd, uint32_t flags);
-int frtos_uart_open( periferico_serial_port_t *xCom, file_descriptor_t fd, uart_id_t uart_id, uint32_t flags);
-int frtos_i2c_open( periferico_i2c_port_t *xI2c, file_descriptor_t fd, uint32_t flags);
+int frtos_uart_open( periferico_serial_port_t *xCom, file_descriptor_t fd, StaticSemaphore_t *xCom_semph, uart_id_t uart_id, uint32_t flags);
+int frtos_i2c_open( periferico_i2c_port_t *xI2c, file_descriptor_t fd, StaticSemaphore_t *i2c_semph, uint32_t flags);
 
 int frtos_write( file_descriptor_t fd ,const char *pvBuffer, const uint16_t xBytes );
 int frtos_uart_write( periferico_serial_port_t *xCom, const char *pvBuffer, const uint16_t xBytes );

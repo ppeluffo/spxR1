@@ -267,7 +267,7 @@ uint8_t saveFlag = 0;
 
 	if ( saveFlag > 0 ) {
 
-		pub_save_params_in_EE();
+		pub_save_params_in_NVMEE();
 
 		// DEBUG & LOG
 		if ( systemVars.debug ==  DEBUG_GPRS ) {

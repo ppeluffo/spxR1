@@ -10,18 +10,20 @@
 //------------------------------------------------------------------------------------
 void pub_analog_config_INAS( uint16_t conf_reg_value )
 {
-
-	// Realiza la configuracion de los 2 INA grabando el conf_reg_value en el
-	// registro de configuracion CONF (0x00)
-	// conf_reg_value = 0x7927: Configuro los 2 INA para promediar en 128 medidas
-	// conf_reg_value = 0x7920: Configuro los 2 INA para entrar en modo sleep down
-
-char res[3];
-
-	res[0] = ( conf_reg_value & 0xFF00 ) >> 8;
-	res[1] = ( conf_reg_value & 0x00FF );
-	INA_write( INA_id2busaddr(0), INA3231_CONF, res, 2 );
-	INA_write( INA_id2busaddr(1), INA3231_CONF, res, 2 );
+	switch ( conf_reg_value ) {
+	case CONF_INAS_AVG128:
+		// Configuro ambos INA para promediar en 128 medidas.
+		ACH_config_avg128(0);
+		ACH_config_avg128(1);
+		break;
+	case CONF_INAS_SLEEP:
+		// Configuro ambos INA para promediar en 128 medidas.
+		ACH_config_avg128(0);
+		ACH_config_avg128(1);
+		break;
+	default:
+		break;
+	}
 
 }
 //------------------------------------------------------------------------------------
@@ -32,7 +34,7 @@ void pub_analog_load_defaults(void)
 
 uint8_t channel;
 
-	systemVars.timerPoll = 60;
+	systemVars.timerPoll = 300;
 
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		systemVars.coef_calibracion[channel] = 3646;
@@ -64,12 +66,10 @@ void pub_analog_config_channel( uint8_t channel,char *s_aname,char *s_imin,char 
 
 	xSemaphoreGive( sem_SYSVars );
 	return;
-
 }
 //------------------------------------------------------------------------------------
 void pub_analog_config_timerpoll ( char *s_timerpoll )
 {
-
 	// Configura el tiempo de poleo.
 	// Se utiliza desde el modo comando como desde el modo online
 	// El tiempo de poleo debe estar entre 15s y 3600s
@@ -91,7 +91,6 @@ void pub_analog_config_timerpoll ( char *s_timerpoll )
 //------------------------------------------------------------------------------------
 void pub_analog_config_spanfactor ( uint8_t channel, char *s_spanfactor )
 {
-
 	// Configura el factor de correccion del span de canales delos INA.
 	// Esto es debido a que las resistencias presentan una tolerancia entonces con
 	// esto ajustamos que con 20mA den la excursión correcta.
@@ -107,20 +106,22 @@ uint16_t span;
 
 	xSemaphoreGive( sem_SYSVars );
 	return;
-}
-//------------------------------------------------------------------------------------
-void pub_analog_prender_12vsensor ( void )
-{
-
-	// Prende la fuente que genera los 12V ( 10.5 ) para los sensores.
-	IO_set_SENS_12V_CTL();
 
 }
 //------------------------------------------------------------------------------------
-void pub_analog_apagar_12vsensor ( void )
+void pub_analog_read_battery ( float *mag_val )
 {
 
-	IO_clr_SENS_12V_CTL();
+uint16_t an_raw_val;
+float an_mag_val;
+
+	// La bateria esta en el canal 1 (bus) del INA 1.
+	an_raw_val = ACH_read_battery();
+
+	// Convierto el raw_value a la magnitud ( 8mV por count del A/D)
+	an_mag_val = 0.008 * an_raw_val;
+	*mag_val = an_mag_val;
+
 }
 //------------------------------------------------------------------------------------
 void pub_analog_read_channel ( uint8_t channel, uint16_t *raw_val, float *mag_val )
@@ -130,33 +131,12 @@ void pub_analog_read_channel ( uint8_t channel, uint16_t *raw_val, float *mag_va
 	// mag_val el valor convertido a la magnitud configurada.
 	// Se utiliza desde el modo comando como desde el modulo de poleo de las entradas.
 
-uint8_t ina_reg = 0;
-uint8_t ina_id = 0;
 uint16_t an_raw_val;
-char res[3];
 float an_mag_val;
 float I,M,P;
 uint16_t D;
 
-	switch ( channel ) {
-	case 0:
-		ina_id = 0; ina_reg = INA3221_CH1_SHV;break;
-	case 1:
-		ina_id = 0; ina_reg = INA3221_CH2_SHV;break;
-	case 2:
-		ina_id = 0; ina_reg = INA3221_CH3_SHV;break;
-	case 3:
-		ina_id = 1; ina_reg = INA3221_CH2_SHV;break;
-	case 4:
-		ina_id = 1; ina_reg = INA3221_CH3_SHV;break;
-	}
-
-	// Leo el valor del INA.
-	INA_read( INA_id2busaddr(ina_id), ina_reg, res ,2 );
-	an_raw_val = 0;
-	an_raw_val = ( res[0]<< 8 ) + res[1];
-	an_raw_val = an_raw_val >> 3;
-
+	an_raw_val =ACH_read_channel(channel);
 	*raw_val = an_raw_val;
 
 	// Convierto el raw_value a la magnitud
@@ -180,30 +160,6 @@ uint16_t D;
 		an_mag_val = -999.0;
 	}
 
-	*mag_val = an_mag_val;
-
-}
-//------------------------------------------------------------------------------------
-void pub_analog_read_battery ( float *mag_val )
-{
-
-	// Lee un canal analogico que corresponde a la bateria
-
-uint8_t ina_reg, ina_id;
-uint16_t an_raw_val;
-float an_mag_val;
-char res[3];
-
-	// La bateria esta en el canal 1 (bus) del INA 1.
-	ina_reg = INA3221_CH1_BUSV;
-	ina_id = 1;
-	INA_read( INA_id2busaddr(ina_id), ina_reg, res ,2 );
-	an_raw_val = 0;
-	an_raw_val = ( res[0]<< 8 ) + res[1];
-	an_raw_val = an_raw_val >> 3;
-
-	// Convierto el raw_value a la magnitud ( 8mV por count del A/D)
-	an_mag_val = 0.008 * an_raw_val;
 	*mag_val = an_mag_val;
 
 }

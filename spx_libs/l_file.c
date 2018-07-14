@@ -10,8 +10,18 @@
 #include "l_i2c.h"
 #include "l_rtc79410.h"
 
-static uint8_t chksum8(const unsigned char *buff, size_t len);
+static bool pv_FAT_load( FAT_t *fat );
+static bool pv_FAT_save( FAT_t *fat );
+static uint8_t pv_chksum8(const char *buff, size_t len);
 
+xSemaphoreHandle sem_FAT;
+StaticSemaphore_t FAT_xMutexBuffer;
+
+//-----------------------------------------------------------------------------------
+void FAT_init(void)
+{
+	sem_FAT = xSemaphoreCreateMutexStatic( &FAT_xMutexBuffer );
+}
 //------------------------------------------------------------------------------------
 bool FF_open(void)
 {
@@ -21,8 +31,10 @@ bool FF_open(void)
 
 bool retS = false;
 
-//	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL );
-	retS = FAT_load( &FCB.fat);
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 1 ) );
+
+	retS = pv_FAT_load( &FCB.fat);
 
 	// Ajustes iniciales.
 	// 1: No hay registros leidos aun.
@@ -32,10 +44,12 @@ bool retS = false;
 	// 3: Todos los registros escritos estan disponibles para leer
 	FCB.fat.rcds4rd = FF_MAX_RCDS - FCB.fat.rcds4wr;
 
-	FAT_save( &FCB.fat);
+	pv_FAT_save( &FCB.fat);
 
 	FCB.errno = pdFF_ERRNO_NONE;
-//	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+
+	xSemaphoreGive( sem_FAT);
+
 	return(retS);
 
 }
@@ -73,8 +87,9 @@ int8_t bytes_written = -1;
 //uint8_t tryes;
 //bool write_ok;
 
-	// Lo primero es obtener el semaforo del I2C
-//	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 1 ) );
+
 	FCB.errno = pdFF_ERRNO_NONE;
 
 	// Si la memoria esta llena no puedo escribir: salgo
@@ -90,7 +105,7 @@ int8_t bytes_written = -1;
 	memcpy ( FCB.rw_buffer, pvBuffer, xSize );
 	// Calculo y grabo el checksum a continuacion del frame (en la pos.xSize)
 	// El checksum es solo del dataFrame por eso paso dicho size.
-	FCB.rw_buffer[FF_RECD_SIZE - 2] = chksum8(FCB.rw_buffer, (FF_RECD_SIZE - 2) );
+	FCB.rw_buffer[FF_RECD_SIZE - 2] = pv_chksum8(FCB.rw_buffer, (FF_RECD_SIZE - 2) );
 	// Grabo el tag para indicar que el registro esta escrito.
 	FCB.rw_buffer[FF_RECD_SIZE - 1] = FF_WRTAG;
 
@@ -117,11 +132,12 @@ int8_t bytes_written = -1;
 	FCB.fat.rcds4wr--;
 	FCB.fat.rcds4rd++;
 	// Actualizo la fat
-	FAT_save(&FCB.fat);
+	pv_FAT_save(&FCB.fat);
 
 quit:
 	// libero los semaforos
-//	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+	xSemaphoreGive( sem_FAT);
+
 	return(bytes_written);
 
 }
@@ -151,10 +167,11 @@ int8_t FF_readRcd( void *pvBuffer, uint8_t xSize )
 uint8_t rdCheckSum;
 uint16_t rdAddress;
 int8_t bytes_read = 0U;
-uint16_t rcdPos;
+uint16_t rcdPos = 0;
 
-	// Lo primero es obtener el semaforo del I2C
-//	frtos_ioctl( fdI2C ,ioctl_OBTAIN_BUS_SEMPH, NULL );
+	// Lo primero es obtener el semaforo
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 1 ) );
 
 	FCB.errno = pdFF_ERRNO_NONE;
 
@@ -177,7 +194,7 @@ uint16_t rcdPos;
 	FCB.fat.rcds4rd--;
 	FCB.fat.rcds4del++;
 	// Actualizo la fat
-	FAT_save(&FCB.fat);
+	pv_FAT_save(&FCB.fat);
 
 	// Copio los datos a la estructura de salida.: aun no se si estan correctos
 	memcpy( pvBuffer, &FCB.rw_buffer, xSize );
@@ -192,7 +209,7 @@ uint16_t rcdPos;
 
 	// Verifico los datos leidos ( checksum )
 	// El checksum es solo del dataFrame por eso paso dicho size.
-	rdCheckSum = chksum8(FCB.rw_buffer, (FF_RECD_SIZE - 2) );
+	rdCheckSum = pv_chksum8( FCB.rw_buffer, (FF_RECD_SIZE - 2) );
 	if ( rdCheckSum != FCB.rw_buffer[(FF_RECD_SIZE - 2)] ) {
 		FCB.errno = pdFF_ERRNO_RDCKS;
 		bytes_read = -1;
@@ -211,8 +228,8 @@ uint16_t rcdPos;
 
 
 quit:
-	// libero los semaforos
-//	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+	// libero el semaforo
+	xSemaphoreGive( sem_FAT);
 
 	return(bytes_read);
 }
@@ -223,8 +240,9 @@ void FF_rewind(void)
 	// el puntero de lectura, por ejemplo luego de un reset.
 	// Ajusta la posicion del puntero de lectura FAT.RD al primer registro FAT.DEL.
 
-
-	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
+	// Lo primero es obtener el semaforo
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 1 ) );
 
 	FCB.fat.rdPTR = FCB.fat.delPTR;
 	// 2: No hay registros para borrar aun.
@@ -232,8 +250,10 @@ void FF_rewind(void)
 	// 3: Todos los registros escritos estan disponibles para leer
 	FCB.fat.rcds4rd = FF_MAX_RCDS - FCB.fat.rcds4wr;
 
-	FAT_save(&FCB.fat);
-	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+	pv_FAT_save(&FCB.fat);
+
+	// libero el semaforo
+	xSemaphoreGive( sem_FAT);
 	return;
 
 }
@@ -252,8 +272,9 @@ void FF_deleteRcd(void)
 
 uint16_t delAddress = 0;
 
-	// Lo primero es obtener el semaforo del I2C
-//	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
+	// Lo primero es obtener el semaforo
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 1 ) );
 
 	if ( FCB.fat.rcds4del == 0 ) {
 		// Memoria vacia.
@@ -269,9 +290,10 @@ uint16_t delAddress = 0;
 	FCB.fat.rcds4wr++;
 	FCB.fat.rcds4del--;
 	FCB.fat.delPTR = (++FCB.fat.delPTR == FF_MAX_RCDS) ?  0 : FCB.fat.delPTR;
-	FAT_save(&FCB.fat);
+	pv_FAT_save(&FCB.fat);
 
-//	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
+	// libero el semaforo
+	xSemaphoreGive( sem_FAT);
 	return;
 }
 //------------------------------------------------------------------------------------
@@ -282,7 +304,9 @@ void FF_format(bool fullformat )
 uint16_t page;
 uint16_t wrAddress;
 
-//	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
+	// Lo primero es obtener el semaforo
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 1 ) );
 
 	FCB.fat.wrPTR = 0;
 	FCB.fat.rdPTR = 0;
@@ -291,7 +315,7 @@ uint16_t wrAddress;
 	FCB.fat.rcds4rd = 0;
 	FCB.fat.rcds4del = 0;
 
-	FAT_save(&FCB.fat);
+	pv_FAT_save(&FCB.fat);
 
 	if ( fullformat ) {
 		// Para que no salga por watchdog, apago las tareas
@@ -331,8 +355,9 @@ uint16_t wrAddress;
 		}
 
 	}
-//	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
 
+	// libero el semaforo
+	xSemaphoreGive( sem_FAT);
 }
 //----------------------------------------------------------------------------------
 uint8_t FF_errno( void )
@@ -341,7 +366,60 @@ uint8_t FF_errno( void )
 	return( FCB.errno);
 }
 //----------------------------------------------------------------------------------
-static uint8_t chksum8(const unsigned char *buff, size_t len)
+void FAT_read( FAT_t *fat )
+{
+	// Lo primero es obtener el semaforo
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+		vTaskDelay( ( TickType_t)( 1 ) );
+
+	memcpy( fat, &FCB.fat, sizeof(FAT_t));
+
+	// libero el semaforo
+	xSemaphoreGive( sem_FAT);
+
+}
+//----------------------------------------------------------------------------------
+// FUNCIONES PRIVADAS
+// No usan el semaforo de la FAT.
+//----------------------------------------------------------------------------------
+static bool pv_FAT_load( FAT_t *fat )
+{
+	// Lee la FAT de la SRAM del RTC. Verifica su integridad con el checksum
+	// No uso el semaforo ya que es una funcion privada.
+
+uint8_t cks = 0x00;
+bool retS = false;
+
+	RTC_read( FAT_ADDRESS, (char *)fat, (uint8_t)sizeof(FAT_t) );
+
+	cks = pv_chksum8( (char *)fat, (sizeof( FAT_t) - 1));
+	if ( cks != fat->checksum ) {
+		// Error al cargar la fat.
+		retS = false;
+		goto quit;
+	}
+
+	retS = true;
+quit:
+
+	return(retS);
+
+}
+//----------------------------------------------------------------------------------
+static bool pv_FAT_save( FAT_t *fat )
+{
+	// Escribe la FAT en la SRAM del RTC a partir de la direccion 0x20. Calcula y escribe el checksum
+	// Por ahora no controlo errores
+
+uint8_t cks = 0x00;
+
+	cks = pv_chksum8( (char *)fat, (sizeof( FAT_t) - 1));
+	fat->checksum = cks;
+	RTC_write( FAT_ADDRESS, (char *)fat, (uint8_t)sizeof(FAT_t) );
+	return(true);
+}
+//----------------------------------------------------------------------------------
+static uint8_t pv_chksum8(const char *buff, size_t len)
 {
 uint8_t checksum = 0;
 
@@ -352,38 +430,4 @@ uint8_t checksum = 0;
 	return (checksum);
 }
 //----------------------------------------------------------------------------------
-bool FAT_save( FAT_t *fat )
-{
-	// Escribe la FAT en la SRAM del RTC a partir de la direccion 0x20. Calcula y escribe el checksum
-	// Por ahora no controlo errores
 
-uint8_t cks = 0x00;
-
-	cks = chksum8( fat, (sizeof( FAT_t) - 1));
-	fat->checksum = cks;
-	RTC_write( FAT_ADDRESS, (char *)fat, (uint8_t)sizeof(FAT_t) );
-	return(true);
-}
-//----------------------------------------------------------------------------------
-bool FAT_load( FAT_t *fat )
-{
-	// Lee la FAT de la SRAM del RTC. Verifica su integridad con el checksum
-
-uint8_t cks = 0x00;
-
-	RTC_read( FAT_ADDRESS, (char *)fat, (uint8_t)sizeof(FAT_t) );
-
-	cks = chksum8( fat, (sizeof( FAT_t) - 1));
-	if ( cks != fat->checksum ) {
-		// Error al cargar la fat.
-		return(false);
-	}
-	return(true);
-
-}
-//----------------------------------------------------------------------------------
-void FAT_read( FAT_t *fat )
-{
-	memcpy( fat, &FCB.fat, sizeof(FAT_t));
-}
-//----------------------------------------------------------------------------------

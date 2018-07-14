@@ -6,6 +6,8 @@
  */
 
 #include "FRTOS-CMD.h"
+#include "l_printf.h"
+#include "l_ain.h"
 #include "spx.h"
 
 // Este factor es porque la resistencia shunt es de 7.3 por lo que con 20mA llegamos hasta 3646 y no a 4096
@@ -14,10 +16,10 @@
 //------------------------------------------------------------------------------------
 // PROTOTIPOS
 
-static bool pv_tkData_guardar_BD(st_data_frame *dframe);
-static void pv_tkData_signal_to_tkgprs(void);
-static void pv_tkData_xbee_print_frame(st_data_frame *dframe);
-static void pv_tkData_update_remote_channels(st_data_frame *dframe);
+static bool pv_data_guardar_BD(void);
+static void pv_data_signal_to_tkgprs(void);
+static void pv_data_xbee_print_frame(void);
+static void pv_data_update_remote_channels(void);
 
 // VARIABLES LOCALES
 static st_data_frame pv_data_frame;
@@ -38,8 +40,6 @@ TickType_t xLastWakeTime;
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	xprintf_P( PSTR("starting tkData..\r\n\0"));
-
 	// Configuro los INA para promediar en 128 valores.
 	pub_analog_config_INAS(CONF_INAS_AVG128);
 
@@ -52,6 +52,8 @@ TickType_t xLastWakeTime;
     // Al arrancar poleo a los 10s
     waiting_ticks = (uint32_t)(10) * 1000 / portTICK_RATE_MS;
 
+	xprintf_P( PSTR("starting tkData..\r\n\0"));
+
 	// loop
 	for( ;; )
 	{
@@ -60,21 +62,21 @@ TickType_t xLastWakeTime;
 		vTaskDelayUntil( &xLastWakeTime, waiting_ticks ); // Da el tiempo para entrar en tickless.
 
 		// Leo analog,digital,rtc,salvo en BD e imprimo.
-		pub_tkdata_read_frame(&pv_data_frame);
+		pub_data_read_frame();
 
 		// Muestro en pantalla.
-		pub_tkData_print_frame(&pv_data_frame);
+		pub_data_print_frame();
 
 		if ( systemVars.xbee == XBEE_SLAVE ) {
 			// En modo XBEE slave solo trasmito el frame por el xbee pero no lo salvo
-			pv_tkData_xbee_print_frame(&pv_data_frame);
+			pv_data_xbee_print_frame();
 
 		} else {
 
 			// Salvo en BD ( si no es el primer frame )
-			if ( pv_tkData_guardar_BD(&pv_data_frame) ) {
+			if ( pv_data_guardar_BD() ) {
 				// Aviso a tkGPRS ( si estoy en modo continuo )
-				pv_tkData_signal_to_tkgprs();
+				pv_data_signal_to_tkgprs();
 			}
 		}
 
@@ -88,7 +90,7 @@ TickType_t xLastWakeTime;
 
 }
 //------------------------------------------------------------------------------------
-static bool pv_tkData_guardar_BD(st_data_frame *dframe)
+static bool pv_data_guardar_BD(void)
 {
 
 	// Solo los salvo en la BD si estoy en modo normal.
@@ -105,7 +107,7 @@ static bool primer_frame = true;
 	}
 
 	// Guardo en BD
-	bytes_written = FF_writeRcd( dframe, sizeof(st_data_frame) );
+	bytes_written = FF_writeRcd( &pv_data_frame, sizeof(st_data_frame) );
 
 	if ( bytes_written == -1 ) {
 		// Error de escritura o memoria llena ??
@@ -120,7 +122,7 @@ static bool primer_frame = true;
 
 }
 //------------------------------------------------------------------------------------
-static void pv_tkData_signal_to_tkgprs(void)
+static void pv_data_signal_to_tkgprs(void)
 {
 	// Aviso a tkGprs que hay un frame listo. En modo continuo lo va a trasmitir enseguida.
 	if ( ! MODO_DISCRETO ) {
@@ -130,9 +132,9 @@ static void pv_tkData_signal_to_tkgprs(void)
 	}
 }
 //------------------------------------------------------------------------------------
-static void pv_tkData_xbee_print_frame(st_data_frame *dframe)
+static void pv_data_xbee_print_frame(void)
 {
-	// Imprime el frame actual por el xbee.
+	// Imprime el frame actual por el xbee xcom.
 
 uint8_t channel;
 
@@ -142,7 +144,7 @@ uint8_t channel;
 		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) )
 			continue;
 
-		xprintf_P( PSTR("%s=%.03f,"),systemVars.an_ch_name[channel],dframe->analog_frame.mag_val[channel] );
+		xCom_printf_P( fdXBEE, PSTR("%s=%.02f,"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
 	}
 
 	// Valores digitales. Lo que mostramos depende de lo que tenemos configurado
@@ -154,27 +156,24 @@ uint8_t channel;
 		}
 		// Level ?
 		if ( systemVars.d_ch_type[channel] == 'L') {
-			xprintf_P( PSTR("%s=%d,"),systemVars.d_ch_name[channel],dframe->digital_frame.level[channel] );
+			xCom_printf_P( fdXBEE, PSTR("%s=%d,"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
 		} else {
 		// Counter ?
-			xprintf_P( PSTR("%s=%.02f,"),systemVars.d_ch_name[channel],dframe->digital_frame.magnitud[channel] );
+			xCom_printf_P( fdXBEE, PSTR("%s=%.02f,"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
 		}
 	}
 
 	// Range Meter
 	if ( systemVars.rangeMeter_enabled ) {
-		xprintf_P( PSTR("PW=%d"), dframe->range );
+		xCom_printf_P( fdXBEE, PSTR("PW=%d"), pv_data_frame.range );
 	}
 
 	// TAIL
-	xprintf_P( PSTR("\r\n\0") );
-
-	// Envio por el XBEE uart
-	//FreeRTOS_write( &pdUART_XBEE, data_printfBuff, sizeof(data_printfBuff) );
+	xCom_printf_P( fdXBEE, PSTR("\r\n\0") );
 
 }
 //------------------------------------------------------------------------------------
-static void pv_tkData_update_remote_channels(st_data_frame *dframe)
+static void pv_data_update_remote_channels(void)
 {
 	// Para los canales que estan configurados como remotos, el valor lo leo
 	// del frame que trajo el XBEE.
@@ -188,7 +187,7 @@ st_remote_values *rv;
 	// Canales analogicos
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++ ) {
 		if ( systemVars.a_ch_modo[channel] == 'R') {
-			dframe->analog_frame.mag_val[channel] = rv->analog_val[channel];
+			pv_data_frame.analog_frame.mag_val[channel] = rv->analog_val[channel];
 			rv->analog_val[channel] = 0; // Leo una vez y pongo en 0 para detectar problemas
 		}
 	}
@@ -197,9 +196,9 @@ st_remote_values *rv;
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
 		if ( systemVars.d_ch_modo[channel] == 'R') {
 			if ( systemVars.d_ch_type[channel] == 'L') {
-				dframe->digital_frame.level[channel] = (uint8_t)(rv->digital_val[channel]);
+				pv_data_frame.digital_frame.level[channel] = (uint8_t)(rv->digital_val[channel]);
 			} else {
-				dframe->digital_frame.magnitud[channel] = rv->digital_val[channel];
+				pv_data_frame.digital_frame.magnitud[channel] = rv->digital_val[channel];
 			}
 			rv->digital_val[channel] = 0; // Leo una vez y pongo en 0 para detectar problemas
 		}
@@ -208,7 +207,7 @@ st_remote_values *rv;
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS
 //------------------------------------------------------------------------------------
-void pub_tkdata_read_frame(st_data_frame *dframe)
+void pub_data_read_frame(void)
 {
 	// Funcion usada para leer los datos de todos los modulos, guardarlos en memoria
 	// e imprimirlos.
@@ -217,30 +216,30 @@ void pub_tkdata_read_frame(st_data_frame *dframe)
 
 	// Leo los canales analogicos.
 	// Prendo los sensores, espero un settle time de 1s, los leo y apago los sensores.
-	pub_analog_prender_12vsensor();
+	ACH_prender_12V();
 	pub_analog_config_INAS(CONF_INAS_AVG128);	// Saco a los INA del modo pwr_down
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
-	pub_analog_read_frame( &dframe->analog_frame);
+	pub_analog_read_frame(&pv_data_frame.analog_frame);
 	pub_analog_config_INAS(CONF_INAS_SLEEP);	// Pongo a los INA a dormir.
-	pub_analog_apagar_12vsensor();
+	ACH_apagar_12V();
 
 	// Leo la bateria
-	pub_analog_read_battery ( &dframe->battery );
+	pub_analog_read_battery ( &pv_data_frame.battery );
 
 	// Leo los canales digitales y borro los contadores.
-	pub_tkDigital_read_frame( &dframe->digital_frame, true );
+	pub_tkDigital_read_frame( &pv_data_frame.digital_frame, true );
 
-	pv_tkData_update_remote_channels( dframe);
+	pv_data_update_remote_channels();
 	
 	// Agrego el timestamp
-	RTC_read_dtime( &dframe->rtc);
+	RTC_read_dtime( &pv_data_frame.rtc);
 
 	// Leo el ancho de pulso ( rangeMeter ). Demora 5s.
-	pub_rangeMeter_ping( &dframe->range);
+//	pub_rangeMeter_ping( &dframe->range);
 
 }
 //------------------------------------------------------------------------------------
-void pub_tkData_print_frame(st_data_frame *dframe)
+void pub_data_print_frame(void)
 {
 	// Imprime el frame actual en consola
 
@@ -249,8 +248,8 @@ uint8_t channel;
 	// HEADER
 	xprintf_P ( PSTR("frame: " ) );
 	// timeStamp.
-	xprintf_P ( PSTR( "%04d%02d%02d,"),dframe->rtc.year,dframe->rtc.month,dframe->rtc.day );
-	xprintf_P ( PSTR("%02d%02d%02d"),dframe->rtc.hour,dframe->rtc.min, dframe->rtc.sec );
+	xprintf_P ( PSTR( "%04d%02d%02d,"),pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day );
+	xprintf_P ( PSTR("%02d%02d%02d"),pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
 
 	// Valores analogicos
 	// Solo muestro los que tengo configurados.
@@ -258,7 +257,7 @@ uint8_t channel;
 		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) )
 			continue;
 
-		xprintf_P ( PSTR(",%s=%.03f"),systemVars.an_ch_name[channel],dframe->analog_frame.mag_val[channel] );
+		xprintf_P ( PSTR(",%s=%.02f"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
 	}
 
 	// Valores digitales. Lo que mostramos depende de lo que tenemos configurado
@@ -270,28 +269,23 @@ uint8_t channel;
 		}
 		// Level ?
 		if ( systemVars.d_ch_type[channel] == 'L') {
-			xprintf_P ( PSTR(",%s=%d"),systemVars.d_ch_name[channel],dframe->digital_frame.level[channel] );
+			xprintf_P ( PSTR(",%s=%d"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
 		} else {
 		// Counter ?
-			xprintf_P ( PSTR(",%s=%.02f"),systemVars.d_ch_name[channel],dframe->digital_frame.magnitud[channel] );
+			xprintf_P ( PSTR(",%s=%.02f"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
 		}
 	}
 
 	// Range Meter
 	if ( systemVars.rangeMeter_enabled ) {
-		xprintf_P ( PSTR(",PW=%d"), dframe->range );
+//		xprintf_P ( PSTR(",PW=%d"), dframe->range );
 	}
 
 	// bateria
-	xprintf_P ( PSTR(",BAT=%.02f"), dframe->battery );
+	xprintf_P ( PSTR(",BAT=%.02f"), pv_data_frame.battery );
 
 	// TAIL
 	xprintf_P ( PSTR("\r\n\0") );
 
-}
-//------------------------------------------------------------------------------------
-st_data_frame *pub_tkData_get_data_frame_ptr(void)
-{
-	return(&pv_data_frame);
 }
 //------------------------------------------------------------------------------------

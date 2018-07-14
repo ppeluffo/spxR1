@@ -71,10 +71,11 @@ void tkGprsTx(void * pvParameters)
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	xprintf_P( PSTR("starting tkGprsTx..\r\n\0"));
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
 
 	pv_gprs_init_system();
+
+	xprintf_P( PSTR("starting tkGprsTx..\r\n\0"));
 
 	for( ;; )
 	{
@@ -127,9 +128,9 @@ BaseType_t xResult;
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
-	xprintf_P( PSTR("starting tkGprsRX..\r\n\0"));
-
 	pv_gprs_rxbuffer_flush();
+
+	xprintf_P( PSTR("starting tkGprsRX..\r\n\0"));
 
 	// loop
 	for( ;; )

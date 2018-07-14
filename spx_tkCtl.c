@@ -42,9 +42,9 @@ void tkCtl(void * pvParameters)
 
 	vTaskDelay( ( TickType_t)( 500 / portTICK_RATE_MS ) );
 
-	xprintf_P( PSTR("\r\nstarting tkControl..\r\n\0"));
-
 	pv_tkCtl_init_system();
+
+	xprintf_P( PSTR("\r\nstarting tkControl..\r\n\0"));
 
 	for( ;; )
 	{
@@ -88,7 +88,7 @@ uint8_t wdg;
 	}
 
 	// Leo los parametros del la EE y si tengo error, cargo por defecto
-	if ( ! u_load_params_from_EE() ) {
+	if ( ! u_load_params_from_NVMEE() ) {
 		pub_load_defaults();
 		xprintf_P( PSTR("\r\nLoading defaults !!\r\n\0"));
 	}

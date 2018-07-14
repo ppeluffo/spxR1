@@ -15,9 +15,9 @@
 //--------------------------------------------------------------------------------
 // API START
 
-#define INA_read( ina_bus_addr, rdAddress, data, length ) I2C_read( ina_bus_addr, rdAddress, data, length );
-#define INA_write( ina_bus_addr, wrAddress, data, length ) I2C_write( ina_bus_addr, wrAddress, data, length );
 uint8_t INA_id2busaddr( uint8_t id );
+#define INA_read( dev_id, rdAddress, data, length ) 	I2C_read( INA_id2busaddr(dev_id), rdAddress, data, length );
+#define INA_write( dev_id, wrAddress, data, length ) 	I2C_write( INA_id2busaddr(dev_id), wrAddress, data, length );
 
 // API END
 //--------------------------------------------------------------------------------
@@ -37,6 +37,7 @@ uint8_t INA_id2busaddr( uint8_t id );
 #define INA3221_MFID			0xFE
 #define INA3221_DIEID			0xFF
 
+#define MAX_INA_ID	1
 //------------------------------------------------------------------------------------
 
 #endif /* SRC_SPX_LIBS_L_INA3221_H_ */

@@ -45,18 +45,20 @@
 
 #include "l_iopines.h"
 #include "l_eeprom.h"
-//#include "l_nvm.h"
+#include "l_nvm.h"
 #include "l_drv8814.h"
 #include "l_ina3221.h"
 #include "l_rtc79410.h"
 #include "l_file.h"
 #include "l_printf.h"
+#include "l_ain.h"
+#include "l_outputs.h"
 
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "0.0.2"
-#define SPX_FW_DATE "@ 20180713"
+#define SPX_FW_REV "0.0.3"
+#define SPX_FW_DATE "@ 20180714"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
@@ -120,6 +122,7 @@ typedef enum { OUT_OFF = 0, OUT_CONSIGNA, OUT_NORMAL } t_outputs;
 typedef enum { CONSIGNA_DIURNA = 0, CONSIGNA_NOCTURNA } t_consigna_aplicada;
 typedef enum { modoPWRSAVE_OFF = 0, modoPWRSAVE_ON } t_pwrSave;
 typedef enum { XBEE_OFF = 0, XBEE_MASTER, XBEE_SLAVE } t_modoXbee;
+typedef enum { USER_NORMAL, USER_TECNICO } usuario_t;
 //------------------------------------------------------------------------------------
 
 // Estructura para manejar la hora de aplicar las consignas
@@ -233,6 +236,7 @@ void tkOutputs(void * pvParameters);
 void tkXbee(void * pvParameters);
 
 xSemaphoreHandle sem_SYSVars;
+StaticSemaphore_t SYSVARS_xMutexBuffer;
 #define MSTOTAKESYSVARSSEMPH ((  TickType_t ) 10 )
 
 // Utils
@@ -240,8 +244,8 @@ void u_configure_systemMainClock(void);
 void u_configure_RTC32(void);
 void initMCU(void);
 void pub_load_defaults(void);
-uint8_t pub_save_params_in_EE(void);
-bool u_load_params_from_EE(void);
+uint8_t pub_save_params_in_NVMEE(void);
+bool u_load_params_from_NVMEE(void);
 void u_convert_str_to_time_t ( char *time_str, time_t *time_struct );
 void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
 void pub_convert_str_to_time_t ( char *time_str, time_t *time_struct );
@@ -259,9 +263,8 @@ void pub_analog_read_battery ( float *mag_val );
 void pub_analog_read_frame(st_analog_frame *analog_frame );
 
 // tkData
-void pub_tkdata_read_frame(st_data_frame *dframe );
-void pub_tkData_print_frame(st_data_frame *data_frame);
-st_data_frame *pub_tkData_get_data_frame_ptr(void);
+void pub_data_print_frame(void);
+void pub_data_read_frame(void);
 
 // digital
 void pub_tkDigital_read_frame( st_digital_frame * dframe, bool reset_counters );

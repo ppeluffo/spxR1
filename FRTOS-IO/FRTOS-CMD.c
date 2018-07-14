@@ -107,7 +107,7 @@ void FRTOS_CMD_process( char cRxedChar )
 		case ASCII_CR:
 			// NEWLINE: Proceso el comando.
 			FRTOS_CMD_History(CMDLINE_HISTORY_SAVE);
-			CMD_write ( "\r\n\0", strlen( "\r\n\0" ));
+			xnprint ( "\r\n\0", strlen( "\r\n\0" ));
 			pv_CMD_execute();
 			pv_CMD_init();
 			pv_CMD_print_prompt();
@@ -118,9 +118,9 @@ void FRTOS_CMD_process( char cRxedChar )
 			if( cmdLine_ptr > 0 ) {
 				cmdLine_ptr--;
 				cmdLine_buffer[ cmdLine_ptr ] = '\0';
-				CMD_writeChar(ASCII_BS);
-				CMD_writeChar(' ');
-				CMD_writeChar(ASCII_BS);
+				xputChar(ASCII_BS);
+				xputChar(' ');
+				xputChar(ASCII_BS);
 			}
 			break;
 
@@ -128,7 +128,7 @@ void FRTOS_CMD_process( char cRxedChar )
 			// Si el caracter es imprimible lo almaceno
 			if( (cRxedChar >= 0x20) && (cRxedChar < 0x7F) ) {
 				// Echo local
-				CMD_writeChar(cRxedChar);
+				xputChar(cRxedChar);
 				if( cmdLine_ptr < MAX_INPUT_LENGTH ) {
 					cmdLine_buffer[ cmdLine_ptr ] = cRxedChar;
 					cmdLine_ptr++;
@@ -155,7 +155,7 @@ void FRTOS_CMD_History( uint8_t action)
 		strcpy(cmdLine_buffer,cmdLine_History_buffer);
 		cmdLine_ptr = strlen(cmdLine_buffer);
 		//CMD_write ( "UP\r\n\0", strlen( "UP\r\n\0" ));
-		CMD_write ( cmdLine_buffer, strlen( cmdLine_buffer ));
+		xnprint ( cmdLine_buffer, strlen( cmdLine_buffer ));
 		break;
 	case CMDLINE_HISTORY_NEXT:
 		//CMD_write ( "DOWN\r\n\0", strlen( "DOWN\r\n\0" ));
@@ -203,13 +203,13 @@ int i = 0;
 void pv_CMD_print_prompt(void)
 {
 	// Muestra el prompt
-	CMD_write( "cmd>\0", sizeof("cmd>\0") );
+	xnprint( "cmd>\0", sizeof("cmd>\0") );
 }
 //----------------------------------------------------------------------------------------
 void pv_CMD_print_error(void)
 {
 	// Muestra el mensaje de error cuando no encontro el comando
-	CMD_write( "command not found\r\n\0", sizeof("command not found\r\n\0") );
+	xnprint( "command not found\r\n\0", sizeof("command not found\r\n\0") );
 }
 //----------------------------------------------------------------------------------------
 void pv_CMD_init( void )
