@@ -146,16 +146,14 @@ BaseType_t xResult;
 
 			// Monitoreo las señales y solo prendo las flags correspondientes.
 			xResult = xTaskNotifyWait( 0x00, ULONG_MAX, &ulNotifiedValue, ((TickType_t) 10 / portTICK_RATE_MS ) );
-
 			if ( xResult == pdTRUE ) {
-
 				if ( ( ulNotifiedValue & TK_FRAME_READY ) != 0 ) {
 					GPRS_stateVars.signal_frameReady = true;
 				}
 			}
 
 			while ( frtos_read( fdGPRS, &c, 1 ) == 1 ) {
-				pv_gprs_rxbuffer_push(c);
+				pv_gprs_rxbuffer_poke(c);
 			}
 
 		} else {

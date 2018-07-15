@@ -50,7 +50,7 @@ bool exit_flag = false;
 		if ( pv_send_init_frame() && pv_process_init_response() ) {		// Intento madar el frame al servidor
 			// Aqui es que anduvo todo bien y debo salir para pasar al modo DATA
 			if ( systemVars.debug == DEBUG_GPRS ) {
-				xprintf_P( PSTR("GPRS: Init frame OK.\r\n\0" ));
+				xprintf_P( PSTR("\r\nGPRS: Init frame OK.\r\n\0" ));
 			}
 
 			exit_flag = true;
@@ -88,11 +88,11 @@ static bool pv_send_init_frame(void)
 	// Una vez que envie el INIT, salgo.
 	// Al entrar, veo que el socket este cerrado.
 
-uint8_t i;
+uint8_t intentos;
 bool exit_flag = false;
-uint8_t timeout;
+uint8_t timeout, max_wait_time;
 
-	for ( i = 0; i < MAX_TRYES_OPEN_SOCKET; i++ ) {
+	for ( intentos = 0; intentos < MAX_TRYES_OPEN_SOCKET; intentos++ ) {
 
 		if (  pub_gprs_check_socket_status() == SOCK_OPEN ) {
 			pv_TX_init_frame();		// Escribo en el socket el frame de INIT
@@ -103,9 +103,20 @@ uint8_t timeout;
 		// Doy el comando para abrirlo.
 		pub_gprs_open_socket();
 
-		// Y espero hasta 10s que abra.
-		for ( timeout = 0; timeout < 10; timeout++) {
-			vTaskDelay( (portTickType)( 3000 / portTICK_RATE_MS ) );
+		// Espero en forma progresiva ( por el problema de ANTEL para abrir los sockets en MPLS )
+/*		switch(intentos) {
+			case 0: max_wait_time = 3; break;
+			case 1: max_wait_time = 3; break;
+			case 2: max_wait_time = 3; break;
+			case 3: max_wait_time = 10; break;
+			case 4: max_wait_time = 10; break;
+			default: max_wait_time = 3; break;
+		}
+*/
+		max_wait_time = 10;
+		// Y espero hasta 30s que abra.
+		for ( timeout = 0; timeout < max_wait_time; timeout++) {
+			vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 			if ( pub_gprs_check_socket_status() == SOCK_OPEN )
 				break;
 		}
@@ -125,9 +136,9 @@ bool exit_flag = false;
 
 	for ( timeout = 0; timeout < 10; timeout++) {
 
-		vTaskDelay( (portTickType)( 1500 / portTICK_RATE_MS ) );				// Espero 1s
+		vTaskDelay( (portTickType)( 1500 / portTICK_RATE_MS ) );	// Espero 1s
 
-		if ( pub_gprs_check_socket_status() == SOCK_CLOSED ) {		// El socket se cerro
+		if ( pub_gprs_check_socket_status() != SOCK_OPEN ) {		// El socket se cerro
 			exit_flag = false;
 			goto EXIT;
 		}
@@ -139,6 +150,8 @@ bool exit_flag = false;
 		}
 
 		if ( pub_gprs_check_response("INIT_OK") ) {	// Respuesta correcta del server
+			// Espero recibir todo el string
+			vTaskDelay( (portTickType)( 1500 / portTICK_RATE_MS ) );
 			if ( systemVars.debug == DEBUG_GPRS  ) {
 				pub_gprs_print_RX_Buffer();
 			} else {
@@ -285,7 +298,7 @@ static void pv_process_server_clock(void)
  *
  */
 
-char *p, *s;
+char *p;
 char localStr[32];
 char *stringp;
 char *token;
@@ -295,9 +308,8 @@ uint8_t i;
 char c;
 RtcTimeType_t rtc;
 
-	s = FreeRTOS_UART_getFifoPtr(fdGPRS);
-	p = strstr(s, "CLOCK");
-	if ( p == NULL ) {
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "CLOCK");
+	if ( p  == NULL ) {
 		return;
 	}
 
@@ -333,15 +345,14 @@ static uint8_t pv_process_timerPoll(void)
 {
 //	La linea recibida es del tipo: <h1>INIT_OK:CLOCK=1402251122:TPOLL=600:PWRM=DISC:</h1>
 
-char *p, *s;
+char *p;
 uint8_t ret = 0;
 char localStr[32];
 char *stringp;
 char *token;
 char *delim = ",=:><";
 
-	s = FreeRTOS_UART_getFifoPtr(fdGPRS);
-	p = strstr(s, "TPOLL");
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "TPOLL");
 	if ( p == NULL ) {
 		goto quit;
 	}
@@ -371,15 +382,14 @@ static uint8_t pv_process_timerDial(void)
 {
 	//	La linea recibida es del tipo: <h1>INIT_OK:CLOCK=1402251122:TPOLL=600:TDIAL=10300:PWRM=DISC:CD=1230:CN=0530</h1>
 
-char *p, *s;
+char *p;
 uint8_t ret = 0;
 char localStr[32];
 char *stringp;
 char *token;
 char *delim = ",=:><";
 
-	s = FreeRTOS_UART_getFifoPtr(fdGPRS);
-	p = strstr(s, "TDIAL");
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "TDIAL");
 	if ( p == NULL ) {
 		goto quit;
 	}
@@ -417,10 +427,9 @@ char *token;
 char *delim = ",=:><";
 char *p1,*p2;
 uint8_t modo;
-char *p, *s;
+char *p;
 
-	s = FreeRTOS_UART_getFifoPtr(fdGPRS);
-	p = strstr(s, "PWRS");
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "PWRS");
 	if ( p == NULL ) {
 		goto quit;
 	}
@@ -459,19 +468,22 @@ char *stringp;
 char *token;
 char *delim = ",=:><";
 char *chName,*s_iMin,*s_iMax,*s_mMin,*s_mMax;
-char *s;
-
-	s = FreeRTOS_UART_getFifoPtr(fdGPRS);
 
 	switch (channel) {
 	case 0:
-		stringp = strstr(s, "A0=");
+		stringp = strstr((const char *)&pv_gprsRxCbuffer.buffer, "A0=");
 		break;
 	case 1:
-		stringp = strstr(s, "A1=");
+		stringp = strstr((const char *)&pv_gprsRxCbuffer.buffer, "A1=");
 		break;
 	case 2:
-		stringp = strstr(s, "A2=");
+		stringp = strstr((const char *)&pv_gprsRxCbuffer.buffer, "A2=");
+		break;
+	case 3:
+		stringp = strstr((const char *)&pv_gprsRxCbuffer.buffer, "A3=");
+		break;
+	case 4:
+		stringp = strstr((const char *)&pv_gprsRxCbuffer.buffer, "A4=");
 		break;
 	default:
 		ret = 0;
@@ -521,15 +533,19 @@ char *stringp;
 char *token;
 char *delim = ",=:><";
 char *chType, *chName, *s_magPP;
-char *s;
 
-	s = FreeRTOS_UART_getFifoPtr(fdGPRS);
 	switch (channel) {
 	case 0:
-		stringp = strstr(s, "D0=");
+		stringp = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "D0=");
 		break;
 	case 1:
-		stringp = strstr(s, "D1=");
+		stringp = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "D1=");
+		break;
+	case 2:
+		stringp = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "D2=");
+		break;
+	case 3:
+		stringp = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "D3=");
 		break;
 	default:
 		ret = 0;
@@ -567,12 +583,12 @@ quit:
 //--------------------------------------------------------------------------------------
 static uint8_t pv_process_Outputs(void)
 {
-	//	La linea recibida es del tipo:
-	//	<h1>INIT_OK:OUTS=modo,param1,param2:</h1>
+	// La linea recibida es del tipo:
+	// <h1>INIT_OK:OUTS=modo,param1,param2:</h1>
 	// modo=0: OUTS_OFF
 	// modo=1: OUTS_NORMAL. param1,param2 indican los valores de las salidas
 	// modo=2: OUTS_CONSIGNAS: param1, param2 son las horas de la consigna diurna y la nocturna
-	//  Las horas estan en formato HHMM.
+	// Las horas estan en formato HHMM.
 
 uint8_t ret = 0;
 char localStr[32];
@@ -581,10 +597,9 @@ char *token;
 char *delim = ",=:><";
 char *modo,*p1,*p2;
 
-char *p, *s;
+char *p;
 
-	s = FreeRTOS_UART_getFifoPtr(fdGPRS);
-	p = strstr(s, "OUTS");
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "OUTS");
 	if ( p == NULL )
 		goto quit;
 

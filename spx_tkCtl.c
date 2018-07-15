@@ -186,7 +186,7 @@ char buffer[10];
 	WDT_Reset();
 	
 	// Si algun WDG no se borro, me reseteo
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
 
 	for ( wdg = 0; wdg < NRO_WDGS; wdg++ ) {
@@ -235,7 +235,7 @@ void pub_ctl_watchdog_kick(uint8_t taskWdg, uint16_t timeout_in_secs )
 	// Reinicia el watchdog de la tarea taskwdg con el valor timeout.
 	// timeout es uint16_t por lo tanto su maximo valor en segundos es de 65536 ( 18hs )
 
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
 
 	watchdog_timers[taskWdg] = (uint16_t) ( timeout_in_secs / TKCTL_DELAY_S );
@@ -249,7 +249,7 @@ void pub_ctl_print_wdg_timers(void)
 uint8_t wdg;
 char buffer[10];
 
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
 
 	for ( wdg = 0; wdg < NRO_WDGS; wdg++ ) {

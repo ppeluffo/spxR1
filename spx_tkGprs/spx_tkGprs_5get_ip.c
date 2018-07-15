@@ -52,20 +52,22 @@ uint8_t reintentos = MAX_TRYES_NET_ATTCH;
 uint8_t checks;
 
 	xprintf_P( PSTR("GPRS: netopen (get IP).\r\n\0") );
+	// Espero 2s para dar el comando
+	vTaskDelay( ( TickType_t)( 2000 / portTICK_RATE_MS ) );
 
 	while ( reintentos-- > 0 ) {
 
-		// AT+NETOPEN
-		// Espero 2s para dar el comando
-		vTaskDelay( ( TickType_t)( 2000 / portTICK_RATE_MS ) );
-		pub_gprs_flush_RX_buffer();
 		if ( systemVars.debug == DEBUG_GPRS ) {
 			xprintf_P( PSTR("GPRS: send NETOPEN cmd (%d)\r\n\0"),reintentos );
 		}
-		xCom_printf_P( fdGPRS,PSTR("AT+NETOPEN\r\0"));
-		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
 
-		// Intento 3 veces ver si respondio correctamente.
+		// Envio el comando.
+		// AT+NETOPEN
+		pub_gprs_flush_RX_buffer();
+		xCom_printf_P( fdGPRS,PSTR("AT+NETOPEN\r\0"));
+		vTaskDelay( ( TickType_t)( 2000 / portTICK_RATE_MS ) );
+
+		// Intento 5 veces ver si respondio correctamente.
 		for ( checks = 0; checks < 5; checks++) {
 
 			if ( systemVars.debug == DEBUG_GPRS ) {
@@ -76,20 +78,33 @@ uint8_t checks;
 				pub_gprs_print_RX_Buffer();
 			}
 
+			// Evaluo las respuestas del modem.
 			if ( pub_gprs_check_response("+NETOPEN: 0")) {
 				xprintf_P( PSTR("GPRS: NETOPEN OK !.\r\n\0") );
 				pv_gprs_read_ip_assigned();
 				return(true);
-			}
 
-			if ( pub_gprs_check_response("ERROR")) {
-				break;	// Salgo del for
-			}
+			} else if ( pub_gprs_check_response("Network opened")) {
+				xprintf_P( PSTR("GPRS: NETOPEN OK !.\r\n\0") );
+				pv_gprs_read_ip_assigned();
+				return(true);
 
-			vTaskDelay( ( TickType_t)( 5000 / portTICK_RATE_MS ) );
+			} else if ( pub_gprs_check_response("+IP ERROR: Network is already opened")) {
+				pv_gprs_read_ip_assigned();
+				return(true);
+
+			} else if ( pub_gprs_check_response("ERROR")) {
+				break;	// Salgo de la espera
+
+			}
+			// Aun no tengo ninguna respuesta esperada.
+			// espero 5s para re-evaluar la respuesta.
+			vTaskDelay( (portTickType)( 5000 / portTICK_RATE_MS ) );
+
 		}
 
 		// No pude atachearme. Debo mandar de nuevo el comando
+		// Pasaron 25s.
 	}
 
 	// Luego de varios reintentos no pude conectarme a la red.
@@ -115,11 +130,8 @@ char c;
 		pub_gprs_print_RX_Buffer();
 	}
 
-	// Extraigo la IP del token. Voy a usar el buffer  de print ya que la respuesta
-	// puede ser grande.
-	memcpy(gprs_printfBuff, pub_gprs_rxbuffer_getPtr(), sizeof(gprs_printfBuff) );
-
-	ts = strchr( gprs_printfBuff, ':');
+	// Extraigo la IP del token.
+	ts = strchr( pv_gprsRxCbuffer.buffer, ':');
 	ts++;
 	while ( (c= *ts) != '\r') {
 		systemVars.dlg_ip_address[i++] = c;

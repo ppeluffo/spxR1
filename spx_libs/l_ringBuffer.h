@@ -37,6 +37,7 @@ void ringBufferFlush( ringBufferHandle_t ringBufferHandle );
 uint16_t ringBufferGetFreeCount( ringBufferHandle_t ringBufferHandle );
 uint16_t ringBufferGetCount( ringBufferHandle_t ringBufferHandle );
 
+
 void rBufferCreateStatic ( ringBuffer_s *rB, uint8_t *storage_area, uint16_t size  );
 bool rBufferPoke( ringBuffer_s *rB, char *cChar );
 bool rBufferPokeFromISR( ringBuffer_s *rB, char *cChar );

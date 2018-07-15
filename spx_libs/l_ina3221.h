@@ -9,24 +9,16 @@
 #define SRC_SPX_LIBS_L_INA3221_H_
 
 #include "frtos-io.h"
-#include "l_i2c.h"
 #include "stdint.h"
+#include "l_i2c.h"
 
-//--------------------------------------------------------------------------------
-// API START
-
-//#define INA_read( dev_id, rdAddress, data, length ) 	I2C_read( pv_INA_id2busaddr(dev_id), rdAddress, data, length );
-//#define INA_write( dev_id, wrAddress, data, length ) 	I2C_write( pv_INA_id2busaddr(dev_id), wrAddress, data, length );
-int INA_read( uint8_t devAddress, uint8_t regAddress, char *data, uint8_t length );
-int INA_write( uint8_t devAddress, uint8_t regAddress, char *data, uint8_t length );
-
-// API END
-//--------------------------------------------------------------------------------
-
-#define INA3221_VCC_SETTLE_TIME	500
+//------------------------------------------------------------------------------------
 
 #define CONF_INAS_SLEEP		0x7920
 #define CONF_INAS_AVG128	0x7927
+
+#define INA3221_ADDR_0			0x80
+#define INA3221_ADDR_1			0x82
 
 #define INA3231_CONF			0x00
 #define INA3221_CH1_SHV			0x01
@@ -38,9 +30,13 @@ int INA_write( uint8_t devAddress, uint8_t regAddress, char *data, uint8_t lengt
 #define INA3221_MFID			0xFE
 #define INA3221_DIEID			0xFF
 
+#define INA3221_VCC_SETTLE_TIME	500
 #define MAX_INA_ID	1
 
-uint8_t pv_INA_id2busaddr( uint8_t id );
+uint8_t INA_id2busaddr( uint8_t id );
+
+#define INA_read( dev_id, rdAddress, data, length ) 	I2C_read( INA_id2busaddr(dev_id), rdAddress, data, length );
+#define INA_write( dev_id, wrAddress, data, length ) 	I2C_write( INA_id2busaddr(dev_id), wrAddress, data, length );
 //------------------------------------------------------------------------------------
 
 #endif /* SRC_SPX_LIBS_L_INA3221_H_ */

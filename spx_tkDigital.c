@@ -272,7 +272,7 @@ bool pub_digital_config_channel( uint8_t channel,char *s_type, char *s_dname, ch
 char tipo;
 bool retS = false;
 
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
 
 	// Controlo que los parametros sean correctos.

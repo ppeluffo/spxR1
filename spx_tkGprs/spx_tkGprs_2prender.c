@@ -121,16 +121,13 @@ uint8_t i,j,start, end;
 	// Leo y Evaluo la respuesta al comando AT+CGSN
 	if ( pub_gprs_check_response("OK\0") ) {
 		// Extraigoel IMEI del token. Voy a usar el buffer  de print ya que la respuesta
-		// puede ser grande.
-		memcpy(gprs_printfBuff, pub_gprs_rxbuffer_getPtr(), sizeof(gprs_printfBuff) );
-
 		// Guardo el IMEI
 		start = 0;
 		end = 0;
 		j = 0;
 		// Busco el primer digito
 		for ( i = 0; i < 64; i++ ) {
-			if ( isdigit( gprs_printfBuff[i]) ) {
+			if ( isdigit( pv_gprsRxCbuffer.buffer[i]) ) {
 				start = i;
 				break;
 			}
@@ -140,8 +137,8 @@ uint8_t i,j,start, end;
 
 		// Busco el ultimo digito y copio todos
 		for ( i = start; i < 64; i++ ) {
-			if ( isdigit( gprs_printfBuff[i]) ) {
-				buff_gprs_imei[j++] = gprs_printfBuff[i];
+			if ( isdigit( pv_gprsRxCbuffer.buffer[i]) ) {
+				buff_gprs_imei[j++] = pv_gprsRxCbuffer.buffer[i];
 			} else {
 				break;
 			}

@@ -39,19 +39,23 @@ t_socket_status socket_status = SOCK_CLOSED;
 	pin_dcd = IO_read_DCD();
 
 	if ( ( GPRS_stateVars.modem_prendido == true ) && ( pin_dcd == 0 ) ){
-	//if ( ( GPRS_stateVars.modem_prendido == true ) && ( GPRS_stateVars.dcd == 1 ) ){
-
+		socket_status = SOCK_OPEN;
 		if ( systemVars.debug == DEBUG_GPRS ) {
 			xprintf_P( PSTR("GPRS: sckt is open (dcd=%d)\r\n\0"),pin_dcd);
 		}
-		socket_status = SOCK_OPEN;
+
+	} else if ( pub_gprs_check_response("Operation not supported")) {
+		socket_status = SOCK_ERROR;
+		if ( systemVars.debug == DEBUG_GPRS ) {
+			xprintf_P( PSTR("GPRS: sckt ERROR\r\n\0"));
+		}
 
 	} else {
-
+		socket_status = SOCK_CLOSED;
 		if ( systemVars.debug == DEBUG_GPRS ) {
 			xprintf_P( PSTR("GPRS: sckt is close (dcd=%d)\r\n\0"),pin_dcd);
 		}
-		socket_status = SOCK_CLOSED;
+
 	}
 
 	return(socket_status);
@@ -64,7 +68,7 @@ void pub_gprs_config_timerdial ( char *s_timerdial )
 	// 15 minutos.
 	// Es una variable de 32 bits para almacenar los segundos de 24hs.
 
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
 
 	systemVars.timerDial = atoi(s_timerdial);
@@ -128,37 +132,18 @@ void pub_gprs_load_defaults(void)
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS DEL BUFFER DE RECEPCION DEL GPRS
 //------------------------------------------------------------------------------------
-char *pub_gprs_rxbuffer_getPtr(void)
-{
-	// Retorna la direccion de comienzo del buffer de recepcion del GPRS.
-	// Esto permite su manipulacion.
-
-	return( pv_gprsRxCbuffer.buffer);
-}
-//------------------------------------------------------------------------------------
-// FUNCIONES PRIVADAS DEL BUFFER DE RECEPCION DEL GPRS
-//------------------------------------------------------------------------------------
 void pv_gprs_rxbuffer_flush(void)
 {
-
 	memset( pv_gprsRxCbuffer.buffer, '\0', UART_GPRS_RXBUFFER_LEN);
 	pv_gprsRxCbuffer.ptr = 0;
-
 }
 //------------------------------------------------------------------------------------
-void pv_gprs_rxbuffer_push(char c)
+void pv_gprs_rxbuffer_poke(char c)
 {
 
-	pv_gprsRxCbuffer.buffer[pv_gprsRxCbuffer.ptr] = c;
-	// Avanzo en modo circular
-	pv_gprsRxCbuffer.ptr = ( pv_gprsRxCbuffer.ptr  + 1 ) % ( UART_GPRS_RXBUFFER_LEN );
-/*
-	if ( c == '\r') {
-
-		pv_gprsRxCbuffer.buffer[pv_gprsRxCbuffer.ptr] = '\n';
-		pv_gprsRxCbuffer.ptr = ( pv_gprsRxCbuffer.ptr  + 1 ) % ( UART_GPRS_RXBUFFER_LEN );
-	}
-*/
+	// Si hay lugar meto el dato.
+	if ( pv_gprsRxCbuffer.ptr < UART_GPRS_RXBUFFER_LEN )
+		pv_gprsRxCbuffer.buffer[pv_gprsRxCbuffer.ptr++] = c;
 }
 //------------------------------------------------------------------------------------
 void pv_gprs_init_system(void)
@@ -196,19 +181,25 @@ void pub_gprs_print_RX_response(void)
 	// Imprime la respuesta del server.
 	// Utiliza el buffer de RX.
 	// Solo muestra el payload, es decir lo que esta entre <h1> y </h1>
+	// Todas las respuestas el server las encierra entre ambos tags excepto los errores del apache.
 
-	char *start, *end;
-	uint8_t largo;
-	uint8_t pos;
+	char *start_tag, *end_tag;
 
-	start = strstr(pv_gprsRxCbuffer.buffer,"<h1>");
-	end = strstr(pv_gprsRxCbuffer.buffer, "</h1>");
+	start_tag = strstr(pv_gprsRxCbuffer.buffer,"<h1>");
+	end_tag = strstr(pv_gprsRxCbuffer.buffer, "</h1>");
 
-	if ( ( start != NULL ) && ( end != NULL) ) {
-		*end = '\0';
-		start += 4;
-		xprintf_P ( PSTR("GPRS: rsp>%s\r\n\0"), start );
+	if ( ( start_tag != NULL ) && ( end_tag != NULL) ) {
+		*end_tag = '\0';	// Para que frene el xprintf_P
+		start_tag += 4;
+		xprintf_P ( PSTR("GPRS: rsp>%s\r\n\0"), start_tag );
 	}
+}
+//------------------------------------------------------------------------------------
+void pub_gprs_print_RX_Buffer(void)
+{
+
+	// Imprimo todo el buffer local de RX. Sale por \0.
+	xprintf_P( PSTR ("GPRS: rxbuff>\r\n%s\r\n\0"), pv_gprsRxCbuffer.buffer );
 
 }
 //------------------------------------------------------------------------------------
@@ -217,20 +208,7 @@ void pub_gprs_flush_RX_buffer(void)
 
 	frtos_ioctl( fdGPRS,ioctl_UART_CLEAR_RX_BUFFER, NULL);
 	frtos_ioctl( fdGPRS,ioctl_UART_CLEAR_TX_BUFFER, NULL);
-
-	memset(pv_gprsRxCbuffer.buffer,0, UART_GPRS_RXBUFFER_LEN );
-	pv_gprsRxCbuffer.ptr = 0;
-
-}
-//------------------------------------------------------------------------------------
-void pub_gprs_print_RX_Buffer(void)
-{
-
-	// Imprime la respuesta a un comando.
-	// Utiliza el buffer de RX.
-
-	// Imprimo todo el buffer de RX ( 640b). Sale por \0.
-	xprintf_P( PSTR ("GPRS: rxbuff>%s\r\n\0"), pv_gprsRxCbuffer.buffer );
+	pv_gprs_rxbuffer_flush();
 
 }
 //------------------------------------------------------------------------------------
@@ -250,7 +228,7 @@ char *ts = NULL;
 		pub_gprs_print_RX_Buffer();
 	}
 
-	memcpy(csqBuffer, pub_gprs_rxbuffer_getPtr(), sizeof(csqBuffer) );
+	memcpy(csqBuffer, &pv_gprsRxCbuffer.buffer[0], sizeof(csqBuffer) );
 	if ( (ts = strchr(csqBuffer, ':')) ) {
 		ts++;
 		systemVars.csq = atoi(ts);

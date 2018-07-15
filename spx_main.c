@@ -20,12 +20,17 @@
  *  avr-nm -n spxR1.elf | more
  *
  *------------------------------------------------------------------------------------------
+ * 2018-07-15:
  * Arreglar el tema de la lectura de los INA.
+ * El tiempo por defecto para tomar los semaforos pasa a 5 ticks.
+ * Modem: Analisis de rxdata/tamanio de buffers, etc, netopen fail
+ * Problema al imprimir un buffer (RX) mas grande que el de xprintf !!!
+ *
  * Incorporo la libreria l_ouptputs y revisar tkOutputs
  * Disminuyo el tiempo en el intercambio de consignas.
  * Correcciones indicadas por Yosniel
  * Revisar funciones de Cmd.
- * Modem: Analisis de rxdata/tamanio de buffers, etc, netopen fail
+ * Reviso port.c para que trabaje con memoria extendida
  *------------------------------------------------------------------------------------------
  * 2018-07-14:
  * Agrego buffers y estructura para BT y XBEE.
@@ -33,7 +38,6 @@
  * Pongo un semaforo en l_file para acceder a la FAT
  * Paso los semaforos a estructuras estaticas.
  * Agrego la libreria l_ain
- * Reviso port.c para que trabaje con memoria extendida
  * Modifico el menu para incorporar el concepto de usuario tecnico.
  * Los mensajes de init de las tareas los paso a luego de inicializarlas.
  * Reviso libreria NVM para poder leer el id

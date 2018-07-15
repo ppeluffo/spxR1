@@ -31,7 +31,7 @@ bool FF_open(void)
 
 bool retS = false;
 
-	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 1 ) );
 
 	retS = pv_FAT_load( &FCB.fat);
@@ -87,7 +87,7 @@ int8_t bytes_written = -1;
 //uint8_t tryes;
 //bool write_ok;
 
-	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 1 ) );
 
 	FCB.errno = pdFF_ERRNO_NONE;
@@ -170,7 +170,7 @@ int8_t bytes_read = 0U;
 uint16_t rcdPos = 0;
 
 	// Lo primero es obtener el semaforo
-	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 1 ) );
 
 	FCB.errno = pdFF_ERRNO_NONE;
@@ -241,7 +241,7 @@ void FF_rewind(void)
 	// Ajusta la posicion del puntero de lectura FAT.RD al primer registro FAT.DEL.
 
 	// Lo primero es obtener el semaforo
-	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 1 ) );
 
 	FCB.fat.rdPTR = FCB.fat.delPTR;
@@ -273,7 +273,7 @@ void FF_deleteRcd(void)
 uint16_t delAddress = 0;
 
 	// Lo primero es obtener el semaforo
-	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 1 ) );
 
 	if ( FCB.fat.rcds4del == 0 ) {
@@ -305,7 +305,7 @@ uint16_t page;
 uint16_t wrAddress;
 
 	// Lo primero es obtener el semaforo
-	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 1 ) );
 
 	FCB.fat.wrPTR = 0;
@@ -369,7 +369,7 @@ uint8_t FF_errno( void )
 void FAT_read( FAT_t *fat )
 {
 	// Lo primero es obtener el semaforo
-	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 1 ) );
 
 	memcpy( fat, &FCB.fat, sizeof(FAT_t));

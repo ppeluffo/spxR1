@@ -95,5 +95,4 @@ int frtos_read( file_descriptor_t fd , char *pvBuffer, uint16_t xBytes );
 int frtos_uart_read( periferico_serial_port_t *xCom, char *pvBuffer, uint16_t xBytes );
 int frtos_i2c_read( periferico_i2c_port_t *xI2c, char *pvBuffer, uint16_t xBytes );
 
-char *FreeRTOS_UART_getFifoPtr( file_descriptor_t fd );
 #endif /* SRC_FRTOS_IO_FRTOS_IO_H_ */

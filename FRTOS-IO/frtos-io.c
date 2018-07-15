@@ -205,7 +205,7 @@ int xReturn = 0;
 
 		case ioctl_OBTAIN_BUS_SEMPH:
 			// Espero el semaforo en forma persistente.
-			while ( xSemaphoreTake(xCom->xBusSemaphore, ( TickType_t ) 1 ) != pdTRUE )
+			while ( xSemaphoreTake(xCom->xBusSemaphore, ( TickType_t ) 5 ) != pdTRUE )
 				taskYIELD();
 			break;
 		case ioctl_RELEASE_BUS_SEMPH:
@@ -311,7 +311,7 @@ uint16_t *p;
 	{
 		case ioctl_OBTAIN_BUS_SEMPH:
 			// Espero el semaforo en forma persistente.
-			while ( xSemaphoreTake(xI2c->xBusSemaphore, ( TickType_t ) 1 ) != pdTRUE )
+			while ( xSemaphoreTake(xI2c->xBusSemaphore, ( TickType_t ) 5 ) != pdTRUE )
 				taskYIELD();
 			break;
 			case ioctl_RELEASE_BUS_SEMPH:
@@ -352,22 +352,5 @@ int xReturn = 0U;
 	}
 
 	return(xReturn);
-}
-//------------------------------------------------------------------------------------
-char *FreeRTOS_UART_getFifoPtr( file_descriptor_t fd )
-{
-	// Retorna un puntero al comienzo de buffer de la fifo de una UART.
-	// Se usa para imprimir dichos buffers
-	// Funcion PELIGROSA !!!
-
-char *p = NULL ;
-
-	switch (fd ) {
-	case fdGPRS:
-		p = (char *)&xComGPRS.uart->RXringBuffer;
-		break;
-	}
-
-	return(p);
 }
 //------------------------------------------------------------------------------------

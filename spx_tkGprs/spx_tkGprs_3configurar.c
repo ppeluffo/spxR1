@@ -339,14 +339,6 @@ static void pg_gprs_APN(void)
 	xprintf_P( PSTR("GPRS: Set APN\r\n\0") );
 
 	// AT+CGDCONT
-/*	pub_gprs_flush_RX_buffer();
-	snprintf_P( gprs_printfBuff,sizeof(gprs_printfBuff),PSTR("AT+CGDCONT=1,\"IP\",\"%s\"\r\0"),systemVars.apn);
-	FreeRTOS_write( &pdUART_GPRS, gprs_printfBuff, sizeof(gprs_printfBuff) );
-	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
-	pub_gprs_print_RX_Buffer();
-*/
-
-	// AT+CGDCONT
 	pub_gprs_flush_RX_buffer();
 	xCom_printf_P( fdGPRS,PSTR("AT+CGSOCKCONT=1,\"IP\",\"%s\"\r\0"),systemVars.apn);
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );

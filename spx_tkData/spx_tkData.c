@@ -5,9 +5,6 @@
  *      Author: pablo
  */
 
-#include "FRTOS-CMD.h"
-#include "l_printf.h"
-#include "l_ain.h"
 #include "spx.h"
 
 // Este factor es porque la resistencia shunt es de 7.3 por lo que con 20mA llegamos hasta 3646 y no a 4096
@@ -16,7 +13,7 @@
 //------------------------------------------------------------------------------------
 // PROTOTIPOS
 
-static bool pv_data_guardar_BD(void);
+static bool pv_data_guardar_BD( void );
 static void pv_data_signal_to_tkgprs(void);
 static void pv_data_xbee_print_frame(void);
 static void pv_data_update_remote_channels(void);
@@ -30,8 +27,6 @@ static st_data_frame pv_data_frame;
 //------------------------------------------------------------------------------------
 void tkData(void * pvParameters)
 {
-	// EL tiempo para hacer el siguiente poleo lo controlo desde tkCtl ya que aqui prefiero
-	// usar la modalidad de dormir hasta el proximo poleo por 2 razones: tickless y exactitud.
 
 ( void ) pvParameters;
 
@@ -42,19 +37,16 @@ TickType_t xLastWakeTime;
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
+	xprintf_P( PSTR("starting tkData..\r\n\0"));
+
 	// Configuro los INA para promediar en 128 valores.
 	pub_analog_config_INAS(CONF_INAS_AVG128);
 
     // Initialise the xLastWakeTime variable with the current time.
     xLastWakeTime = xTaskGetTickCount();
 
-    // Inicializo el sistema de medida de ancho de pulsos
-    pub_rangeMeter_init();
-
     // Al arrancar poleo a los 10s
     waiting_ticks = (uint32_t)(10) * 1000 / portTICK_RATE_MS;
-
-	xprintf_P( PSTR("starting tkData..\r\n\0"));
 
 	// loop
 	for( ;; )
@@ -72,9 +64,7 @@ TickType_t xLastWakeTime;
 		if ( systemVars.xbee == XBEE_SLAVE ) {
 			// En modo XBEE slave solo trasmito el frame por el xbee pero no lo salvo
 			pv_data_xbee_print_frame();
-
 		} else {
-
 			// Salvo en BD ( si no es el primer frame )
 			if ( pv_data_guardar_BD() ) {
 				// Aviso a tkGPRS ( si estoy en modo continuo )
@@ -83,11 +73,12 @@ TickType_t xLastWakeTime;
 		}
 
 		// Espero un ciclo
-		while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
+		while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 			taskYIELD();
 		waiting_ticks = (uint32_t)(systemVars.timerPoll) * 1000 / portTICK_RATE_MS;
 		pub_ctl_reload_timerPoll();
 		xSemaphoreGive( sem_SYSVars );
+
 	}
 
 }
@@ -113,7 +104,7 @@ static bool primer_frame = true;
 
 	if ( bytes_written == -1 ) {
 		// Error de escritura o memoria llena ??
-		xprintf_P( PSTR("DATA: WR ERROR (%d)\r\n\0"),FF_errno() );
+		xprintf_P(PSTR("DATA: WR ERROR (%d)\r\n\0"),FF_errno() );
 		// Stats de memoria
 		FAT_read(&l_fat);
 		xprintf_P( PSTR("DATA: MEM [wr=%d,rd=%d,del=%d]\0"), l_fat.wrPTR,l_fat.rdPTR, l_fat.delPTR );
@@ -182,10 +173,10 @@ static void pv_data_update_remote_channels(void)
 
 uint8_t channel;
 st_remote_values *rv;
-	
+
 	// Leo los valores
 	rv = pub_xbee_get_remote_values_ptr();
-	
+
 	// Canales analogicos
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++ ) {
 		if ( systemVars.a_ch_modo[channel] == 'R') {
@@ -193,7 +184,7 @@ st_remote_values *rv;
 			rv->analog_val[channel] = 0; // Leo una vez y pongo en 0 para detectar problemas
 		}
 	}
-	
+
 	// Canales digitales
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
 		if ( systemVars.d_ch_modo[channel] == 'R') {
@@ -221,7 +212,7 @@ void pub_data_read_frame(void)
 	ACH_prender_12V();
 	pub_analog_config_INAS(CONF_INAS_AVG128);	// Saco a los INA del modo pwr_down
 	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
-	pub_analog_read_frame( &pv_data_frame.analog_frame );
+	pub_analog_read_frame( &pv_data_frame.analog_frame);
 	pub_analog_config_INAS(CONF_INAS_SLEEP);	// Pongo a los INA a dormir.
 	ACH_apagar_12V();
 
@@ -231,13 +222,11 @@ void pub_data_read_frame(void)
 	// Leo los canales digitales y borro los contadores.
 	pub_digital_read_frame( &pv_data_frame.digital_frame, true );
 
-	//pv_data_update_remote_channels();
-	
+	// Actualizo los canales remotos que manda el xbee.
+	pv_data_update_remote_channels();
+
 	// Agrego el timestamp
 	RTC_read_dtime( &pv_data_frame.rtc);
-
-	// Leo el ancho de pulso ( rangeMeter ). Demora 5s.
-	pub_rangeMeter_ping( &pv_data_frame.range);
 
 }
 //------------------------------------------------------------------------------------
@@ -248,10 +237,10 @@ void pub_data_print_frame(void)
 uint8_t channel;
 
 	// HEADER
-	xprintf_P ( PSTR("frame: " ) );
+	xprintf_P(PSTR("frame: " ) );
 	// timeStamp.
-	xprintf_P ( PSTR( "%04d%02d%02d,"),pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day );
-	xprintf_P ( PSTR("%02d%02d%02d"),pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
+	xprintf_P(PSTR( "%04d%02d%02d,"),pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day );
+	xprintf_P(PSTR("%02d%02d%02d"),pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
 
 	// Valores analogicos
 	// Solo muestro los que tengo configurados.
@@ -259,7 +248,7 @@ uint8_t channel;
 		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) )
 			continue;
 
-		xprintf_P ( PSTR(",%s=%.02f"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+		xprintf_P(PSTR(",%s=%.02f"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
 	}
 
 	// Valores digitales. Lo que mostramos depende de lo que tenemos configurado
@@ -271,23 +260,18 @@ uint8_t channel;
 		}
 		// Level ?
 		if ( systemVars.d_ch_type[channel] == 'L') {
-			xprintf_P ( PSTR(",%s=%d"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
+			xprintf_P(PSTR(",%s=%d"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
 		} else {
 		// Counter ?
-			xprintf_P ( PSTR(",%s=%.02f"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
+			xprintf_P(PSTR(",%s=%.02f"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
 		}
 	}
 
-	// Range Meter
-	if ( systemVars.rangeMeter_enabled ) {
-//		xprintf_P ( PSTR(",PW=%d"), dframe->range );
-	}
-
 	// bateria
-	xprintf_P ( PSTR(",BAT=%.02f"), pv_data_frame.battery );
+	xprintf_P(PSTR(",BAT=%.02f"), pv_data_frame.battery );
 
 	// TAIL
-	xprintf_P ( PSTR("\r\n\0") );
+	xprintf_P(PSTR("\r\n\0") );
 
 }
 //------------------------------------------------------------------------------------

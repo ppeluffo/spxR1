@@ -325,7 +325,7 @@ void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
 	// Recibe como parametros el modo ( 0,1) y punteros a string con las horas de inicio y fin del pwrsave
 	// expresadas en minutos.
 
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
 
 	systemVars.pwrSave.modo = modoPwrSave;

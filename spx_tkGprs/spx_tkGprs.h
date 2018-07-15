@@ -11,8 +11,6 @@
 #include "frtos-io.h"
 #include "spx.h"
 
-char gprs_printfBuff[CHAR256];
-
 #define MAX_HW_TRIES_PWRON 		3	// Intentos de prender HW el modem
 #define MAX_SW_TRIES_PWRON 		3	// Intentos de prender SW el modem
 #define MAX_TRYES_NET_ATTCH		6	// Intentos de atachearme a la red GPRS
@@ -22,7 +20,10 @@ char gprs_printfBuff[CHAR256];
 #define MAX_RCDS_WINDOW_SIZE	10	// Maximos registros enviados en un bulk de datos
 #define MAX_TX_WINDOW_TRYES		4	// Intentos de enviar el mismo paquete de datos
 
-#define UART_GPRS_RXBUFFER_LEN 256
+// Datos del buffer local de recepcion de datos del GPRS.
+// Es del mismo tamanio que el ringBuffer asociado a la uart RX.
+// Es lineal, no ringBuffer !!! ( para poder usar las funciones de busqueda de strings )
+#define UART_GPRS_RXBUFFER_LEN GPRS_RXSTORAGE_SIZE
 struct {
 	char buffer[UART_GPRS_RXBUFFER_LEN];
 	uint16_t ptr;
@@ -32,7 +33,7 @@ struct {
 char buff_gprs_imei[IMEIBUFFSIZE];
 
 typedef enum { G_ESPERA_APAGADO = 0, G_PRENDER, G_CONFIGURAR, G_MON_SQE, G_GET_IP, G_INIT_FRAME, G_DATA } t_gprs_states;
-typedef enum { SOCK_CLOSED = 0, SOCK_OPEN } t_socket_status;
+typedef enum { SOCK_CLOSED = 0, SOCK_OPEN, SOCK_ERROR } t_socket_status;
 
 struct {
 	bool modem_prendido;
@@ -47,7 +48,8 @@ struct {
 #define bool_CONTINUAR	true
 #define bool_RESTART	false
 
-//bool gprs_esperar_apagado(void);
+void pv_gprs_init_system(void);
+
 bool st_gprs_esperar_apagado(void);
 bool st_gprs_prender(void);
 bool st_gprs_configurar(void);
@@ -57,8 +59,7 @@ bool st_gprs_init_frame(void);
 bool st_gprs_data(void);
 
 void pv_gprs_rxbuffer_flush(void);
-void pv_gprs_rxbuffer_push(char c);
-void pv_gprs_init_system(void);
+void pv_gprs_rxbuffer_poke(char c);
 
 bool pub_gprs_check_response( const char *rsp );
 void pub_gprs_modem_pwr_off(void);
@@ -66,12 +67,7 @@ void pub_gprs_modem_pwr_on(void);
 void pub_gprs_modem_pwr_sw(void);
 void pub_gprs_flush_RX_buffer(void);
 
-char *pub_gprs_rxbuffer_getPtr(void);
-
 void pub_gprs_open_socket(void);
-
-bool pub_gprs_try_to_open_socket(void);
-
 t_socket_status pub_gprs_check_socket_status(void);
 void pub_gprs_print_RX_response(void);
 void pub_gprs_print_RX_Buffer(void);

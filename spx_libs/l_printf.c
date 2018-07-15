@@ -27,7 +27,7 @@ va_list args;
 int i;
 
 	// Espero el semaforo del buffer en forma persistente.
-	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 5 ) );
 
 	// Ahora tengo en stdout_buff formateado para imprimir
@@ -52,7 +52,7 @@ va_list args;
 int i;
 
 	// Espero el semaforo del buffer en forma persistente.
-	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 5 ) );
 
 	// Ahora tengo en stdout_buff formateado para imprimir
@@ -103,7 +103,7 @@ va_list args;
 int i;
 
 	// Espero el semaforo del buffer en forma persistente.
-	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 5 ) );
 
 	// Ahora tengo en stdout_buff formateado para imprimir
@@ -125,7 +125,7 @@ va_list args;
 int i;
 
 	// Espero el semaforo del buffer en forma persistente.
-	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 1 ) != pdTRUE )
+	while ( xSemaphoreTake( sem_STDOUT, ( TickType_t ) 5 ) != pdTRUE )
 		vTaskDelay( ( TickType_t)( 5 ) );
 
 	// Ahora tengo en stdout_buff formateado para imprimir

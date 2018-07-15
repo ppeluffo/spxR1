@@ -144,6 +144,8 @@ static bool pv_tkGprs_check_inside_pwrSave(void)
 	// En caso afirmativo, seteo el tiempo en 10mins ( 600s )
 	// En caso negativo, lo seteo en systemVars.timerDial
 
+static bool starting_flag_pws = true;
+
 bool insidePwrSave_flag = false;
 
 RtcTimeType_t rtc;
@@ -151,6 +153,12 @@ uint16_t now, pwr_save_start, pwr_save_end ;
 
 	// Estoy en modo PWR_DISCRETO con PWR SAVE ACTIVADO
 	if ( ( MODO_DISCRETO ) && ( systemVars.pwrSave.modo == modoPWRSAVE_ON )) {
+
+		// Cuando arranco siempre me conecto sin importat si estoy o no en pwr save !!
+		if ( starting_flag_pws ) {
+			starting_flag_pws = false;
+			goto EXIT;
+		}
 
 		RTC_read_dtime(&rtc);
 		now = rtc.hour * 60 + rtc.min;

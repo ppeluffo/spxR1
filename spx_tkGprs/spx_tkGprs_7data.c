@@ -204,7 +204,6 @@ static void pv_trasmitir_dataHeader( void )
 	pub_gprs_flush_RX_buffer();
 
 	// Armo el header en el buffer
-	memset( gprs_printfBuff, '\0', sizeof(gprs_printfBuff));
 	xCom_printf_P( fdGPRS, PSTR("GET %s?DLGID=%s&PASSWD=%s&VER=%s\0"), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, SPX_FW_REV);
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: sent>GET %s?DLGID=%s&PASSWD=%s&VER=%s\r\n\0"), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, SPX_FW_REV);
@@ -313,9 +312,9 @@ bool exit_flag = false;
 
 	for ( timeout = 0; timeout < 10; timeout++) {
 
-		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );				// Espero 1s
+		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );	// Espero 1s
 
-		if ( pub_gprs_check_socket_status() == SOCK_CLOSED ) {		// El socket se cerro
+		if ( pub_gprs_check_socket_status() != SOCK_OPEN ) {		// El socket se cerro
 			exit_flag = false;
 			goto EXIT;
 		}
@@ -406,11 +405,10 @@ char *stringp;
 char *token;
 char *delim = ",=:><";
 char *p1,*p2;
-char *p, *s;
+char *p;
 uint8_t out_A,out_B;
 
-	s = FreeRTOS_UART_getFifoPtr(fdGPRS);
-	p = strstr(s, "OUTS");
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "OUTS");
 	if ( p == NULL ) {
 		return;
 	}

@@ -145,6 +145,7 @@ FAT_t l_fat;
 	// MODEM
 	xprintf_P( PSTR(">Modem:\r\n\0"));
 	xprintf_P( PSTR("  signalQ: csq=%d, dBm=%d\r\n\0"), systemVars.csq, systemVars.dbm );
+	xprintf_P( PSTR("  ip address: %s\r\n\0"), systemVars.dlg_ip_address);
 
 	// GPRS STATE
 	switch (GPRS_stateVars.state) {
@@ -527,16 +528,21 @@ float mag_val;
 		return;
 	}
 
-	// ANALOG
-	// read analog {ch}, bat
-	if (!strcmp_P( strupr(argv[1]), PSTR("ANALOG\0")) && ( tipo_usuario == USER_TECNICO) ) {
+	// ARAW
+	// read araw {ch, bat}
+	if (!strcmp_P( strupr(argv[1]), PSTR("ARAW\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_rwACH(RD_CMD);
 		return;
 	}
 
 
-	// AN { 0..8}
-	if (!strcmp_P( strupr(argv[1]), PSTR("AN\0")) && ( tipo_usuario == USER_TECNICO) ) {
+	// ACH { 0..4}
+	// read ach x
+	if (!strcmp_P( strupr(argv[1]), PSTR("ACH\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		if ( atoi(argv[2]) > 4) {
+			pv_snprintfP_ERR();
+			return;
+		}
 		pub_analog_read_channel( atoi(argv[2]),&raw_val, &mag_val );
 		xprintf_P( PSTR("CH[%02d] raw=%d,mag=%.02f\r\n\0"),atoi(argv[2]),raw_val, mag_val );
 		return;
@@ -858,8 +864,8 @@ static void cmdHelpFunction(void)
 			xprintf_P( PSTR("  ee,nvmee,rtcram {pos} {lenght}\r\n\0"));
 			xprintf_P( PSTR("  ina {id} {conf|chXshv|chXbusv|mfid|dieid}\r\n\0"));
 			xprintf_P( PSTR("  memory\r\n\0"));
-			xprintf_P( PSTR("  an {0..4}, battery\r\n\0"));
-			xprintf_P( PSTR("  analog {ch}, bat \r\n\0"));
+			xprintf_P( PSTR("  ach {0..4}, battery\r\n\0"));
+			xprintf_P( PSTR("  araw {ch, bat} \r\n\0"));
 			xprintf_P( PSTR("  din\r\n\0"));
 			xprintf_P( PSTR("  gprs (rsp,rts,dcd,ri)\r\n\0"));
 			xprintf_P( PSTR("  pulse\r\n\0"));
@@ -1422,7 +1428,7 @@ static void pv_cmd_rwGPRS(uint8_t cmd_mode )
 {
 
 uint8_t pin;
-char *p;
+//char *p;
 
 	if ( cmd_mode == WR_CMD ) {
 
@@ -1501,9 +1507,9 @@ char *p;
 			// ATCMD
 			// read gprs rsp
 			if (!strcmp_P(strupr(argv[2]), PSTR("RSP\0"))) {
-				//p = FreeRTOS_UART_getFifoPtr(&pdUART_GPRS);
-				p = pub_gprs_rxbuffer_getPtr();
-				xprintf_P( PSTR("rx->%s\r\n\0"),p );
+				pub_gprs_print_RX_Buffer();
+				//p = pub_gprs_rxbuffer_getPtr();
+				//xprintf_P( PSTR("rx->%s\r\n\0"),p );
 				return;
 			}
 

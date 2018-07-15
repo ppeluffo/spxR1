@@ -28,5 +28,4 @@ uint16_t ACH_read_channel( uint8_t channel_id );
 #define ACH_prender_12V()	IO_set_SENS_12V_CTL()
 #define ACH_apagar_12V()	IO_clr_SENS_12V_CTL()
 
-
 #endif /* SRC_SPX_LIBS_L_AIN_H_ */

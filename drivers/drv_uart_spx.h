@@ -36,7 +36,7 @@ uint8_t usb_rxStorage[USB_RXSTORAGE_SIZE];
 uint8_t usb_txStorage[USB_TXSTORAGE_SIZE];
 
 #define GPRS_RXSTORAGE_SIZE	512
-#define GPRS_TXSTORAGE_SIZE	256
+#define GPRS_TXSTORAGE_SIZE	128
 uint8_t gprs_rxStorage[GPRS_RXSTORAGE_SIZE];
 uint8_t gprs_txStorage[GPRS_TXSTORAGE_SIZE];
 
