@@ -57,6 +57,7 @@ typedef struct {
 	uint8_t devAddress;
 	uint8_t byteAddressLength;
 	uint16_t byteAddress;
+	uint8_t i2c_error_code;
 
 } periferico_i2c_port_t;
 
@@ -76,7 +77,11 @@ StaticSemaphore_t I2C_xMutexBuffer;
 #define ioctl_I2C_SET_DEVADDRESS		6
 #define ioctl_I2C_SET_BYTEADDRESS		7
 #define ioctl_I2C_SET_BYTEADDRESSLENGTH	8
+#define ioctl_I2C_GET_LAST_ERROR		9
 
+#define I2C_OK			0
+#define I2C_RD_ERROR	1
+#define I2C_WR_ERROR	2
 
 //-----------------------------------------------------------------------
 int frtos_open( file_descriptor_t fd, uint32_t flags);

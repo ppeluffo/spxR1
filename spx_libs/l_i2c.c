@@ -19,7 +19,8 @@ size_t xReturn = 0U;
 uint8_t bus_address;
 uint8_t	dev_address_length = 1;
 uint16_t device_address;
-uint8_t xBytes = 0;
+int8_t xBytes = 0;
+uint8_t i2c_error_code;
 
 	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
 
@@ -43,6 +44,12 @@ uint8_t xBytes = 0;
 	//  3) Por ultimo leemos. No controlo fronteras.
 	xBytes = length;
 	xReturn = frtos_read(fdI2C, data, xBytes);
+
+	i2c_error_code = frtos_ioctl(fdI2C, ioctl_I2C_GET_LAST_ERROR, NULL );
+	if (i2c_error_code != I2C_OK ) {
+		xprintf_P(PSTR("ERROR: I2C RD err.\r\n\0"));
+	}
+
 	if (xReturn != xBytes ) {
 		return ( -1 );
 	}
@@ -63,7 +70,8 @@ size_t xReturn = 0U;
 uint8_t bus_address;
 uint8_t	dev_address_length = 1;
 uint16_t device_address;
-uint8_t xBytes = 0;
+int8_t xBytes = 0;
+uint8_t i2c_error_code;
 
 	frtos_ioctl( fdI2C,ioctl_OBTAIN_BUS_SEMPH, NULL);
 
@@ -87,6 +95,11 @@ uint8_t xBytes = 0;
 	//  3) Por ultimo escribimos. No controlo fronteras.
 	xBytes = length;
 	xReturn = frtos_write(fdI2C, data, xBytes);
+	i2c_error_code = frtos_ioctl(fdI2C, ioctl_I2C_GET_LAST_ERROR, NULL );
+	if (i2c_error_code != I2C_OK ) {
+		xprintf_P(PSTR("ERROR: I2C WR err.\r\n\0"));
+	}
+
 	if (xReturn != xBytes ) {
 		return ( -1 );
 	}

@@ -46,7 +46,6 @@
 #include "l_iopines.h"
 #include "l_eeprom.h"
 #include "l_nvm.h"
-#include "l_drv8814.h"
 #include "l_ina3221.h"
 #include "l_rtc79410.h"
 #include "l_file.h"
@@ -57,8 +56,8 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "0.0.3"
-#define SPX_FW_DATE "@ 20180715"
+#define SPX_FW_REV "1.0.0"
+#define SPX_FW_DATE "@ 20180716"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
@@ -249,6 +248,7 @@ bool u_load_params_from_NVMEE(void);
 void u_convert_str_to_time_t ( char *time_str, time_t *time_struct );
 void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
 void pub_convert_str_to_time_t ( char *time_str, time_t *time_struct );
+void pub_control_string( char *s_name );
 
 // analog
 void pub_analog_config_INAS( uint16_t conf_reg_value );

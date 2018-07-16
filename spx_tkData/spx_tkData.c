@@ -202,6 +202,9 @@ st_remote_values *rv;
 //------------------------------------------------------------------------------------
 void pub_data_read_frame(void)
 {
+
+int8_t xBytes;
+
 	// Funcion usada para leer los datos de todos los modulos, guardarlos en memoria
 	// e imprimirlos.
 	// La usa por un lado tkData en forma periodica y desde el cmd line cuando se
@@ -226,7 +229,9 @@ void pub_data_read_frame(void)
 	pv_data_update_remote_channels();
 
 	// Agrego el timestamp
-	RTC_read_dtime( &pv_data_frame.rtc);
+	xBytes = RTC_read_dtime( &pv_data_frame.rtc);
+	if ( xBytes == -1 )
+		xprintf_P(PSTR("ERROR: I2C:RTC:pub_data_read_frame\r\n\0"));
 
 }
 //------------------------------------------------------------------------------------

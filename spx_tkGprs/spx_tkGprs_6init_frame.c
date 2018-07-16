@@ -90,7 +90,7 @@ static bool pv_send_init_frame(void)
 
 uint8_t intentos;
 bool exit_flag = false;
-uint8_t timeout, max_wait_time;
+uint8_t timeout, await_loops;
 
 	for ( intentos = 0; intentos < MAX_TRYES_OPEN_SOCKET; intentos++ ) {
 
@@ -113,10 +113,10 @@ uint8_t timeout, max_wait_time;
 			default: max_wait_time = 3; break;
 		}
 */
-		max_wait_time = 10;
+		await_loops = ( 10 * 1000 / 3000 ) + 1;
 		// Y espero hasta 30s que abra.
-		for ( timeout = 0; timeout < max_wait_time; timeout++) {
-			vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
+		for ( timeout = 0; timeout < await_loops; timeout++) {
+			vTaskDelay( (portTickType)( 3000 / portTICK_RATE_MS ) );
 			if ( pub_gprs_check_socket_status() == SOCK_OPEN )
 				break;
 		}
@@ -195,11 +195,12 @@ uint8_t i;
 	// HEADER:
 	// Envio parcial ( no CR )
 	pub_gprs_flush_RX_buffer();
+
 	xCom_printf_P( fdGPRS,PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV );
 	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
 	// DEBUG & LOG
 	if ( systemVars.debug ==  DEBUG_GPRS ) {
-		xprintf_P( PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s\r\n\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV );
+		xprintf_P( PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV );
 	}
 
 	// BODY ( 1a parte) :
@@ -307,6 +308,7 @@ char rtcStr[12];
 uint8_t i;
 char c;
 RtcTimeType_t rtc;
+int8_t xBytes;
 
 	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "CLOCK");
 	if ( p  == NULL ) {
@@ -332,8 +334,10 @@ RtcTimeType_t rtc;
 
 	}
 
-	RTC_str2rtc(rtcStr, &rtc);		// Convierto el string YYMMDDHHMM a RTC.
-	RTC_write_dtime(&rtc);		// Grabo el RTC
+	RTC_str2rtc(rtcStr, &rtc);	// Convierto el string YYMMDDHHMM a RTC.
+	xBytes = RTC_write_dtime(&rtc);		// Grabo el RTC
+	if ( xBytes == -1 )
+		xprintf_P(PSTR("ERROR: I2C:RTC:pv_process_server_clock\r\n\0"));
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: Update rtc to: %s\r\n\0"), rtcStr );
@@ -465,7 +469,7 @@ static uint8_t pv_process_AnalogCh(uint8_t channel)
 uint8_t ret = 0;
 char localStr[32];
 char *stringp;
-char *token;
+char *token = NULL;
 char *delim = ",=:><";
 char *chName,*s_iMin,*s_iMax,*s_mMin,*s_mMax;
 

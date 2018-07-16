@@ -999,6 +999,7 @@ static void pv_cmd_INA(uint8_t cmd_mode )
 uint16_t val;
 uint8_t ina_id;
 char data[3];
+int8_t xBytes;
 
 	// write ina id conf {value}
 	if ( cmd_mode == WR_CMD ) {
@@ -1008,7 +1009,10 @@ char data[3];
 			val = atoi( argv[4]);
 			data[0] = ( val & 0xFF00 ) >> 8;
 			data[1] = ( val & 0x00FF );
-			INA_write( ina_id, INA3231_CONF, data, 2 );
+			xBytes = INA_write( ina_id, INA3231_CONF, data, 2 );
+			if ( xBytes == -1 )
+				xprintf_P(PSTR("ERROR: I2C:INA:pv_cmd_INA\r\n\0"));
+
 			pv_snprintfP_OK();
 			return;
 		}
@@ -1020,27 +1024,30 @@ char data[3];
 		ina_id = atoi(argv[2]);
 
 		if (!strcmp_P( strupr(argv[3]), PSTR("CONF\0"))) {
-			INA_read(  ina_id, INA3231_CONF, data, 2 );
+			xBytes = INA_read(  ina_id, INA3231_CONF, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH1SHV\0"))) {
-			INA_read(  ina_id, INA3221_CH1_SHV, data, 2 );
+			xBytes = INA_read(  ina_id, INA3221_CH1_SHV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH1BUSV\0"))) {
-			INA_read(  ina_id, INA3221_CH1_BUSV, data, 2 );
+			xBytes = INA_read(  ina_id, INA3221_CH1_BUSV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH2SHV\0"))) {
-			INA_read(  ina_id, INA3221_CH2_SHV, data, 2 );
+			xBytes = INA_read(  ina_id, INA3221_CH2_SHV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH2BUSV\0"))) {
-			INA_read(  ina_id, INA3221_CH2_BUSV, data, 2 );
+			xBytes = INA_read(  ina_id, INA3221_CH2_BUSV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH3SHV\0"))) {
-			INA_read(  ina_id, INA3221_CH3_SHV, data, 2 );
+			xBytes = INA_read(  ina_id, INA3221_CH3_SHV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("CH3BUSV\0"))) {
-			INA_read(  ina_id, INA3221_CH3_BUSV, data, 2 );
+			xBytes = INA_read(  ina_id, INA3221_CH3_BUSV, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("MFID\0"))) {
-			INA_read(  ina_id, INA3221_MFID, data, 2 );
+			xBytes = INA_read(  ina_id, INA3221_MFID, data, 2 );
 		} else if (!strcmp_P( strupr(argv[3]), PSTR("DIEID\0"))) {
-			INA_read(  ina_id, INA3221_DIEID, data, 2 );
+			xBytes = INA_read(  ina_id, INA3221_DIEID, data, 2 );
 		} else {
 			pv_snprintfP_ERR();
 			return;
 		}
+
+		if ( xBytes == -1 )
+			xprintf_P(PSTR("ERROR: I2C:INA:pv_cmd_INA\r\n\0"));
 
 		val = ( data[0]<< 8 ) + data	[1];
 		xprintf_P( PSTR("INAID=%d\r\n\0"), ina_id);
@@ -1120,6 +1127,9 @@ char *p;
 	// read ee {pos} {lenght}
 	if ( cmd_mode == RD_CMD ) {
 		xBytes = EE_read( (uint32_t)(atol(argv[2])), buffer, (uint8_t)(atoi(argv[3]) ) );
+		if ( xBytes == -1 )
+			xprintf_P(PSTR("ERROR: I2C:EE:pv_cmd_rwEE\r\n\0"));
+
 		if ( xBytes > 0 ) {
 			xprintf_P( PSTR( "%s\r\n\0"),buffer);
 		}
@@ -1137,6 +1147,9 @@ char *p;
 		}
 
 		xBytes = EE_write( (uint32_t)(atol(argv[2])), argv[3], length );
+		if ( xBytes == -1 )
+			xprintf_P(PSTR("ERROR: I2C:EE:pv_cmd_rwEE\r\n\0"));
+
 		( xBytes > 0 ) ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
@@ -1185,16 +1198,23 @@ static void pv_cmd_rwRTC(uint8_t cmd_mode )
 char datetime[24];
 RtcTimeType_t rtc;
 bool retS;
+int8_t xBytes;
 
 	if ( cmd_mode == WR_CMD ) {
 		RTC_str2rtc(argv[2], &rtc);				// Convierto el string YYMMDDHHMM a RTC.
-		retS = RTC_write_dtime(&rtc);		// Grabo el RTC
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
+		xBytes = RTC_write_dtime(&rtc);		// Grabo el RTC
+		if ( xBytes == -1 )
+			xprintf_P(PSTR("ERROR: I2C:RTC:pv_cmd_rwRTC\r\n\0"));
+
+		( xBytes > 0)? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
 
 	if ( cmd_mode == RD_CMD ) {
-		RTC_read_dtime(&rtc);
+		xBytes = RTC_read_dtime(&rtc);
+		if ( xBytes == -1 )
+			xprintf_P(PSTR("ERROR: I2C:RTC:pv_cmd_rwRTC\r\n\0"));
+
 		RTC_rtc2str(datetime,&rtc);
 		xprintf_P( PSTR("%s\r\n\0"), datetime );
 		return;
@@ -1209,15 +1229,18 @@ static void pv_cmd_rwRTC_SRAM(uint8_t cmd_mode )
 
 uint8_t rtc_sram_buffer[32];
 uint8_t i;
-bool retS;
+int8_t xBytes;
 uint8_t length = 0;
 char *p;
 
 	// read rtcram {pos} {lenght}
 	if ( cmd_mode == RD_CMD ) {
 		memset(rtc_sram_buffer, '\0', sizeof(rtc_sram_buffer));
-		retS = RTC_read( ( RTC79410_SRAM_INIT + (uint8_t)(atoi(argv[2]))), (char *)&rtc_sram_buffer, (uint8_t)(atoi(argv[3])) );
-		if ( retS ) {
+		xBytes = RTC_read( ( RTC79410_SRAM_INIT + (uint8_t)(atoi(argv[2]))), (char *)&rtc_sram_buffer, (uint8_t)(atoi(argv[3])) );
+		if ( xBytes == -1 )
+			xprintf_P(PSTR("ERROR: I2C:RTC:pv_cmd_rwRTC_SRAM\r\n\0"));
+
+		if ( xBytes > 0 ) {
 			// El string leido lo devuelve en cmd_printfBuff por lo que le agrego el CR.
 			xprintf_P ( PSTR( "\r\n\0 ") );
 			for (i=0; i < atoi(argv[3]); i++ ) {
@@ -1225,7 +1248,7 @@ char *p;
 			}
 			xprintf_P ( PSTR( "\r\n\0 ") );
 		}
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
+		( xBytes > 0 ) ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
 
@@ -1238,8 +1261,11 @@ char *p;
 			length++;
 		}
 
-		retS = RTC_write( ( RTC79410_SRAM_INIT + (uint32_t)(atol(argv[2]))), argv[3], length );
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
+		xBytes = RTC_write( ( RTC79410_SRAM_INIT + (uint32_t)(atol(argv[2]))), argv[3], length );
+		if ( xBytes == -1 )
+			xprintf_P(PSTR("ERROR: I2C:RTC:pv_cmd_rwRTC_SRAM\r\n\0"));
+
+		( xBytes > 0 )? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
 
@@ -1293,7 +1319,7 @@ static void pv_cmd_rdMEMORY(void)
 //------------------------------------------------------------------------------------
 static void pv_cmd_wrOUT8814(void)
 {
-	// write out sleep|reset|phase(A/B)|enable(A/B)| {0|1}
+	// write out sleep|reset|phase|enable) {A|B} {0|1}
 	//       out pulse (A/B) (+/-) (ms)
 	//       out power {on|off}
 
@@ -1301,11 +1327,11 @@ static void pv_cmd_wrOUT8814(void)
 	if (!strcmp_P( strupr(argv[2]), PSTR("SLEEP\0")) ) {
 		switch(atoi(argv[3])) {
 		case 0:
-			IO_clr_SLP();
+			OUT_sleep_pin(0);
 			pv_snprintfP_OK();
 			break;
 		case 1:
-			IO_set_SLP();
+			OUT_sleep_pin(1);
 			pv_snprintfP_OK();
 			break;
 		default:
@@ -1318,11 +1344,11 @@ static void pv_cmd_wrOUT8814(void)
 	if (!strcmp_P( strupr(argv[2]), PSTR("RESET\0")) ) {
 		switch(atoi(argv[3])) {
 		case 0:
-			IO_clr_RES();
+			OUT_reset_pin(0);
 			pv_snprintfP_OK();
 			break;
 		case 1:
-			IO_set_RES();
+			OUT_reset_pin(1);
 			pv_snprintfP_OK();
 			break;
 		default:
@@ -1336,12 +1362,12 @@ static void pv_cmd_wrOUT8814(void)
 		switch (toupper(argv[3][0])) {
 		case 'A':
 			if (atoi(argv[4]) == 0) {
-				IO_clr_PHA();
+				OUT_phase_pin('A', 0);
 				pv_snprintfP_OK();
 				return;
 			}
 			if (atoi(argv[4]) == 1) {
-				IO_set_PHA();
+				OUT_phase_pin('A', 1);
 				pv_snprintfP_OK();
 				return;
 			}
@@ -1349,12 +1375,12 @@ static void pv_cmd_wrOUT8814(void)
 			return;
 		case 'B':
 			if (atoi(argv[4]) == 0) {
-				IO_clr_PHB();
+				OUT_phase_pin('B', 0);
 				pv_snprintfP_OK();
 				return;
 			}
 			if (atoi(argv[4]) == 1) {
-				IO_set_PHB();
+				OUT_phase_pin('B', 1);
 				pv_snprintfP_OK();
 				return;
 			}
@@ -1368,12 +1394,12 @@ static void pv_cmd_wrOUT8814(void)
 		switch (toupper(argv[3][0])) {
 		case 'A':
 			if (atoi(argv[4]) == 0) {
-				IO_clr_ENA();
+				OUT_enable_pin('A', 0);
 				pv_snprintfP_OK();
 				return;
 			}
 			if (atoi(argv[4]) == 1) {
-				IO_set_ENA();
+				OUT_enable_pin('A', 1);
 				pv_snprintfP_OK();
 				return;
 			}
@@ -1381,12 +1407,12 @@ static void pv_cmd_wrOUT8814(void)
 			return;
 		case 'B':
 			if (atoi(argv[4]) == 0) {
-				IO_clr_ENB();
+				OUT_enable_pin('B', 0);
 				pv_snprintfP_OK();
 				return;
 			}
 			if (atoi(argv[4]) == 1) {
-				IO_set_ENB();
+				OUT_enable_pin('B', 1);
 				pv_snprintfP_OK();
 				return;
 			}
@@ -1397,7 +1423,23 @@ static void pv_cmd_wrOUT8814(void)
 
 	// write out pulse (A/B) (+/-) (ms)
 	if (!strcmp_P( strupr(argv[2]), PSTR("PULSE\0")) ) {
-		DRV8814_test_pulse(argv[3],argv[4],argv[5]);
+
+		// Prendo
+		OUT_power_on();
+		vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
+
+		OUT_driver('A', OUT_ENABLE);
+		OUT_driver('A', OUT_AWAKE);
+		OUT_driver('B', OUT_ENABLE);
+		OUT_driver('B', OUT_AWAKE);
+		// Pulso
+		OUT_valve( argv[3], PULSE, argv[4] );
+
+		// Apago
+		OUT_driver('A', OUT_SLEEP);
+		OUT_driver('B', OUT_SLEEP);
+		OUT_power_off();
+
 		pv_snprintfP_OK();
 		return;
 	}
@@ -1406,12 +1448,12 @@ static void pv_cmd_wrOUT8814(void)
 	if (!strcmp_P( strupr(argv[2]), PSTR("POWER\0")) ) {
 
 		if (!strcmp_P( strupr(argv[3]), PSTR("ON\0")) ) {
-			IO_set_V12_OUTS_CTL();
+			OUT_power_on();
 			pv_snprintfP_OK();
 			return;
 		}
 		if (!strcmp_P( strupr(argv[3]), PSTR("OFF\0")) ) {
-			IO_clr_V12_OUTS_CTL();
+			OUT_power_off();
 			pv_snprintfP_OK();
 			return;
 		}

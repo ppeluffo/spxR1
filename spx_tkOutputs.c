@@ -69,8 +69,11 @@ static void pv_out_check_consignas(void)
 	// Las consignas se chequean y/o setean en cualquier modo de trabajo, continuo o discreto
 
 RtcTimeType_t rtcDateTime;
+int8_t xBytes;
 
-	RTC_read_dtime(&rtcDateTime);
+	xBytes = RTC_read_dtime(&rtcDateTime);
+	if ( xBytes == -1 )
+		xprintf_P(PSTR("ERROR: I2C:RTC:pv_out_check_consignas\r\n\0"));
 
 	if ( ( rtcDateTime.hour == systemVars.outputs.consigna_diurna.hour ) &&
 			( rtcDateTime.min == systemVars.outputs.consigna_diurna.min )  ) {
@@ -108,6 +111,8 @@ static void pv_out_check_outputs_normales(void)
 static void pv_out_init(void)
 {
 
+	OUT_power_off();
+
 	switch(systemVars.outputs.modo) {
 	case OUT_OFF:
 		pv_out_init_outputs_off();
@@ -124,19 +129,11 @@ static void pv_out_init(void)
 //------------------------------------------------------------------------------------
 static void pv_out_init_outputs_off(void)
 {
-	// Habilitamos al driver
-	IO_set_SLP();
-	IO_set_RES();
 
-	vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
+	OUT_driver('A', OUT_SLEEP);
+	OUT_driver('B', OUT_SLEEP);
 
-	IO_clr_ENA();
-	IO_clr_ENB();
-	IO_clr_PHA();
-	IO_clr_PHB();
-
-	// Y lo dejamos durmiendo.
-	IO_clr_SLP();
+	OUT_power_off();
 
 }
 //------------------------------------------------------------------------------------
@@ -147,9 +144,12 @@ static void pv_out_init_consignas(void)
 RtcTimeType_t rtcDateTime;
 uint16_t now, horaConsNoc, horaConsDia ;
 uint8_t consigna_a_aplicar = 99;
+uint8_t xBytes;
 
 	// Hora actual en minutos.
-	RTC_read_dtime(&rtcDateTime);
+	xBytes = RTC_read_dtime(&rtcDateTime);
+	if ( xBytes == -1 )
+		xprintf_P(PSTR("ERROR: I2C:RTC:pv_out_init_consignas\r\n\0"));
 
 	// Caso 1: C.Diurna < C.Nocturna
 	//           C.diurna                      C.nocturna
@@ -223,9 +223,13 @@ static void pv_out_init_outputs_normales(void)
 {
 	// Aplica el valor indicado en systemVars a las salidas.
 
-	// Habilitamos al driver
-	IO_set_SLP();
-	IO_set_RES();
+	OUT_power_on();
+	vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
+
+	OUT_driver('A', OUT_ENABLE);
+	OUT_driver('A', OUT_AWAKE);
+	OUT_driver('B', OUT_ENABLE);
+	OUT_driver('B', OUT_AWAKE);
 
 	vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
@@ -291,9 +295,22 @@ void pub_output_set_consigna_diurna(void)
 {
 	// En consigna diurna la valvula A (JP28) queda abierta y la valvula B (JP2) cerrada.
 	//
-	DRV8814_open_valve_A();
-	vTaskDelay( ( TickType_t)( 5000 / portTICK_RATE_MS ) );
-	DRV8814_close_valve_B();
+	OUT_power_on();
+	vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
+
+	OUT_driver('A', OUT_ENABLE);
+	OUT_driver('A', OUT_AWAKE);
+	OUT_driver('B', OUT_ENABLE);
+	OUT_driver('B', OUT_AWAKE);
+
+	OUT_valve('A',OPEN,0);
+	vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
+	OUT_valve('B',CLOSE,0);
+
+	OUT_driver('A', OUT_SLEEP);
+	OUT_driver('B', OUT_SLEEP);
+
+	OUT_power_off();
 
 	systemVars.outputs.consigna_aplicada = CONSIGNA_DIURNA;
 	xprintf_P( PSTR("OUTPUTS: Aplico Consigna Diurna\r\n\0") );
@@ -302,9 +319,22 @@ void pub_output_set_consigna_diurna(void)
 void pub_output_set_consigna_nocturna(void)
 {
 
-	DRV8814_close_valve_A();
-	vTaskDelay( ( TickType_t)( 5000 / portTICK_RATE_MS ) );
-	DRV8814_close_valve_B();
+	OUT_power_on();
+	vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
+
+	OUT_driver('A', OUT_ENABLE);
+	OUT_driver('A', OUT_AWAKE);
+	OUT_driver('B', OUT_ENABLE);
+	OUT_driver('B', OUT_AWAKE);
+
+	OUT_valve('A',CLOSE,0);
+	vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
+	OUT_valve('B',OPEN,0);
+
+	OUT_driver('A', OUT_SLEEP);
+	OUT_driver('B', OUT_SLEEP);
+
+	OUT_power_off();
 
 	systemVars.outputs.consigna_aplicada = CONSIGNA_NOCTURNA;
 	xprintf_P( PSTR("OUTPUTS: Aplico Consigna Nocturna\r\n\0") );
@@ -315,11 +345,11 @@ void pub_output_set_outputs( char id_output, uint8_t value)
 
 	switch(id_output) {
 	case 'A':
-		( value == 0 ) ? DRV8814_close_valve_A() : DRV8814_open_valve_A();
+		( value == 0 ) ? OUT_valve('A', CLOSE,0 ): OUT_valve('A', OPEN,0 );
 		systemVars.outputs.out_A = value;
 		break;
 	case 'B':
-		( value == 0 ) ? DRV8814_close_valve_B() : DRV8814_open_valve_B();
+		( value == 0 ) ? OUT_valve('B', CLOSE,0 ): OUT_valve('B', OPEN,0 );
 		systemVars.outputs.out_B = value;
 		break;
 	}

@@ -22,6 +22,8 @@ int xprintf_P( PGM_P fmt, ...)
 	// Como se controla con semaforo, nos permite ahorrar los buffers de c/tarea.
 	// Si bien vsnprintf no es thread safe, al usarla aqui con el semaforo del buffer
 	// queda thread safe !!!
+	// Al usar esta funcion no es necesario controlar el tamaño de los buffers ya que
+	// los limita a PRINTF_BUFFER_SIZE
 
 va_list args;
 int i;

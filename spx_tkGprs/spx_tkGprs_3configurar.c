@@ -10,12 +10,6 @@
 static bool pv_gprs_CPIN(void);
 static bool pv_gprs_CGREG(void);
 static bool pv_gprs_CGATT(void);
-static bool pv_gprs_CGACT(void);
-
-static void pv_gprs_CSPN(void);
-static void pv_gprs_CNSMOD(void);
-static void pv_gprs_CCINFO(void);
-static void pv_gprs_CNTI(void);
 static void pg_gprs_APN(void);
 static void pg_gprs_CIPMODE(void);
 static void pg_gprs_DCDMODE(void);
@@ -185,108 +179,6 @@ uint8_t tryes;
 
 }
 //------------------------------------------------------------------------------------
-static bool pv_gprs_CGACT(void)
-{
-
-	/*
-	Incluso si GPRS Attach es exitoso, no significa que se haya establecido la llamada de datos.
-  	En GPRS, un Protocolo de paquetes de datos (PDP) define la sesión de datos.
-  	El contexto PDP establece la ruta de datos entre el dispositivo y el GGSN (Nodo de soporte Gateway GPRS).
-  	GGSN actúa como una puerta de enlace entre el dispositivo y el resto del mundo.
-  	Por lo tanto, debe establecer un contexto PDP antes de que pueda enviar / recibir datos en Internet.
-  	El GGSN se identifica a través del nombre del punto de acceso (APN).
-  	Cada proveedor tendrá sus propias APN y generalmente están disponibles en Internet.
-  	El dispositivo puede definir múltiples contextos PDP que se almacenan de manera única
-  	en los ID de contexto.
-
-	Ahora que los contextos PDP están definidos, utilizo el contexto PDP correcto que coincida
-	con la tarjeta SIM.
-	Ahora para configurar la sesión, el contexto PDP apropiado debe estar activado.
-	AT + CGACT = 1,1
-	El primer parámetro (1) es activar el contexto y el segundo parámetro es el ID de contexto.
-	Una vez que el Contexto PDP se activa con éxito, el dispositivo puede enviar / recibir
-	datos en Internet.
-	*/
-
-bool retS = false;
-uint8_t tryes;
-
-	for ( tryes = 0; tryes < 5; tryes++ ) {
-
-		pub_gprs_flush_RX_buffer();
-		xCom_printf_P( fdGPRS,PSTR("AT+CGACT=1,1\r\0"));
-		vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-		if ( systemVars.debug == DEBUG_GPRS ) {
-			pub_gprs_print_RX_Buffer();
-		}
-
-		vTaskDelay( ( TickType_t)( 3000 / portTICK_RATE_MS ) );
-
-		pub_gprs_check_response("+CGATT: 1\0") ? (retS = true ): (retS = false) ;
-
-		if ( retS ) {
-			break;
-		}
-
-	}
-	return(retS);
-
-}
-//------------------------------------------------------------------------------------
-static void pv_gprs_CSPN(void)
-{
-
-	pub_gprs_flush_RX_buffer();
-	xCom_printf_P( fdGPRS,PSTR("AT+CSPN?\r\0"));
-	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-	if ( systemVars.debug == DEBUG_GPRS ) {
-		pub_gprs_print_RX_Buffer();
-	}
-
-}
-//------------------------------------------------------------------------------------
-static void pv_gprs_CNSMOD(void)
-{
-	// Funcion informativa que indica el modo de red
-
-	// AT+CNSMOD?
-	pub_gprs_flush_RX_buffer();
-	xCom_printf_P( fdGPRS,PSTR("AT+CNSMOD?\r\0"));
-	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-	if ( systemVars.debug == DEBUG_GPRS ) {
-		pub_gprs_print_RX_Buffer();
-	}
-
-}
-//------------------------------------------------------------------------------------
-static void pv_gprs_CCINFO(void)
-{
-	// Funcion informativa que indica los datos de la celda en que esta trabajando
-	// AT+CCINFO
-
-	pub_gprs_flush_RX_buffer();
-	xCom_printf_P( fdGPRS,PSTR("AT+CCINFO\r\0"));
-	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-	if ( systemVars.debug == DEBUG_GPRS ) {
-		pub_gprs_print_RX_Buffer();
-	}
-
-}
-//------------------------------------------------------------------------------------
-static void pv_gprs_CNTI(void)
-{
-	// Funcion informativa que indica los datos de la celda en que esta trabajando
-
-	// AT*CNTI?
-	pub_gprs_flush_RX_buffer();
-	xCom_printf_P( fdGPRS,PSTR("AT*CNTI?\r\0"));
-	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
-	if ( systemVars.debug == DEBUG_GPRS ) {
-		pub_gprs_print_RX_Buffer();
-	}
-
-}
-//------------------------------------------------------------------------------------
 static void pg_gprs_CIPMODE(void)
 {
 	// Funcion que configura el modo transparente.
@@ -318,12 +210,12 @@ static void pg_gprs_DCDMODE(void)
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		pub_gprs_print_RX_Buffer();
 	}
-
+/*
 	pub_gprs_flush_RX_buffer();
 	xCom_printf_P( fdGPRS,PSTR("AT+CDCDMD=0\r\0"));
 	vTaskDelay( (portTickType)( 100 / portTICK_RATE_MS ) );
 	pub_gprs_print_RX_Buffer();
-
+*/
 	pub_gprs_flush_RX_buffer();
 	xCom_printf_P( fdGPRS,PSTR("AT&C1\r\0"));
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );

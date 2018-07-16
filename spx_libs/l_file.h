@@ -13,6 +13,7 @@
 #define SRC_SP5KLIBS_L_FILE_H_
 
 #include <l_eeprom.h>
+#include "l_printf.h"
 
 #include "FreeRTOS.h"
 #include "frtos-io.h"

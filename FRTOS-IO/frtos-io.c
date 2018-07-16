@@ -271,6 +271,7 @@ int frtos_i2c_open( periferico_i2c_port_t *xI2c, file_descriptor_t fd, StaticSem
 	xI2c->fd = fd;
 	xI2c->xBusSemaphore = xSemaphoreCreateMutexStatic( i2c_semph );
 	xI2c->xBlockTime = (10 / portTICK_RATE_MS );
+	xI2c->i2c_error_code = I2C_OK;
 	//
 	// Abro e inicializo el puerto I2C solo la primera vez que soy invocado
 	drv_I2C_init();
@@ -289,6 +290,11 @@ int xReturn = 0U;
 
 	if ( drv_I2C_master_write(xI2c->devAddress, xI2c->byteAddressLength, xI2c->byteAddress, (char *)pvBuffer, xBytes) == true ) {
 		xReturn = xBytes;
+		xI2c->i2c_error_code = I2C_OK;
+	} else {
+		// Error de escritura indicado por el driver.
+		xI2c->i2c_error_code = I2C_WR_ERROR;
+		xReturn = -1;
 	}
 
 	return(xReturn);
@@ -329,6 +335,9 @@ uint16_t *p;
 			case ioctl_I2C_SET_BYTEADDRESSLENGTH:
 				xI2c->byteAddressLength = (int8_t)(*p);
 				break;
+			case ioctl_I2C_GET_LAST_ERROR:
+				xReturn = xI2c->i2c_error_code;;
+				break;
 			default :
 				xReturn = -1;
 				break;
@@ -349,6 +358,10 @@ int xReturn = 0U;
 
 	if ( drv_I2C_master_read(xI2c->devAddress, xI2c->byteAddressLength, xI2c->byteAddress, (char *)pvBuffer, xBytes) == true ) {
 		xReturn = xBytes;
+		xI2c->i2c_error_code = I2C_OK;
+	} else {
+		// Error de lectura indicado por el driver.
+		xI2c->i2c_error_code = I2C_RD_ERROR;
 	}
 
 	return(xReturn);

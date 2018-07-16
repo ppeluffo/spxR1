@@ -145,11 +145,10 @@ static bool pv_tkGprs_check_inside_pwrSave(void)
 	// En caso negativo, lo seteo en systemVars.timerDial
 
 static bool starting_flag_pws = true;
-
 bool insidePwrSave_flag = false;
-
 RtcTimeType_t rtc;
 uint16_t now, pwr_save_start, pwr_save_end ;
+int8_t xBytes;;
 
 	// Estoy en modo PWR_DISCRETO con PWR SAVE ACTIVADO
 	if ( ( MODO_DISCRETO ) && ( systemVars.pwrSave.modo == modoPWRSAVE_ON )) {
@@ -160,7 +159,10 @@ uint16_t now, pwr_save_start, pwr_save_end ;
 			goto EXIT;
 		}
 
-		RTC_read_dtime(&rtc);
+		xBytes = RTC_read_dtime(&rtc);
+		if ( xBytes == -1 )
+			xprintf_P(PSTR("ERROR: I2C:RTC:pv_tkGprs_check_inside_pwrSave\r\n\0"));
+
 		now = rtc.hour * 60 + rtc.min;
 		pwr_save_start = systemVars.pwrSave.hora_start.hour * 60 + systemVars.pwrSave.hora_start.min;
 		pwr_save_end = systemVars.pwrSave.hora_fin.hour * 60 + systemVars.pwrSave.hora_fin.min;

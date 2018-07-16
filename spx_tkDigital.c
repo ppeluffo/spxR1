@@ -286,6 +286,8 @@ bool retS = false;
 	if ( ( channel == 3 ) && (tipo != 'L') ) goto EXIT;
 
 	systemVars.d_ch_type[channel] = tipo;
+
+	pub_control_string(s_dname);
 	snprintf_P( systemVars.d_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_dname );
 	if ( s_magPP != NULL ) { systemVars.d_ch_magpp[channel] = atof(s_magPP); }
 

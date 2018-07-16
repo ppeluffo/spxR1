@@ -56,6 +56,8 @@ void pub_analog_config_channel( uint8_t channel,char *s_aname,char *s_imin,char 
 	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
 
+	pub_control_string(s_aname);
+
 	if ( ( channel >=  0) && ( channel < NRO_ANALOG_CHANNELS) ) {
 		snprintf_P( systemVars.an_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_aname );
 		if ( s_imin != NULL ) { systemVars.imin[channel] = atoi(s_imin); }

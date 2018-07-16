@@ -115,6 +115,9 @@ int8_t bytes_written = -1;
 	vTaskDelay( ( TickType_t)( 10 / portTICK_RATE_MS ) );
 	wrAddress = FF_ADDR_START + FCB.fat.wrPTR * FF_RECD_SIZE;
 	bytes_written = EE_write( wrAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE );
+	if ( bytes_written == -1 )
+		xprintf_P(PSTR("ERROR: I2C:EE:FF_writeRcd\r\n\0"));
+
 	if ( bytes_written != FF_RECD_SIZE ) {
 		// Errores de escritura ?
 		FCB.errno = pdFF_ERRNO_MEMWR;
@@ -188,6 +191,8 @@ uint16_t rcdPos = 0;
 	rcdPos = FCB.fat.rdPTR;
 	rdAddress = FF_ADDR_START + FCB.fat.rdPTR * FF_RECD_SIZE;
 	bytes_read = EE_read( rdAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE);
+	if (bytes_read == -1 )
+		xprintf_P(PSTR("ERROR: I2C:EE:FF_readRcd\r\n\0"));
 
 	// Avanzo el puntero de RD en modo circular siempre !!
 	FCB.fat.rdPTR = (++FCB.fat.rdPTR == FF_MAX_RCDS) ?  0 : FCB.fat.rdPTR;
@@ -271,6 +276,7 @@ void FF_deleteRcd(void)
 	// Memoria vacia: rcds4wr = MAX, rcds4del = 0
 
 uint16_t delAddress = 0;
+int8_t xBytes;
 
 	// Lo primero es obtener el semaforo
 	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 5 ) != pdTRUE )
@@ -284,7 +290,9 @@ uint16_t delAddress = 0;
 	// Borro fisicamente el registro
 	memset( FCB.rw_buffer,0xFF, FF_RECD_SIZE );
 	delAddress = FF_ADDR_START + FCB.fat.delPTR * FF_RECD_SIZE;
-	EE_write( delAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE );
+	xBytes = EE_write( delAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE );
+	if ( xBytes == -1 )
+		xprintf_P(PSTR("ERROR: I2C:EE:FF_deleteRcd\r\n\0"));
 
 	// Ajusto la FAT
 	FCB.fat.rcds4wr++;
@@ -303,6 +311,7 @@ void FF_format(bool fullformat )
 
 uint16_t page;
 uint16_t wrAddress;
+int8_t xBytes;
 
 	// Lo primero es obtener el semaforo
 	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 5 ) != pdTRUE )
@@ -341,7 +350,10 @@ uint16_t wrAddress;
 		memset( FCB.rw_buffer,0xFF, FF_RECD_SIZE );
 		for ( page = 0; page < FF_MAX_RCDS; page++) {
 			wrAddress = FF_ADDR_START + page * FF_RECD_SIZE;
-			EE_write( wrAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE );
+			xBytes = EE_write( wrAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE );
+			if ( xBytes == -1 )
+				xprintf_P(PSTR("ERROR: I2C:EE:FF_deleteRcd\r\n\0"));
+
 			vTaskDelay( ( TickType_t)( 10 ) );
 
 			if ( ( page > 0 ) && (page % 32) == 0 ) {
@@ -389,8 +401,12 @@ static bool pv_FAT_load( FAT_t *fat )
 
 uint8_t cks = 0x00;
 bool retS = false;
+int8_t xBytes;
 
-	RTC_read( FAT_ADDRESS, (char *)fat, (uint8_t)sizeof(FAT_t) );
+	xBytes = RTC_read( FAT_ADDRESS, (char *)fat, (uint8_t)sizeof(FAT_t) );
+	if ( xBytes == -1 )
+		xprintf_P(PSTR("ERROR: I2C:RTC:pv_FAT_load\r\n\0"));
+
 
 	cks = pv_chksum8( (char *)fat, (sizeof( FAT_t) - 1));
 	if ( cks != fat->checksum ) {
@@ -412,10 +428,14 @@ static bool pv_FAT_save( FAT_t *fat )
 	// Por ahora no controlo errores
 
 uint8_t cks = 0x00;
+int8_t xBytes;
 
 	cks = pv_chksum8( (char *)fat, (sizeof( FAT_t) - 1));
 	fat->checksum = cks;
-	RTC_write( FAT_ADDRESS, (char *)fat, (uint8_t)sizeof(FAT_t) );
+	xBytes = RTC_write( FAT_ADDRESS, (char *)fat, (uint8_t)sizeof(FAT_t) );
+	if ( xBytes == -1 )
+		xprintf_P(PSTR("ERROR: I2C:RTC:pv_FAT_save\r\n\0"));
+
 	return(true);
 }
 //----------------------------------------------------------------------------------

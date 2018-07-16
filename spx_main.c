@@ -20,17 +20,20 @@
  *  avr-nm -n spxR1.elf | more
  *
  *------------------------------------------------------------------------------------------
+ * 2018-07-16:
+ * Problema al imprimir un buffer (RX) mas grande que el de xprintf !!!
+ * Reviso port.c para que trabaje con memoria extendida
+ * Log de errores de I2C.
+ * Incorporo la libreria l_ouptputs y revisar tkOutputs ( config modo )
+ * Disminuyo el tiempo en el intercambio de consignas.
+ *
+ * Correcciones indicadas por Yosniel
+ * Revisar funciones de Cmd.
+ *------------------------------------------------------------------------------------------
  * 2018-07-15:
  * Arreglar el tema de la lectura de los INA.
  * El tiempo por defecto para tomar los semaforos pasa a 5 ticks.
  * Modem: Analisis de rxdata/tamanio de buffers, etc, netopen fail
- * Problema al imprimir un buffer (RX) mas grande que el de xprintf !!!
- *
- * Incorporo la libreria l_ouptputs y revisar tkOutputs
- * Disminuyo el tiempo en el intercambio de consignas.
- * Correcciones indicadas por Yosniel
- * Revisar funciones de Cmd.
- * Reviso port.c para que trabaje con memoria extendida
  *------------------------------------------------------------------------------------------
  * 2018-07-14:
  * Agrego buffers y estructura para BT y XBEE.

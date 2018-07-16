@@ -350,4 +350,29 @@ uint16_t time_num;
 	time_struct->min = (uint8_t)(time_num % 100);
 
 }
-//----------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------
+void pub_control_string( char *s_name )
+{
+	// Controlo que el string terminado en \0 tenga solo letras o digitos.
+	// Es porque si en un nombre de canal se cuela un caracter extranio, me
+	// despelota los logs.
+	// Si encuentro un caracter extraño, lo sustituyo por un \0 y salgo
+
+uint8_t max_length = PARAMNAME_LENGTH;
+char *p;
+uint8_t cChar;
+
+	p = (char *)s_name;
+	while (*p && (max_length-- > 0) ) {
+
+		cChar = (uint8_t)*p;
+		if (  ! isalnum(cChar) )	{
+			*p = '\0';
+			return;
+		}
+		p++;
+	}
+
+}
+//------------------------------------------------------------------------------------
+

@@ -143,7 +143,7 @@ void pv_gprs_rxbuffer_poke(char c)
 
 	// Si hay lugar meto el dato.
 	if ( pv_gprsRxCbuffer.ptr < UART_GPRS_RXBUFFER_LEN )
-		pv_gprsRxCbuffer.buffer[pv_gprsRxCbuffer.ptr++] = c;
+		pv_gprsRxCbuffer.buffer[ pv_gprsRxCbuffer.ptr++ ] = c;
 }
 //------------------------------------------------------------------------------------
 void pv_gprs_init_system(void)
@@ -191,7 +191,10 @@ void pub_gprs_print_RX_response(void)
 	if ( ( start_tag != NULL ) && ( end_tag != NULL) ) {
 		*end_tag = '\0';	// Para que frene el xprintf_P
 		start_tag += 4;
-		xprintf_P ( PSTR("GPRS: rsp>%s\r\n\0"), start_tag );
+		//xprintf_P ( PSTR("GPRS: rsp>%s\r\n\0"), start_tag );
+		xprintf_P( PSTR ("GPRS: rxbuff>\r\n\0"));
+		xnprint( start_tag, sizeof(pv_gprsRxCbuffer.buffer) );
+		xprintf_P( PSTR ("\r\n\0"));
 	}
 }
 //------------------------------------------------------------------------------------
@@ -199,8 +202,12 @@ void pub_gprs_print_RX_Buffer(void)
 {
 
 	// Imprimo todo el buffer local de RX. Sale por \0.
-	xprintf_P( PSTR ("GPRS: rxbuff>\r\n%s\r\n\0"), pv_gprsRxCbuffer.buffer );
+	xprintf_P( PSTR ("GPRS: rxbuff>\r\n\0"));
 
+	// Uso esta funcion para imprimir un buffer largo, mayor al que utiliza xprintf_P. !!!
+	xnprint( pv_gprsRxCbuffer.buffer, sizeof(pv_gprsRxCbuffer.buffer) );
+
+	xprintf_P( PSTR ("\r\n\0"));
 }
 //------------------------------------------------------------------------------------
 void pub_gprs_flush_RX_buffer(void)
