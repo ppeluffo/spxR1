@@ -74,7 +74,6 @@ void tkDigital(void * pvParameters)
 uint32_t ulNotificationValue;
 const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10000 );
 
-
 	// Espero la notificacion para arrancar
 	while ( !startTask )
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );

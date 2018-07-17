@@ -56,13 +56,14 @@ uint16_t bitrateKHz = 100;
 
 }
 //------------------------------------------------------------------------------------
-bool drv_I2C_master_write ( const uint8_t devAddress, const uint8_t devAddressLength, const uint16_t byteAddress, char *pvBuffer, size_t xBytes )
+int drv_I2C_master_write ( const uint8_t devAddress, const uint8_t devAddressLength, const uint16_t byteAddress, char *pvBuffer, size_t xBytes )
 {
 
 	// Durante c/operacion del ciclo WRITE, el status debe ser 0x62.!!!
 
 bool retV = false;
 uint8_t i;
+int xReturn = -1;
 
 #ifdef DEBUG_I2C
 //	xprintf_P( PSTR("drv_i2c: I2C_MW: 0x%02x,0x%02x,0x%02x,0x%02x\r\n\0"),devAddress,devAddressLength, (u16)(byteAddress), xBytes );
@@ -84,6 +85,7 @@ uint8_t i;
 	for ( i=0; i < xBytes; i++ ) {
 		if ( !pvI2C_write_data( *pvBuffer++ ) ) goto i2c_quit;
 	}
+	xReturn = i;
 	retV = true;
 
 i2c_quit:
@@ -95,17 +97,18 @@ i2c_quit:
 	if ( !retV )
 		pvI2C_reset();
 
-	return(retV);
+	return(xReturn);
 
 }
 //------------------------------------------------------------------------------------
-bool drv_I2C_master_read  ( const uint8_t devAddress, const uint8_t devAddressLength, const uint16_t byteAddress, char *pvBuffer, size_t xBytes )
+int drv_I2C_master_read  ( const uint8_t devAddress, const uint8_t devAddressLength, const uint16_t byteAddress, char *pvBuffer, size_t xBytes )
 {
 	// En el caso del ADC, el read no lleva la parte de mandar la SLA+W. !!!!!
 
 bool retV = false;
 char rxByte;
 uint8_t i;
+int xReturn = -1;
 
 #ifdef DEBUG_I2C
 //	xprintf_P( PSTR("drv_i2c: I2C_MR: 0x%02x,0x%02x,0x%02x,0x%02x\r\n\0"),devAddress,devAddressLength, (u16)(byteAddress), xBytes );
@@ -134,9 +137,16 @@ uint8_t i;
 		if ( ! pvI2C_read_slave(ACK, &rxByte) ) goto i2c_quit;
 		*pvBuffer++ = rxByte;
 	}
+	xReturn = i;
+
 	// Ultimo byte.
-	if ( ! pvI2C_read_slave(NACK, &rxByte) ) goto i2c_quit;
-	*pvBuffer++ = rxByte;
+	if ( ! pvI2C_read_slave(NACK, &rxByte) ) {
+		xReturn = -1;
+		goto i2c_quit;
+	} else {
+		*pvBuffer++ = rxByte;
+		xReturn++;
+	}
 
 	// I2C read OK.
 	retV = true;
@@ -150,7 +160,7 @@ i2c_quit:
 	if ( !retV )
 		pvI2C_reset();
 
-	return(retV);
+	return(xReturn);
 
 }
 //------------------------------------------------------------------------------------

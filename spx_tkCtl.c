@@ -9,7 +9,6 @@
 
 //------------------------------------------------------------------------------------
 static void pv_tkCtl_init_system(void);
-
 static void pv_tkCtl_wink_led(void);
 static void pv_tkCtl_check_terminal(void);
 static void pv_tkCtl_check_wdg(void);
@@ -17,7 +16,6 @@ static void pv_tkCtl_ajust_timerPoll(void);
 
 static bool f_terminal_is_on;
 static uint16_t watchdog_timers[NRO_WDGS];
-
 static uint16_t time_to_next_poll;
 
 // Timpo que espera la tkControl entre round-a-robin
@@ -197,8 +195,9 @@ char buffer[10];
 			vTaskDelay( ( TickType_t)( 500 / portTICK_RATE_MS ) );
 
 			// Me reseteo por watchdog
-			while(1)
-				;
+			//while(1)
+			//	;
+			CCPWrite( &RST.CTRL, RST_SWRST_bm );   /* Issue a Software Reset to initilize the CPU */
 
 		}
 	}

@@ -33,46 +33,58 @@ void OUT_power_off(void)
 	IO_clr_V12_OUTS_CTL();
 }
 //------------------------------------------------------------------------------------
-void OUT_sleep_pin( uint8_t modo )
+int OUT_sleep_pin( uint8_t modo )
 {
+
+int xRet = -1;
+
 	switch(modo) {
 	case 0:
-		IO_clr_SLP();
+		IO_clr_SLP(); xRet = 1;
 		break;
 	case 1:
-		IO_set_SLP();
+		IO_set_SLP(); xRet = 1;
 		break;
 	default:
 		break;
 	}
+
+	return(xRet);
 }
 //------------------------------------------------------------------------------------
-void OUT_reset_pin( uint8_t modo )
+int OUT_reset_pin( uint8_t modo )
 {
+
+int xRet = -1;
+
 	switch(modo) {
 	case 0:
-		IO_clr_RES();
+		IO_clr_RES(); xRet = 1;
 		break;
 	case 1:
-		IO_set_RES();
+		IO_set_RES(); xRet = 1;
 		break;
 	default:
 		break;
 	}
+
+	return(xRet);
 }
 //------------------------------------------------------------------------------------
-void OUT_enable_pin( char driver_id, uint8_t modo )
+int OUT_enable_pin( char driver_id, uint8_t modo )
 {
+
+int xRet = -1;
 
 	switch (driver_id) {
 
 	case 'A':
 		switch(modo) {
 		case 0:
-			IO_clr_ENA();
+			IO_clr_ENA(); xRet = 1;
 			break;
 		case 1:
-			IO_set_ENA();
+			IO_set_ENA(); ; xRet = 1;
 			break;
 		default:
 			break;
@@ -82,10 +94,10 @@ void OUT_enable_pin( char driver_id, uint8_t modo )
 	case 'B':
 		switch(modo) {
 		case 0:
-			IO_clr_ENB();
+			IO_clr_ENB(); xRet = 1;
 			break;
 		case 1:
-			IO_set_ENB();
+			IO_set_ENB(); xRet = 1;
 			break;
 		default:
 			break;
@@ -95,20 +107,25 @@ void OUT_enable_pin( char driver_id, uint8_t modo )
 	default:
 		break;
 	}
+
+	return(xRet);
+
 }
 //------------------------------------------------------------------------------------
-void OUT_phase_pin( char driver_id, uint8_t modo )
+int OUT_phase_pin( char driver_id, uint8_t modo )
 {
+
+int xRet = -1;
 
 	switch (driver_id) {
 
 	case 'A':
 		switch(modo) {
 		case 0:
-			IO_clr_PHA();
+			IO_clr_PHA(); xRet = 1;
 			break;
 		case 1:
-			IO_set_PHA();
+			IO_set_PHA(); xRet = 1;
 			break;
 		default:
 			break;
@@ -118,10 +135,10 @@ void OUT_phase_pin( char driver_id, uint8_t modo )
 	case 'B':
 		switch(modo) {
 		case 0:
-			IO_clr_PHB();
+			IO_clr_PHB(); xRet = 1;
 			break;
 		case 1:
-			IO_set_PHB();
+			IO_set_PHB(); xRet = 1;
 			break;
 		default:
 			break;
@@ -131,6 +148,8 @@ void OUT_phase_pin( char driver_id, uint8_t modo )
 	default:
 		break;
 	}
+
+	return(xRet);
 }
 //------------------------------------------------------------------------------------
 // Driver outputs
@@ -178,26 +197,48 @@ void OUT_driver( char driver_id, uint8_t cmd )
 //------------------------------------------------------------------------------------
 // Valvulas
 // open,close, pulse
-void OUT_valve( char driver_id, uint8_t cmd, uint8_t duracion )
+// Los pulsos son de abre-cierra !!!
+// Al operar sobre las valvulas se asume que hay fisicamente valvulas conectadas
+// por lo tanto se debe propocionar corriente, sacar al driver del estado de reposo, generar
+// la apertura/cierre, dejar al driver en reposo y quitar la corriente.
+// No se aplica cuando queremos una salida FIJA !!!!
+int OUT_valve( char driver_id, uint8_t cmd, uint8_t duracion )
 {
 
-	switch (cmd) {
-		case OPEN:
-			OUT_driver(driver_id, OUT_SET_10 );
-			break;
-		case CLOSE:
-			OUT_driver(driver_id, OUT_SET_01 );
-			break;
-		case PULSE:
-			OUT_driver(driver_id, OUT_SET_10 );
-			vTaskDelay( ( TickType_t)( duracion / portTICK_PERIOD_MS ) );
-			OUT_driver(driver_id, OUT_SET_01 );
-			break;
+int xRet = -1;
 
+	switch (cmd) {
+		case V_OPEN:	// Genero en la valvula un pulso de apertura.
+			// Saco al driver 8814 de reposo.
+			OUT_reset_pin(1);				// El reset y sleep son pines comunes
+			OUT_sleep_pin(1);
+			OUT_phase_pin(driver_id, 1);	// SET_10: xOUT1 = 1, xOUT2 = 0 ( APERTURA )
+			OUT_enable_pin(driver_id, 1);
+			vTaskDelay( ( TickType_t)( duracion / portTICK_RATE_MS ) );
+			// Pongo el 8814 en reposo
+			OUT_reset_pin(0);
+			OUT_sleep_pin(0);
+			OUT_enable_pin(driver_id, 0);
+			xRet = 1;
+			break;
+		case V_CLOSE: // Genero en la valvula un pulso de cierre.
+			// Saco al driver 8814 de reposo.
+			OUT_reset_pin(1);				// El reset y sleep son pines comunes
+			OUT_sleep_pin(1);
+			OUT_phase_pin(driver_id, 0);	// SET_01: xOUT1 = 0, xOUT2 = 1	( CIERRE )
+			OUT_enable_pin(driver_id, 1);
+			vTaskDelay( ( TickType_t)( duracion / portTICK_RATE_MS ) );
+			// Pongo el 8814 en reposo
+			OUT_reset_pin(0);
+			OUT_sleep_pin(0);
+			OUT_enable_pin(driver_id, 0);
+			xRet = 1;
+			break;
 		default:
 			break;
 	}
 
+	return(xRet);
 }
 //------------------------------------------------------------------------------------
 

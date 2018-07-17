@@ -26,8 +26,6 @@
  * Log de errores de I2C.
  * Incorporo la libreria l_ouptputs y revisar tkOutputs ( config modo )
  * Disminuyo el tiempo en el intercambio de consignas.
- *
- * Correcciones indicadas por Yosniel
  * Revisar funciones de Cmd.
  *------------------------------------------------------------------------------------------
  * 2018-07-15:

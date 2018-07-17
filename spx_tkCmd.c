@@ -835,14 +835,14 @@ static void cmdHelpFunction(void)
 	if (!strcmp_P( strupr(argv[1]), PSTR("WRITE\0"))) {
 		xprintf_P( PSTR("-write\r\n\0"));
 		xprintf_P( PSTR("  rtc YYMMDDhhmm\r\n\0"));
-		xprintf_P( PSTR("  consigna {diurna|nocturna}, outputs {x,x}\r\n\0"));
+		xprintf_P( PSTR("  consigna (diurna|nocturna)\r\n\0"));
 		if ( tipo_usuario == USER_TECNICO ) {
-			xprintf_P( PSTR("  ee,nvmee,rtcram {pos} {string}\r\n\0"));
-			xprintf_P( PSTR("  ina {id} conf {value}, sens12V {on|off}\r\n\0"));
+			xprintf_P( PSTR("  (ee,nvmee,rtcram {pos} {string}\r\n\0"));
+			xprintf_P( PSTR("  ina (id) conf {value}, sens12V {on|off}\r\n\0"));
 			xprintf_P( PSTR("  analog {ina_id} conf128 \r\n\0"));
 			xprintf_P( PSTR("  clrd {0|1}\r\n\0"));
-			xprintf_P( PSTR("  out {enable,disable,reset,sleep,awake,set01,set10} {A/B}\r\n\0"));
-			xprintf_P( PSTR("      pulse (A/B) (ms)\r\n\0"));
+			xprintf_P( PSTR("  out { (enable|disable),(set|reset),(sleep|awake),(ph01|ph10) } {A/B}\r\n\0"));
+			xprintf_P( PSTR("      valve (open|close) (A|B) (ms)\r\n\0"));
 			xprintf_P( PSTR("      power {on|off}\r\n\0"));
 			xprintf_P( PSTR("  gprs (pwr|sw|cts|dtr) {on|off}\r\n\0"));
 			xprintf_P( PSTR("      cmd {atcmd}, redial\r\n\0"));
@@ -1319,128 +1319,55 @@ static void pv_cmd_rdMEMORY(void)
 //------------------------------------------------------------------------------------
 static void pv_cmd_wrOUT8814(void)
 {
-	// write out sleep|reset|phase|enable) {A|B} {0|1}
-	//       out pulse (A/B) (+/-) (ms)
-	//       out power {on|off}
+	// write out { (enable|disable),(set|reset),(sleep|awake),(ph01|ph10) } {A/B}
+	//             power {on|off}
+	//             valve (open|close) (A|B) (ms)
 
-	// write out sleep 0,1
-	if (!strcmp_P( strupr(argv[2]), PSTR("SLEEP\0")) ) {
-		switch(atoi(argv[3])) {
-		case 0:
-			OUT_sleep_pin(0);
-			pv_snprintfP_OK();
-			break;
-		case 1:
-			OUT_sleep_pin(1);
-			pv_snprintfP_OK();
-			break;
-		default:
-			pv_snprintfP_ERR();
-		}
-		return;
-	}
-
-	// write out reset 0,1
-	if (!strcmp_P( strupr(argv[2]), PSTR("RESET\0")) ) {
-		switch(atoi(argv[3])) {
-		case 0:
-			OUT_reset_pin(0);
-			pv_snprintfP_OK();
-			break;
-		case 1:
-			OUT_reset_pin(1);
-			pv_snprintfP_OK();
-			break;
-		default:
-			pv_snprintfP_ERR();
-		}
-		return;
-	}
-
-	// write out phase (a/b) (0/1)
-	if (!strcmp_P( strupr(argv[2]), PSTR("PHASE\0")) ) {
-		switch (toupper(argv[3][0])) {
-		case 'A':
-			if (atoi(argv[4]) == 0) {
-				OUT_phase_pin('A', 0);
-				pv_snprintfP_OK();
-				return;
-			}
-			if (atoi(argv[4]) == 1) {
-				OUT_phase_pin('A', 1);
-				pv_snprintfP_OK();
-				return;
-			}
-			pv_snprintfP_ERR();
-			return;
-		case 'B':
-			if (atoi(argv[4]) == 0) {
-				OUT_phase_pin('B', 0);
-				pv_snprintfP_OK();
-				return;
-			}
-			if (atoi(argv[4]) == 1) {
-				OUT_phase_pin('B', 1);
-				pv_snprintfP_OK();
-				return;
-			}
-			pv_snprintfP_ERR();
-			return;
-		}
-	}
-
-	// write out enable (a/b) (0/1)
+	// write out enable (A|B)
 	if (!strcmp_P( strupr(argv[2]), PSTR("ENABLE\0")) ) {
-		switch (toupper(argv[3][0])) {
-		case 'A':
-			if (atoi(argv[4]) == 0) {
-				OUT_enable_pin('A', 0);
-				pv_snprintfP_OK();
-				return;
-			}
-			if (atoi(argv[4]) == 1) {
-				OUT_enable_pin('A', 1);
-				pv_snprintfP_OK();
-				return;
-			}
-			pv_snprintfP_ERR();
-			return;
-		case 'B':
-			if (atoi(argv[4]) == 0) {
-				OUT_enable_pin('B', 0);
-				pv_snprintfP_OK();
-				return;
-			}
-			if (atoi(argv[4]) == 1) {
-				OUT_enable_pin('B', 1);
-				pv_snprintfP_OK();
-				return;
-			}
-			pv_snprintfP_ERR();
-			return;
-		}
+		( OUT_enable_pin( toupper(argv[3][0]), 1) > 0 ) ?  pv_snprintfP_OK() : pv_snprintfP_ERR();
+		return;
 	}
 
-	// write out pulse (A/B) (+/-) (ms)
-	if (!strcmp_P( strupr(argv[2]), PSTR("PULSE\0")) ) {
+	// write out disable (A|B)
+	if (!strcmp_P( strupr(argv[2]), PSTR("DISABLE\0")) ) {
+		( OUT_enable_pin( toupper(argv[3][0]), 0) > 0 ) ?  pv_snprintfP_OK() : pv_snprintfP_ERR();
+		return;
+	}
 
-		// Prendo
-		OUT_power_on();
-		vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
+	// write out set
+	if (!strcmp_P( strupr(argv[2]), PSTR("SET\0")) ) {
+		( OUT_reset_pin (1) > 0 ) ?  pv_snprintfP_OK() : pv_snprintfP_ERR();
+		return;
+	}
 
-		OUT_driver('A', OUT_ENABLE);
-		OUT_driver('A', OUT_AWAKE);
-		OUT_driver('B', OUT_ENABLE);
-		OUT_driver('B', OUT_AWAKE);
-		// Pulso
-		OUT_valve( argv[3], PULSE, argv[4] );
+	// write out reset
+	if (!strcmp_P( strupr(argv[2]), PSTR("RESET\0")) ) {
+		( OUT_reset_pin (0) > 0 ) ?  pv_snprintfP_OK() : pv_snprintfP_ERR();
+		return;
+	}
 
-		// Apago
-		OUT_driver('A', OUT_SLEEP);
-		OUT_driver('B', OUT_SLEEP);
-		OUT_power_off();
+	// write out sleep
+	if (!strcmp_P( strupr(argv[2]), PSTR("SLEEP\0")) ) {
+		( OUT_sleep_pin (1) > 0 ) ?  pv_snprintfP_OK() : pv_snprintfP_ERR();
+		return;
+	}
 
-		pv_snprintfP_OK();
+	// write out awake
+	if (!strcmp_P( strupr(argv[2]), PSTR("AWAKE\0")) ) {
+		( OUT_sleep_pin (0) > 0 ) ?  pv_snprintfP_OK() : pv_snprintfP_ERR();
+		return;
+	}
+
+	// write out ph01 (A|B)
+	if (!strcmp_P( strupr(argv[2]), PSTR("PH01\0")) ) {
+		( OUT_phase_pin( toupper(argv[3][0]), 1) > 0 ) ?  pv_snprintfP_OK() : pv_snprintfP_ERR();
+		return;
+	}
+
+	// write out ph10 (A|B)
+	if (!strcmp_P( strupr(argv[2]), PSTR("PH10\0")) ) {
+		( OUT_phase_pin( toupper(argv[3][0]), 0) > 0 ) ?  pv_snprintfP_OK() : pv_snprintfP_ERR();
 		return;
 	}
 
@@ -1457,6 +1384,30 @@ static void pv_cmd_wrOUT8814(void)
 			pv_snprintfP_OK();
 			return;
 		}
+		pv_snprintfP_ERR();
+		return;
+	}
+
+	//  write out valve (open|close) (A|B) (ms)
+	if (!strcmp_P( strupr(argv[2]), PSTR("VALVE\0")) ) {
+
+		// Proporciono corriente.
+		OUT_power_on();
+		// Espero 10s que se carguen los condensasores
+		vTaskDelay( ( TickType_t)( 10000 / portTICK_RATE_MS ) );
+
+		if (!strcmp_P( strupr(argv[3]), PSTR("OPEN\0")) ) {
+			( OUT_valve( toupper(argv[4][0]), V_OPEN, atoi(argv[5]) )  > 0 ) ?  pv_snprintfP_OK() : pv_snprintfP_ERR();
+			OUT_power_off();
+			return;
+		}
+		if (!strcmp_P( strupr(argv[3]), PSTR("CLOSE\0")) ) {
+			( OUT_valve( toupper(argv[4][0]), V_CLOSE, atoi(argv[5]) )  > 0 ) ?  pv_snprintfP_OK() : pv_snprintfP_ERR();
+			OUT_power_off();
+			return;
+		}
+
+		OUT_power_off();
 		pv_snprintfP_ERR();
 		return;
 	}

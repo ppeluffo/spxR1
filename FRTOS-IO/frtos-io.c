@@ -15,110 +15,110 @@ int frtos_open( file_descriptor_t fd, uint32_t flags)
 	// Es la que invoca la aplicacion.
 	// Retorna -1 en error o un nro positivo ( fd )
 
-int8_t retS = -1;
+int8_t xRet = -1;
 
 	switch(fd) {
 	case fdUSB:
-		retS = frtos_uart_open( &xComUSB, fd, &USB_xMutexBuffer, iUART_USB, flags );
+		xRet = frtos_uart_open( &xComUSB, fd, &USB_xMutexBuffer, iUART_USB, flags );
 		break;
 	case fdGPRS:
-		retS = frtos_uart_open( &xComGPRS, fd, &GPRS_xMutexBuffer, iUART_GPRS, flags );
+		xRet = frtos_uart_open( &xComGPRS, fd, &GPRS_xMutexBuffer, iUART_GPRS, flags );
 		break;
 	case fdXBEE:
-		retS = frtos_uart_open( &xComXBEE, fd, &XBEE_xMutexBuffer, iUART_XBEE, flags );
+		xRet = frtos_uart_open( &xComXBEE, fd, &XBEE_xMutexBuffer, iUART_XBEE, flags );
 		break;
 	case fdBT:
-		retS = frtos_uart_open( &xComBT, fd, &BT_xMutexBuffer, iUART_BT, flags );
+		xRet = frtos_uart_open( &xComBT, fd, &BT_xMutexBuffer, iUART_BT, flags );
 		break;
 	case fdI2C:
-		retS = frtos_i2c_open( &xBusI2C, fd, &I2C_xMutexBuffer, flags );
+		xRet = frtos_i2c_open( &xBusI2C, fd, &I2C_xMutexBuffer, flags );
 		break;
 	default:
 		break;
 	}
 
-	return(retS);
+	return(xRet);
 }
 //------------------------------------------------------------------------------------
 int frtos_ioctl( file_descriptor_t fd, uint32_t ulRequest, void *pvValue )
 {
-int8_t retS = -1;
+int8_t xRet = -1;
 
 	switch(fd) {
 	case fdUSB:
-		retS = frtos_uart_ioctl( &xComUSB, ulRequest, pvValue );
+		xRet = frtos_uart_ioctl( &xComUSB, ulRequest, pvValue );
 		break;
 	case fdGPRS:
-		retS = frtos_uart_ioctl( &xComGPRS, ulRequest, pvValue );
+		xRet = frtos_uart_ioctl( &xComGPRS, ulRequest, pvValue );
 		break;
 	case fdXBEE:
-		retS = frtos_uart_ioctl( &xComXBEE, ulRequest, pvValue );
+		xRet = frtos_uart_ioctl( &xComXBEE, ulRequest, pvValue );
 		break;
 	case fdBT:
-		retS = frtos_uart_ioctl( &xComBT, ulRequest, pvValue );
+		xRet = frtos_uart_ioctl( &xComBT, ulRequest, pvValue );
 		break;
 	case fdI2C:
-		retS = frtos_i2c_ioctl( &xBusI2C, ulRequest, pvValue );
+		xRet = frtos_i2c_ioctl( &xBusI2C, ulRequest, pvValue );
 		break;
 	default:
 		break;
 	}
 
-	return(retS);
+	return(xRet);
 }
 //------------------------------------------------------------------------------------
 int frtos_write( file_descriptor_t fd ,const char *pvBuffer, const uint16_t xBytes )
 {
-int8_t retS = -1;
+int8_t xRet = -1;
 
 	switch(fd) {
 	case fdUSB:
-		retS = frtos_uart_write( &xComUSB, pvBuffer, xBytes );
+		xRet = frtos_uart_write( &xComUSB, pvBuffer, xBytes );
 		break;
 	case fdGPRS:
-		retS = frtos_uart_write( &xComGPRS, pvBuffer, xBytes );
+		xRet = frtos_uart_write( &xComGPRS, pvBuffer, xBytes );
 		break;
 	case fdXBEE:
-		retS = frtos_uart_write( &xComXBEE, pvBuffer, xBytes );
+		xRet = frtos_uart_write( &xComXBEE, pvBuffer, xBytes );
 		break;
 	case fdBT:
-		retS = frtos_uart_write( &xComBT, pvBuffer, xBytes );
+		xRet = frtos_uart_write( &xComBT, pvBuffer, xBytes );
 		break;
 	case fdI2C:
-		retS = frtos_i2c_write( &xBusI2C, pvBuffer, xBytes );
+		xRet = frtos_i2c_write( &xBusI2C, pvBuffer, xBytes );
 		break;
 	default:
 		break;
 	}
 
-	return(retS);
+	return(xRet);
 }
 //------------------------------------------------------------------------------------
 int frtos_read( file_descriptor_t fd , char *pvBuffer, uint16_t xBytes )
 {
-int8_t retS = -1;
+int8_t xRet = -1;
 
 	switch(fd) {
 	case fdUSB:
-		retS = frtos_uart_read( &xComUSB, pvBuffer, xBytes );
+		xRet = frtos_uart_read( &xComUSB, pvBuffer, xBytes );
 		break;
 	case fdGPRS:
-		retS = frtos_uart_read( &xComGPRS, pvBuffer, xBytes );
+		xRet = frtos_uart_read( &xComGPRS, pvBuffer, xBytes );
 		break;
 	case fdXBEE:
-		retS = frtos_uart_read( &xComXBEE, pvBuffer, xBytes );
+		xRet = frtos_uart_read( &xComXBEE, pvBuffer, xBytes );
 		break;
 	case fdBT:
-		retS = frtos_uart_read( &xComBT, pvBuffer, xBytes );
+		xRet = frtos_uart_read( &xComBT, pvBuffer, xBytes );
 		break;
 	case fdI2C:
-		retS = frtos_i2c_read( &xBusI2C, pvBuffer, xBytes );
+		xRet = frtos_i2c_read( &xBusI2C, pvBuffer, xBytes );
 		break;
 	default:
 		break;
 	}
 
-	return(retS);
+	return(xRet);
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES ESPECIFICAS DE UART's
@@ -259,7 +259,7 @@ xTimeOutType xTimeOut;
 		}
 	}
 
-	return xBytesReceived;
+	return ( xBytesReceived );
 
 }
 //------------------------------------------------------------------------------------
@@ -288,13 +288,11 @@ int xReturn = 0U;
 	xprintf_P( PSTR("FRTOS_I2C_WR: 0x%02x,0x%02x,0x%02x,0x%02x\r\n\0"), &xI2c->devAddress, &xI2c->->byteAddressLength, &xI2c->->byteAddress, xBytes);
 #endif
 
-	if ( drv_I2C_master_write(xI2c->devAddress, xI2c->byteAddressLength, xI2c->byteAddress, (char *)pvBuffer, xBytes) == true ) {
-		xReturn = xBytes;
+	if ( ( xReturn = drv_I2C_master_write(xI2c->devAddress, xI2c->byteAddressLength, xI2c->byteAddress, (char *)pvBuffer, xBytes) ) > 0 ) {
 		xI2c->i2c_error_code = I2C_OK;
 	} else {
 		// Error de escritura indicado por el driver.
 		xI2c->i2c_error_code = I2C_WR_ERROR;
-		xReturn = -1;
 	}
 
 	return(xReturn);
@@ -356,8 +354,7 @@ int xReturn = 0U;
 	xprintf_P( PSTR("FRTOS_I2C_RD: devAddr:0x%02x,addrLen:0x%02x,byteAddr:0x%02x,xbytes: 0x%02x\r\n\0"),xI2c->devAddress, xI2c->byteAddressLength, xI2c->byteAddress, xBytes);
 #endif
 
-	if ( drv_I2C_master_read(xI2c->devAddress, xI2c->byteAddressLength, xI2c->byteAddress, (char *)pvBuffer, xBytes) == true ) {
-		xReturn = xBytes;
+	if ( ( xReturn = drv_I2C_master_read(xI2c->devAddress, xI2c->byteAddressLength, xI2c->byteAddress, (char *)pvBuffer, xBytes)) > 0 ) {
 		xI2c->i2c_error_code = I2C_OK;
 	} else {
 		// Error de lectura indicado por el driver.

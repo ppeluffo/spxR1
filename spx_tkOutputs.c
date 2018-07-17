@@ -295,20 +295,15 @@ void pub_output_set_consigna_diurna(void)
 {
 	// En consigna diurna la valvula A (JP28) queda abierta y la valvula B (JP2) cerrada.
 	//
+
+	// Proporciono corriente.
 	OUT_power_on();
-	vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
+	// Espero 10s que se carguen los condensasores
+	vTaskDelay( ( TickType_t)( 10000 / portTICK_RATE_MS ) );
 
-	OUT_driver('A', OUT_ENABLE);
-	OUT_driver('A', OUT_AWAKE);
-	OUT_driver('B', OUT_ENABLE);
-	OUT_driver('B', OUT_AWAKE);
-
-	OUT_valve('A',OPEN,0);
-	vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
-	OUT_valve('B',CLOSE,0);
-
-	OUT_driver('A', OUT_SLEEP);
-	OUT_driver('B', OUT_SLEEP);
+	OUT_valve( 'A', V_OPEN, 100 );
+	vTaskDelay( ( TickType_t)( 2000 / portTICK_RATE_MS ) );
+	OUT_valve( 'B', V_CLOSE, 100 );
 
 	OUT_power_off();
 
@@ -319,20 +314,14 @@ void pub_output_set_consigna_diurna(void)
 void pub_output_set_consigna_nocturna(void)
 {
 
+	// Proporciono corriente.
 	OUT_power_on();
-	vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
+	// Espero 10s que se carguen los condensasores
+	vTaskDelay( ( TickType_t)( 10000 / portTICK_RATE_MS ) );
 
-	OUT_driver('A', OUT_ENABLE);
-	OUT_driver('A', OUT_AWAKE);
-	OUT_driver('B', OUT_ENABLE);
-	OUT_driver('B', OUT_AWAKE);
-
-	OUT_valve('A',CLOSE,0);
-	vTaskDelay( ( TickType_t)(2000 / portTICK_RATE_MS ) );
-	OUT_valve('B',OPEN,0);
-
-	OUT_driver('A', OUT_SLEEP);
-	OUT_driver('B', OUT_SLEEP);
+	OUT_valve( 'A', V_CLOSE, 100 );
+	vTaskDelay( ( TickType_t)( 2000 / portTICK_RATE_MS ) );
+	OUT_valve( 'B', V_OPEN, 100 );
 
 	OUT_power_off();
 
@@ -343,6 +332,7 @@ void pub_output_set_consigna_nocturna(void)
 void pub_output_set_outputs( char id_output, uint8_t value)
 {
 
+/*
 	switch(id_output) {
 	case 'A':
 		( value == 0 ) ? OUT_valve('A', CLOSE,0 ): OUT_valve('A', OPEN,0 );
@@ -353,7 +343,7 @@ void pub_output_set_outputs( char id_output, uint8_t value)
 		systemVars.outputs.out_B = value;
 		break;
 	}
-
+*/
 	xprintf_P( PSTR("OUTPUTS: Set out_%c=%d\r\n\0"),id_output,value );
 
 }
