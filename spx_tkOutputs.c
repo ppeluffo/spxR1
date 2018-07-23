@@ -17,6 +17,8 @@ static void pv_out_init_outputs_off(void);
 static void pv_out_init_consignas(void);
 static void pv_out_init_outputs_normales(void);
 
+static bool reinit_consignas;
+
 //------------------------------------------------------------------------------------
 // La tarea pasa por el mismo lugar c/25s.
 #define WDG_OUT_TIMEOUT	60
@@ -31,6 +33,7 @@ void tkOutputs(void * pvParameters)
 		vTaskDelay( ( TickType_t)( 100 / portTICK_RATE_MS ) );
 
 	pv_out_init();
+	reinit_consignas = false;
 
 	xprintf_P( PSTR("starting tkOutputs..\r\n\0"));
 
@@ -42,6 +45,13 @@ void tkOutputs(void * pvParameters)
 		// Espero con lo que puedo entrar en tickless
 		// Con 25s aseguro chequear 2 veces por minuto.
 		vTaskDelay( ( TickType_t)( 25000 / portTICK_RATE_MS ) );
+
+		// Si me indican que se reconfiguraron las consignas, debo
+		// reiniciarlas.
+		if ( reinit_consignas ) {
+			reinit_consignas = false;
+			pv_out_init();
+		}
 
 		// Chequeo y aplico.
 		pv_out_chequear();
@@ -259,6 +269,8 @@ void pub_output_load_defaults(void)
 void pub_output_config( char *param0, char *param1, char *param2 )
 {
 	// Configura las salidas en el systemVars.
+	// Es Configuracion , NO operacion por lo tanto solo configuro el modo, y en
+	// caso de consigna, las horas.
 
 uint8_t modo = 0;
 
@@ -270,24 +282,12 @@ uint8_t modo = 0;
 		modo = OUT_NORMAL;
 	}
 
-	switch(modo) {
-	case OUT_OFF:
-		systemVars.outputs.modo = OUT_OFF;
-		break;
-	case OUT_CONSIGNA:
-		systemVars.outputs.modo = OUT_CONSIGNA;
-		if ( param1 != NULL ) { u_convert_str_to_time_t(param1, &systemVars.outputs.consigna_diurna); }
-		if ( param2 != NULL ) { u_convert_str_to_time_t(param2, &systemVars.outputs.consigna_nocturna); }
-		pv_out_init_consignas();
-		break;
-	case OUT_NORMAL:
-		systemVars.outputs.modo = OUT_NORMAL;
-		if ( param1 != NULL ) { ( atoi(param1) == 0 )? ( systemVars.outputs.out_A = 0) : (systemVars.outputs.out_A = 1); }
-		if ( param2 != NULL ) { ( atoi(param2) == 0 )? ( systemVars.outputs.out_B = 0) : (systemVars.outputs.out_B = 1); }
-		pv_out_init_outputs_normales();
-		break;
-	}
+	systemVars.outputs.modo = modo;
+	if ( param1 != NULL ) { u_convert_str_to_time_t(param1, &systemVars.outputs.consigna_diurna); }
+	if ( param2 != NULL ) { u_convert_str_to_time_t(param2, &systemVars.outputs.consigna_nocturna); }
 
+	// Indico que se deben reinicializar las consignas
+	reinit_consignas = true;
 
 }
 //----------------------------------------------------------------------------------------

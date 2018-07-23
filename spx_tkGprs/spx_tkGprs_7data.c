@@ -202,6 +202,7 @@ static void pv_trasmitir_dataHeader( void )
 {
 
 	pub_gprs_flush_RX_buffer();
+	pub_gprs_flush_TX_buffer();
 
 	// Armo el header en el buffer
 	xCom_printf_P( fdGPRS, PSTR("GET %s?DLGID=%s&PASSWD=%s&VER=%s\0"), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, SPX_FW_REV);
@@ -218,14 +219,14 @@ static void pv_trasmitir_dataTail( void )
 {
 	// TAIL : No mando el close ya que espero la respuesta del server
 
-	pub_gprs_flush_RX_buffer();
+	//pub_gprs_flush_RX_buffer();
 
 	// TAIL ( No mando el close ya que espero la respuesta y no quiero que el socket se cierre )
 	xCom_printf_P( fdGPRS, PSTR(" HTTP/1.1\r\nHost: www.spymovil.com\r\n\r\n\r\n\0") );
 	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
 	// DEBUG & LOG
 	if ( systemVars.debug ==  DEBUG_GPRS ) {
-		xCom_printf_P( fdGPRS, PSTR(" HTTP/1.1\r\nHost: www.spymovil.com\r\n\r\n\r\n\0") );
+		xprintf_P( PSTR(" HTTP/1.1\r\nHost: www.spymovil.com\r\n\r\n\r\n\0") );
 	}
 
 }
@@ -233,7 +234,6 @@ static void pv_trasmitir_dataTail( void )
 static void pv_trasmitir_dataRecord( void )
 {
 
-uint16_t pos;
 uint8_t channel;
 st_data_frame pv_data_frame;
 FAT_t l_fat;
@@ -244,7 +244,7 @@ FAT_t l_fat;
 
 	// Paso2: Armo el frame
 	// Siempre trasmito los datos aunque vengan papasfritas.
-	pub_gprs_flush_RX_buffer();
+	//pub_gprs_flush_RX_buffer();
 
 	// Indice de la linea,Fecha y hora
 	xCom_printf_P( fdGPRS,PSTR("&CTL=%d&LINE=%04d%02d%02d,%02d%02d%02d\0"), l_fat.rdPTR,pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day,pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
@@ -319,36 +319,38 @@ bool exit_flag = false;
 			goto EXIT;
 		}
 
-		// Log.
-		if ( systemVars.debug == DEBUG_GPRS ) {
-			pub_gprs_print_RX_Buffer();
-		} else {
-			pub_gprs_print_RX_response();
-		}
+		if ( pub_gprs_check_response ("</h1>\0")) {	// Recibi una respuesta del server.
+			// Log.
 
-		if ( pub_gprs_check_response ("ERROR\0")) {
-			// ERROR del server: salgo inmediatamente
-			exit_flag = false;
-			goto EXIT;
-		}
+			if ( systemVars.debug == DEBUG_GPRS ) {
+				pub_gprs_print_RX_Buffer();
+			} else {
+				pub_gprs_print_RX_response();
+			}
 
-		if ( pub_gprs_check_response ("RESET\0")) {
-			// El sever mando la orden de resetearse inmediatamente
-			pv_process_response_RESET();
-		}
+			if ( pub_gprs_check_response ("ERROR\0")) {
+				// ERROR del server: salgo inmediatamente
+				exit_flag = false;
+				goto EXIT;
+			}
 
-		if ( pub_gprs_check_response ("OUTS\0")) {
-			// El sever mando actualizacion de las salidas
-			pv_process_response_OUTS();
-		}
+			if ( pub_gprs_check_response ("RESET\0")) {
+				// El sever mando la orden de resetearse inmediatamente
+				pv_process_response_RESET();
+			}
 
-		if ( pub_gprs_check_response ("RX_OK\0")) {
-			// Datos procesados por el server.
-			pv_process_response_OK();
-			exit_flag = true;
-			goto EXIT;
-		}
+			if ( pub_gprs_check_response ("OUTS\0")) {
+				// El sever mando actualizacion de las salidas
+				pv_process_response_OUTS();
+			}
 
+			if ( pub_gprs_check_response ("RX_OK\0")) {
+				// Datos procesados por el server.
+				pv_process_response_OK();
+				exit_flag = true;
+				goto EXIT;
+			}
+		}
 	}
 
 // Exit:

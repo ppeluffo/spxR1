@@ -66,6 +66,7 @@ void pub_gprs_modem_pwr_off(void);
 void pub_gprs_modem_pwr_on(void);
 void pub_gprs_modem_pwr_sw(void);
 void pub_gprs_flush_RX_buffer(void);
+void pub_gprs_flush_TX_buffer(void);
 
 void pub_gprs_open_socket(void);
 t_socket_status pub_gprs_check_socket_status(void);

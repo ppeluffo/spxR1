@@ -19,6 +19,24 @@
  *  Para ver el uso de memoria usamos
  *  avr-nm -n spxR1.elf | more
  *
+ * - Cuando configuro las salidas solo lo hago en el systemVars. No las aplico sino que dejo
+ * que la propia tarea lo haga luego.
+ * Ver como mostrar la consigna aplicada !!!
+ *------------------------------------------------------------------------------------------
+ * 2018-07-20:
+ * - El problema de perder datos se daria por el uso de las secciones criticas el leer datos
+ * de los ringbuffers. Agrego un elemento a estos que indique si estan llegando datos.
+ * La ISR de RX c/byte que llega lo prende.
+ * Cuando voy a leer el RB veo si esta prendida. En este caso la apago y espero 10ms para volver
+ * a leerla. Si esta apagada, indica que no hay acrtividad y leo. Si se prendio, salgo simulando
+ * que aun no llego nada.
+ * Los resultados son positivos ya que el frame de init ( 390 bytes ) se recibe por completo.
+ *
+ *------------------------------------------------------------------------------------------
+ * 2018-07-19:
+ * - La rutina de recepcion a veces pierde un caracter. Hay que perfeccionarla.
+ * - Por la razon anterior, c/comando conviene chequearlo 3 veces antes de cancelar.
+ * - Si no se conecta, reintentar a los 10 minutos una vez mas.
  *------------------------------------------------------------------------------------------
  * 2018-07-16:
  * Problema al imprimir un buffer (RX) mas grande que el de xprintf !!!
@@ -142,6 +160,7 @@ int main( void )
 
 	frtos_open(fdUSB, 115200);
 	frtos_open(fdGPRS, 115200);
+	frtos_open(fdBT, 9600);
 	frtos_open(fdI2C, 100 );
 
 	// Creo los semaforos

@@ -136,7 +136,7 @@ bool exit_flag = false;
 
 	for ( timeout = 0; timeout < 10; timeout++) {
 
-		vTaskDelay( (portTickType)( 1500 / portTICK_RATE_MS ) );	// Espero 1s
+		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );	// Espero 1s
 
 		if ( pub_gprs_check_socket_status() != SOCK_OPEN ) {		// El socket se cerro
 			exit_flag = false;
@@ -149,17 +149,18 @@ bool exit_flag = false;
 			goto EXIT;
 		}
 
-		if ( pub_gprs_check_response("INIT_OK") ) {	// Respuesta correcta del server
-			// Espero recibir todo el string
-			vTaskDelay( (portTickType)( 1500 / portTICK_RATE_MS ) );
+
+		if ( pub_gprs_check_response("</h1>") ) {	// Respuesta completa del server
 			if ( systemVars.debug == DEBUG_GPRS  ) {
 				pub_gprs_print_RX_Buffer();
 			} else {
 				pub_gprs_print_RX_response();
 			}
-			pv_reconfigure_params();
-			exit_flag = true;
-			goto EXIT;
+			if ( pub_gprs_check_response("INIT_OK") ) {	// Respuesta correcta
+				pv_reconfigure_params();
+				exit_flag = true;
+				goto EXIT;
+			}
 		}
 
 	}
@@ -195,22 +196,33 @@ uint8_t i;
 	// HEADER:
 	// Envio parcial ( no CR )
 	pub_gprs_flush_RX_buffer();
+	pub_gprs_flush_TX_buffer();
 
 	xCom_printf_P( fdGPRS,PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV );
-	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
 	// DEBUG & LOG
 	if ( systemVars.debug ==  DEBUG_GPRS ) {
 		xprintf_P( PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV );
 	}
 
 	// BODY ( 1a parte) :
-	// timerpoll,timerdial,pwrSave,outputs,csq
-	xCom_printf_P( fdGPRS, PSTR("&INIT&TPOLL=%d&TDIAL=%d&PWRS=%d,%02d%02d,%02d%02d&OUTS=%d,%02d%02d,%02d%02d&CSQ=%d\0"), systemVars.timerPoll,systemVars.timerDial,systemVars.pwrSave.modo,systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min,systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min, systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min,systemVars.dbm );
-	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
-
+	// timerpoll,timerdial
+	xCom_printf_P( fdGPRS, PSTR("&INIT&TPOLL=%d&TDIAL=%d\0"), systemVars.timerPoll,systemVars.timerDial);
 	// DEBUG & LOG
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		xprintf_P( PSTR("&INIT&TPOLL=%d&TDIAL=%d&PWRS=%d,%02d%02d,%02d%02d&OUTS=%d,%02d%02d,%02d%02d&CSQ=%d\0"), systemVars.timerPoll,systemVars.timerDial,systemVars.pwrSave.modo,systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min,systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min, systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min,systemVars.dbm );
+		xprintf_P( PSTR("&INIT&TPOLL=%d&TDIAL=%d\0"), systemVars.timerPoll,systemVars.timerDial );
+	}
+	// pwrSave
+	xCom_printf_P( fdGPRS, PSTR("&PWRS=%d,%02d%02d,%02d%02d\0"),systemVars.pwrSave.modo,systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min,systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min );
+	// DEBUG & LOG
+	if ( systemVars.debug == DEBUG_GPRS ) {
+		xprintf_P( PSTR("&PWRS=%d,%02d%02d,%02d%02d\0"),systemVars.pwrSave.modo,systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min,systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min );
+	}
+
+	// outputs,csq
+	xCom_printf_P( fdGPRS, PSTR("&OUTS=%d,%02d%02d,%02d%02d&CSQ=%d\0"),systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min,systemVars.dbm );
+	// DEBUG & LOG
+	if ( systemVars.debug == DEBUG_GPRS ) {
+		xprintf_P( PSTR("&OUTS=%d,%02d%02d,%02d%02d&CSQ=%d\0"), systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min,systemVars.dbm );
 	}
 
 	// BODY ( 2a parte) : Configuracion de canales
@@ -242,12 +254,14 @@ uint8_t i;
 
 	// TAIL ( No mando el close ya que espero la respuesta y no quiero que el socket se cierre )
 	xCom_printf_P( fdGPRS, PSTR(" HTTP/1.1\r\nHost: www.spymovil.com\r\n\r\n\r\n\0") );
-	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
 
 	// DEBUG & LOG
 	if ( systemVars.debug ==  DEBUG_GPRS ) {
 		xprintf_P( PSTR(" HTTP/1.1\r\nHost: www.spymovil.com\r\n\r\n\r\n\0") );
 	}
+
+	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
+
 
 }
 //------------------------------------------------------------------------------------
@@ -615,8 +629,8 @@ char *p;
 	token = strsep(&stringp,delim);	//OUTS
 
 	modo = atoi(strsep(&stringp,delim));	// modo
-	p1 = strsep(&stringp,delim);			// startTime
-	p2 = strsep(&stringp,delim); 			// endTime
+	p1 = strsep(&stringp,delim);			// consigna_diurna
+	p2 = strsep(&stringp,delim); 			// consigna_nocturna
 
 	pub_output_config(modo, p1, p2);
 	ret = 1;

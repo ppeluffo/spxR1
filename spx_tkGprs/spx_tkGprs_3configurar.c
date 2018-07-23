@@ -82,19 +82,30 @@ static bool pv_gprs_CPIN(void)
 	// AT+CPIN?
 
 bool retS = false;
+uint8_t tryes;
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: CPIN\r\n\0"));
 	}
 
-	pub_gprs_flush_RX_buffer();
-	xCom_printf_P( fdGPRS,PSTR("AT+CPIN?\r\0"));
-	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
-	if ( systemVars.debug == DEBUG_GPRS ) {
-		pub_gprs_print_RX_Buffer();
+	for ( tryes = 0; tryes < 3; tryes++ ) {
+		pub_gprs_flush_RX_buffer();
+		xCom_printf_P( fdGPRS,PSTR("AT+CPIN?\r\0"));
+		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
+		if ( systemVars.debug == DEBUG_GPRS ) {
+			pub_gprs_print_RX_Buffer();
+		}
+
+		vTaskDelay( ( TickType_t)( 5000 / portTICK_RATE_MS ) );
+
+		pub_gprs_check_response("+CPIN: READY\0") ? (retS = true ): (retS = false) ;
+
+		if ( retS ) {
+			break;
+		}
+
 	}
 
-	pub_gprs_check_response("+CPIN: READY\0") ? (retS = true ): (retS = false) ;
 	return(retS);
 
 }
@@ -118,7 +129,7 @@ uint8_t tryes;
 
 	xprintf_P( PSTR("GPRS: NET registation\r\n\0"));
 
-	for ( tryes = 0; tryes < 3; tryes++ ) {
+	for ( tryes = 0; tryes < 5; tryes++ ) {
 		pub_gprs_flush_RX_buffer();
 		xCom_printf_P( fdGPRS,PSTR("AT+CREG?\r\0"));
 		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );

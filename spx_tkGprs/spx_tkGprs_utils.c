@@ -50,6 +50,12 @@ t_socket_status socket_status = SOCK_CLOSED;
 			xprintf_P( PSTR("GPRS: sckt ERROR\r\n\0"));
 		}
 
+	} else if ( pub_gprs_check_response("ERROR")) {
+		socket_status = SOCK_ERROR;
+		if ( systemVars.debug == DEBUG_GPRS ) {
+			xprintf_P( PSTR("GPRS: sckt ERROR\r\n\0"));
+		}
+
 	} else {
 		socket_status = SOCK_CLOSED;
 		if ( systemVars.debug == DEBUG_GPRS ) {
@@ -194,7 +200,7 @@ void pub_gprs_print_RX_response(void)
 		//xprintf_P ( PSTR("GPRS: rsp>%s\r\n\0"), start_tag );
 		xprintf_P( PSTR ("GPRS: rxbuff>\r\n\0"));
 		xnprint( start_tag, sizeof(pv_gprsRxCbuffer.buffer) );
-		xprintf_P( PSTR ("\r\n\0"));
+		xprintf_P( PSTR ("\r\n[%d]\r\n\0"), pv_gprsRxCbuffer.ptr );
 	}
 }
 //------------------------------------------------------------------------------------
@@ -206,16 +212,20 @@ void pub_gprs_print_RX_Buffer(void)
 
 	// Uso esta funcion para imprimir un buffer largo, mayor al que utiliza xprintf_P. !!!
 	xnprint( pv_gprsRxCbuffer.buffer, sizeof(pv_gprsRxCbuffer.buffer) );
-
-	xprintf_P( PSTR ("\r\n\0"));
+	xprintf_P( PSTR ("\r\n[%d]\r\n\0"), pv_gprsRxCbuffer.ptr );
 }
 //------------------------------------------------------------------------------------
 void pub_gprs_flush_RX_buffer(void)
 {
 
 	frtos_ioctl( fdGPRS,ioctl_UART_CLEAR_RX_BUFFER, NULL);
-	frtos_ioctl( fdGPRS,ioctl_UART_CLEAR_TX_BUFFER, NULL);
 	pv_gprs_rxbuffer_flush();
+
+}
+//------------------------------------------------------------------------------------
+void pub_gprs_flush_TX_buffer(void)
+{
+	frtos_ioctl( fdGPRS,ioctl_UART_CLEAR_TX_BUFFER, NULL);
 
 }
 //------------------------------------------------------------------------------------

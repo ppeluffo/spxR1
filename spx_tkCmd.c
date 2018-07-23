@@ -218,7 +218,7 @@ FAT_t l_fat;
 	// PWR SAVE:
 	if ( systemVars.pwrSave.modo ==  modoPWRSAVE_OFF ) {
 		xprintf_P(  PSTR("  pwrsave=off\r\n\0"));
-	} else {
+	} else if ( systemVars.pwrSave.modo ==  modoPWRSAVE_ON ) {
 		xprintf_P(  PSTR("  pwrsave=on start[%02d:%02d], end[%02d:%02d]\r\n\0"), systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min, systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min);
 	}
 
@@ -228,17 +228,7 @@ FAT_t l_fat;
 		xprintf_P( PSTR("  Outputs: OFF\r\n"));
 		break;
 	case OUT_CONSIGNA:
-		switch( systemVars.outputs.consigna_aplicada ) {
-		case CONSIGNA_DIURNA:
-			xprintf_P( PSTR("  Outputs: CONSIGNA [diurna] (c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
-			break;
-		case CONSIGNA_NOCTURNA:
-			xprintf_P( PSTR("  Outputs: CONSIGNA [nocturna] (c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
-			break;
-		default:
-			xprintf_P( PSTR("  Outputs: CONSIGNA [error] (c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
-			break;
-		}
+		xprintf_P( PSTR("  Outputs: CONSIGNA(c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
 		break;
 	case OUT_NORMAL:
 		xprintf_P( PSTR("  Outputs: NORMAL (out_A=%d, out_B=%d)\r\n"), systemVars.outputs.out_A, systemVars.outputs.out_B );
@@ -527,14 +517,6 @@ float mag_val;
 		pv_cmd_rdBATTERY();
 		return;
 	}
-
-	// ARAW
-	// read araw {ch, bat}
-	if (!strcmp_P( strupr(argv[1]), PSTR("ARAW\0")) && ( tipo_usuario == USER_TECNICO) ) {
-		pv_cmd_rwACH(RD_CMD);
-		return;
-	}
-
 
 	// ACH { 0..4}
 	// read ach x
@@ -863,9 +845,8 @@ static void cmdHelpFunction(void)
 			xprintf_P( PSTR("  id\r\n\0"));
 			xprintf_P( PSTR("  ee,nvmee,rtcram {pos} {lenght}\r\n\0"));
 			xprintf_P( PSTR("  ina {id} {conf|chXshv|chXbusv|mfid|dieid}\r\n\0"));
-			xprintf_P( PSTR("  memory\r\n\0"));
+//			xprintf_P( PSTR("  memory\r\n\0"));
 			xprintf_P( PSTR("  ach {0..4}, battery\r\n\0"));
-			xprintf_P( PSTR("  araw {ch, bat} \r\n\0"));
 			xprintf_P( PSTR("  din\r\n\0"));
 			xprintf_P( PSTR("  gprs (rsp,rts,dcd,ri)\r\n\0"));
 			xprintf_P( PSTR("  pulse\r\n\0"));
@@ -1292,8 +1273,6 @@ uint8_t i;
 	pub_digital_read_frame( &digital_frame , false );
 
 	// Armo la respuesta
-	xprintf_P( PSTR("DIN: "));
-
 	for (i = 0; i < NRO_DIGITAL_CHANNELS; i++) {
 		// Canales contadores
 		if ( systemVars.d_ch_type[i] == 'C' ) {

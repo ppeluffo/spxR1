@@ -247,6 +247,7 @@ xTimeOutType xTimeOut;
 
 		if( rBufferPop( &xCom->uart->RXringBuffer, &((char *)pvBuffer)[ xBytesReceived ] ) == true ) {
 			xBytesReceived++;
+			taskYIELD();
 		} else {
 			// Espero xTicksToWait antes de volver a chequear
 			vTaskDelay( ( TickType_t)( xTicksToWait ) );

@@ -318,6 +318,8 @@ uint16_t time_num;
 	time_struct->hour = (uint8_t) (time_num / 100);
 	time_struct->min = (uint8_t)(time_num % 100);
 
+//	xprintf_P( PSTR("DEBUG: u_convert_str_to_time_t (hh=%d,mm=%d)\r\n\0"), time_struct->hour,time_struct->min );
+
 }
 //------------------------------------------------------------------------------------
 void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
@@ -328,7 +330,17 @@ void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
 	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
 
-	systemVars.pwrSave.modo = modoPwrSave;
+	switch ( modoPwrSave ) {
+	case modoPWRSAVE_OFF:
+		systemVars.pwrSave.modo = modoPWRSAVE_OFF;
+		break;
+	case modoPWRSAVE_ON:
+		systemVars.pwrSave.modo = modoPWRSAVE_ON;
+		break;
+	default:
+		xprintf_P(PSTR("pub_configPwrSave ERRRO: modo=%d\r\n\0"), modoPwrSave);
+		return;
+	}
 
 	if ( s_startTime != NULL ) { pub_convert_str_to_time_t( s_startTime, &systemVars.pwrSave.hora_start); }
 	if ( s_endTime != NULL ) { pub_convert_str_to_time_t( s_endTime, &systemVars.pwrSave.hora_fin); }
@@ -345,9 +357,11 @@ void pub_convert_str_to_time_t ( char *time_str, time_t *time_struct )
 
 uint16_t time_num;
 
-	time_num = atol(time_str);
+	time_num = (uint16_t)atol(time_str);
 	time_struct->hour = (uint8_t) (time_num / 100);
+//	xprintf_P(PSTR("hour: %d - %d\r\n\0"), time_num, time_struct->hour);
 	time_struct->min = (uint8_t)(time_num % 100);
+//	xprintf_P(PSTR("min: %d - %d\r\n\0"), time_num, time_struct->min);
 
 }
 //------------------------------------------------------------------------------------

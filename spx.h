@@ -57,7 +57,7 @@
 // DEFINES
 //------------------------------------------------------------------------------------
 #define SPX_FW_REV "1.0.0"
-#define SPX_FW_DATE "@ 20180717"
+#define SPX_FW_DATE "@ 20180723"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
@@ -83,7 +83,7 @@
 #define tkData_STACK_SIZE		384
 #define tkDigital_STACK_SIZE	384
 #define tkGprs_rx_STACK_SIZE	512
-#define tkGprs_tx_STACK_SIZE	512
+#define tkGprs_tx_STACK_SIZE	640
 #define tkOutputs_STACK_SIZE	384
 #define tkXbee_STACK_SIZE		384
 

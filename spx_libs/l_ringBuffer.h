@@ -24,6 +24,7 @@ typedef struct {
 	uint16_t tail;
 	uint16_t count;
 	uint16_t length;
+	bool arriving;
 } ringBuffer_s;
 
 //------------------------------------------------------------------------------------

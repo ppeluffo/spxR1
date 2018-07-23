@@ -212,6 +212,9 @@ bool ret = false;
 		ret = true;
     }
 
+	// Indico que estan llegando datos
+	rB->arriving = true;
+
 	return(ret);
 
 }
@@ -220,6 +223,16 @@ bool rBufferPop( ringBuffer_s *rB, char *cChar )
 {
 
 bool ret = false;
+
+	// Voy a leer un dato. Si estan llegando, espero.
+	if ( rB->arriving == true ) {
+		rB->arriving = false;
+		vTaskDelay( ( TickType_t)10 );
+		// Si siguen llegando, me voy
+		if ( rB->arriving == true ) {
+			return(false);
+		}
+	}
 
 	taskENTER_CRITICAL();
 
@@ -276,6 +289,7 @@ void rBufferCreateStatic ( ringBuffer_s *rB, uint8_t *storage_area, uint16_t siz
 	rB->tail = 0;	// end
 	rB->count = 0;
 	rB->length = size;
+	rB->arriving = false;
 }
 //------------------------------------------------------------------------------------
 uint16_t rBufferGetCount( ringBuffer_s *rB )
