@@ -175,10 +175,14 @@ static bool pv_trasmitir_paquete_datos(void )
 uint8_t registros_trasmitidos = 0;
 uint8_t i;
 bool exit_flag = false;
+uint8_t timeout, await_loops;
+t_socket_status socket_status;
+
 
 	for ( i = 0; i < MAX_TRYES_OPEN_SOCKET; i++ ) {
 
-		if (  pub_gprs_check_socket_status() == SOCK_OPEN ) {
+		socket_status = pub_gprs_check_socket_status();
+		if (  socket_status == SOCK_OPEN ) {
 			// Envio un window frame
 			registros_trasmitidos = 0;
 			FF_rewind();
@@ -188,11 +192,30 @@ bool exit_flag = false;
 				registros_trasmitidos++;
 			}
 			pv_trasmitir_dataTail();
-			exit_flag = true;
-			break;
+			return(true);
 		}
 
+		// Doy el comando de abrir el socket
 		pub_gprs_open_socket();
+
+		// Y espero que lo abra
+		await_loops = ( 10 * 1000 / 3000 ) + 1;
+		// Y espero hasta 30s que abra.
+		for ( timeout = 0; timeout < await_loops; timeout++) {
+			vTaskDelay( (portTickType)( 3000 / portTICK_RATE_MS ) );
+			socket_status = pub_gprs_check_socket_status();
+
+			// Si el socket abrio, salgo para trasmitir el frame de init.
+			if ( socket_status == SOCK_OPEN ) {
+				break;
+			}
+
+			// Si el socket dio error, salgo para enviar de nuevo el comando.
+			if ( socket_status == SOCK_ERROR ) {
+				break;
+			}
+		}
+
 	}
 
 	return(exit_flag);

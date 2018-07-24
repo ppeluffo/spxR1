@@ -13,6 +13,7 @@ static void pv_tkCtl_wink_led(void);
 static void pv_tkCtl_check_terminal(void);
 static void pv_tkCtl_check_wdg(void);
 static void pv_tkCtl_ajust_timerPoll(void);
+static void pv_daily_reset(void);
 
 static bool f_terminal_is_on;
 static uint16_t watchdog_timers[NRO_WDGS];
@@ -61,6 +62,7 @@ void tkCtl(void * pvParameters)
 		pv_tkCtl_check_terminal();
 		pv_tkCtl_check_wdg();
 		pv_tkCtl_ajust_timerPoll();
+		pv_daily_reset();
 
 	}
 }
@@ -210,6 +212,26 @@ static void pv_tkCtl_ajust_timerPoll(void)
 {
 	if ( time_to_next_poll > TKCTL_DELAY_S )
 		time_to_next_poll -= TKCTL_DELAY_S;
+}
+//------------------------------------------------------------------------------------
+static void pv_daily_reset(void)
+{
+	// Todos los dias debo resetearme para restaturar automaticamente posibles
+	// problemas.
+
+static uint32_t ticks_to_reset = 86400 / TKCTL_DELAY_S ; // Segundos en 1 dia.
+
+
+	while ( --ticks_to_reset > 0 ) {
+		return;
+	}
+
+	xprintf_P( PSTR("Daily Reset !!\r\n\0") );
+	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
+
+	CCPWrite( &RST.CTRL, RST_SWRST_bm );   /* Issue a Software Reset to initilize the CPU */
+
+
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS

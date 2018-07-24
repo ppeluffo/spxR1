@@ -874,7 +874,7 @@ static void cmdHelpFunction(void)
 		xprintf_P( PSTR("  rangemeter {on|off}\r\n\0"));
 		xprintf_P( PSTR("  modo {analog|digital} {0..n} {local|remoto}\r\n\0"));
 		xprintf_P( PSTR("  xbee {off|master|slave}\r\n\0"));
-		xprintf_P( PSTR("  outputs {off}|{normal o0 o1}|{consigna hhmm_dia hhmm_noche}\r\n\0"));
+		xprintf_P( PSTR("  outputs {off}|{consigna hhmm_dia hhmm_noche}|{normal o0 o1}\r\n\0"));
 		xprintf_P( PSTR("  timerpoll, timerdial, dlgid {name}\r\n\0"));
 		xprintf_P( PSTR("  pwrsave modo [{on|off}] [{hhmm1}, {hhmm2}]\r\n\0"));
 		xprintf_P( PSTR("  apn, port, ip, script, passwd\r\n\0"));

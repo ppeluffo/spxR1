@@ -274,11 +274,18 @@ void pub_output_config( char *param0, char *param1, char *param2 )
 
 uint8_t modo = 0;
 
-	if (!strcmp_P( strupr(param0), PSTR("OFF\0")) ) {
+	// Modo desde cmdMode
+	if ( !strcmp_P( strupr(param0), PSTR("OFF\0")) ) {
+		modo = OUT_OFF;
+	} else if (!strcmp_P( strupr(param0), PSTR("0\0")) ) {
 		modo = OUT_OFF;
 	} else if (!strcmp_P( strupr(param0), PSTR("CONSIGNA\0")) ) {
 		modo = OUT_CONSIGNA;
+	} else if (!strcmp_P( strupr(param0), PSTR("1\0")) ) {
+		modo = OUT_CONSIGNA;
 	} else if (!strcmp_P( strupr(param0), PSTR("NORMAL\0")) ) {
+		modo = OUT_NORMAL;
+	} else if (!strcmp_P( strupr(param0), PSTR("2\0")) ) {
 		modo = OUT_NORMAL;
 	}
 

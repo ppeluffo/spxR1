@@ -91,34 +91,35 @@ static bool pv_send_init_frame(void)
 uint8_t intentos;
 bool exit_flag = false;
 uint8_t timeout, await_loops;
+t_socket_status socket_status;
 
 	for ( intentos = 0; intentos < MAX_TRYES_OPEN_SOCKET; intentos++ ) {
 
-		if (  pub_gprs_check_socket_status() == SOCK_OPEN ) {
+		socket_status = pub_gprs_check_socket_status();
+
+		if (  socket_status == SOCK_OPEN ) {
 			pv_TX_init_frame();		// Escribo en el socket el frame de INIT
-			exit_flag = true;
-			break;
+			return(true);
 		}
 
-		// Doy el comando para abrirlo.
+		// Doy el comando para abrirlo y espero
 		pub_gprs_open_socket();
 
-		// Espero en forma progresiva ( por el problema de ANTEL para abrir los sockets en MPLS )
-/*		switch(intentos) {
-			case 0: max_wait_time = 3; break;
-			case 1: max_wait_time = 3; break;
-			case 2: max_wait_time = 3; break;
-			case 3: max_wait_time = 10; break;
-			case 4: max_wait_time = 10; break;
-			default: max_wait_time = 3; break;
-		}
-*/
 		await_loops = ( 10 * 1000 / 3000 ) + 1;
 		// Y espero hasta 30s que abra.
 		for ( timeout = 0; timeout < await_loops; timeout++) {
 			vTaskDelay( (portTickType)( 3000 / portTICK_RATE_MS ) );
-			if ( pub_gprs_check_socket_status() == SOCK_OPEN )
+			socket_status = pub_gprs_check_socket_status();
+
+			// Si el socket abrio, salgo para trasmitir el frame de init.
+			if ( socket_status == SOCK_OPEN ) {
 				break;
+			}
+
+			// Si el socket dio error, salgo para enviar de nuevo el comando.
+			if ( socket_status == SOCK_ERROR ) {
+				break;
+			}
 		}
 	}
 
@@ -613,7 +614,7 @@ char localStr[32];
 char *stringp;
 char *token;
 char *delim = ",=:><";
-char *modo,*p1,*p2;
+char *p0,*p1,*p2;
 
 char *p;
 
@@ -628,15 +629,15 @@ char *p;
 	stringp = localStr;
 	token = strsep(&stringp,delim);	//OUTS
 
-	modo = atoi(strsep(&stringp,delim));	// modo
-	p1 = strsep(&stringp,delim);			// consigna_diurna
-	p2 = strsep(&stringp,delim); 			// consigna_nocturna
+	p0 = strsep(&stringp,delim);	// modo 0,1,2
+	p1 = strsep(&stringp,delim);	// consigna_diurna
+	p2 = strsep(&stringp,delim); 	// consigna_nocturna
 
-	pub_output_config(modo, p1, p2);
+	pub_output_config(p0, p1, p2);
 	ret = 1;
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		xprintf_P( PSTR("GPRS: Reconfig OUTPUTS (modo=%d,p1=%s,p2=%s)\r\n\0"), modo, p1,p2);
+		xprintf_P( PSTR("GPRS: Reconfig OUTPUTS (p0=%s,p1=%s,p2=%s)\r\n\0"), p0, p1,p2);
 	}
 
 quit:

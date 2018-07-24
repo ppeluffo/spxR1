@@ -19,9 +19,12 @@
  *  Para ver el uso de memoria usamos
  *  avr-nm -n spxR1.elf | more
  *
+ *------------------------------------------------------------------------------------------
+ * 2018-07-24:
  * - Cuando configuro las salidas solo lo hago en el systemVars. No las aplico sino que dejo
  * que la propia tarea lo haga luego.
  * Ver como mostrar la consigna aplicada !!!
+ * - Incorporo la funcion de dailyReset.
  *------------------------------------------------------------------------------------------
  * 2018-07-20:
  * - El problema de perder datos se daria por el uso de las secciones criticas el leer datos
