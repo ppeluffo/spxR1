@@ -21,6 +21,9 @@ static void pv_process_response_OUTS(void);
 
 static bool pv_check_more_Rcds4Del ( void );
 
+static void pv_tx_dataRecord_modo_SP5K(void);
+static void pv_tx_dataRecord_modo_SPX(void);
+
 // La tarea se repite para cada paquete de datos. Esto no puede demorar
 // mas de 5 minutos
 #define WDG_GPRS_TO_DATA	300
@@ -257,67 +260,17 @@ static void pv_trasmitir_dataTail( void )
 static void pv_trasmitir_dataRecord( void )
 {
 
-uint8_t channel;
-st_data_frame pv_data_frame;
-FAT_t l_fat;
 
-	// Paso1: Leo un registro de memoria
-	FF_readRcd( &pv_data_frame, sizeof(st_data_frame));
-	FAT_read(&l_fat);
-
-	// Paso2: Armo el frame
-	// Siempre trasmito los datos aunque vengan papasfritas.
-	//pub_gprs_flush_RX_buffer();
-
-	// Indice de la linea,Fecha y hora
-	xCom_printf_P( fdGPRS,PSTR("&CTL=%d&LINE=%04d%02d%02d,%02d%02d%02d\0"), l_fat.rdPTR,pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day,pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
-	// DEBUG & LOG
-	if ( systemVars.debug ==  DEBUG_GPRS ) {
-		xprintf_P( PSTR("GPRS: sent> CTL=%d&LINE=%04d%02d%02d,%02d%02d%02d\0"), l_fat.rdPTR,pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day,pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
-	}
-	// Valores analogicos
-	// Solo muestro los que tengo configurados.
-	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
-		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) )
-			continue;
-
-		xCom_printf_P( fdGPRS, PSTR(",%s=%.02f\0"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
-		// DEBUG & LOG
-		if ( systemVars.debug ==  DEBUG_GPRS ) {
-			xprintf_P( PSTR(",%s=%.02f\0"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
-		}
-
-	}
-
-	// Valores digitales. Lo que mostramos depende de lo que tenemos configurado
-	// Niveles logicos.
-	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) ) {
-			continue;
-		}
-		// Level ?
-		if ( systemVars.d_ch_type[channel] == 'L') {
-			xCom_printf_P( fdGPRS, PSTR(",%s=%d\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
-			// DEBUG & LOG
-			if ( systemVars.debug ==  DEBUG_GPRS ) {
-				xprintf_P( PSTR(",%s=%d\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
-			}
-
-		} else {
-		// Counter ?
-			xCom_printf_P( fdGPRS, PSTR(",%s=%.2f\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
-			// DEBUG & LOG
-			if ( systemVars.debug ==  DEBUG_GPRS ) {
-				xprintf_P( PSTR(",%s=%.2f\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
-			}
-
-		}
-	}
-
-	// Bateria
-	xCom_printf_P( fdGPRS, PSTR(",bt=%.2f\0"),pv_data_frame.battery );
-	if ( systemVars.debug ==  DEBUG_GPRS ) {
-		xprintf_P( PSTR(",bt=%.2f\r\n\0"),pv_data_frame.battery );
+	switch ( systemVars.modo ) {
+	case MODO_SPX:
+		pv_tx_dataRecord_modo_SPX();
+		break;
+	case MODO_SP5K:
+		pv_tx_dataRecord_modo_SP5K();
+		break;
+	default:
+		pv_tx_dataRecord_modo_SP5K();
+		break;
 	}
 
 	vTaskDelay( (portTickType)( 250 / portTICK_RATE_MS ) );
@@ -476,6 +429,125 @@ FAT_t l_fat;
 		return(true);
 	} else {
 		return(false);
+	}
+
+}
+//------------------------------------------------------------------------------------
+static void pv_tx_dataRecord_modo_SP5K(void)
+{
+
+uint8_t channel;
+st_data_frame pv_data_frame;
+FAT_t l_fat;
+
+	// Paso1: Leo un registro de memoria
+	FF_readRcd( &pv_data_frame, sizeof(st_data_frame));
+	FAT_read(&l_fat);
+
+	// Paso2: Armo el frame
+	// Siempre trasmito los datos aunque vengan papasfritas.
+	//pub_gprs_flush_RX_buffer();
+
+	// Indice de la linea,Fecha y hora
+	xCom_printf_P( fdGPRS,PSTR("&CTL=%d&LINE=%04d%02d%02d,%02d%02d%02d\0"), l_fat.rdPTR,pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day,pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
+	// DEBUG & LOG
+	if ( systemVars.debug ==  DEBUG_GPRS ) {
+		xprintf_P( PSTR("GPRS: sent> CTL=%d&LINE=%04d%02d%02d,%02d%02d%02d\0"), l_fat.rdPTR,pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day,pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
+	}
+
+	// Valores analogicos
+	for ( channel = 0; channel < 3; channel++) {
+		xCom_printf_P( fdGPRS, PSTR(",%s=%.02f\0"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P( PSTR(",%s=%.02f\0"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+		}
+
+	}
+
+	// Valores digitales.
+	xCom_printf_P( fdGPRS, PSTR(",%s=%.2f\0"),systemVars.d_ch_name[1],pv_data_frame.digital_frame.magnitud[1] );
+	xCom_printf_P( fdGPRS, PSTR(",%s=%.2f\0"),systemVars.d_ch_name[2],pv_data_frame.digital_frame.magnitud[2] );
+
+	// DEBUG & LOG
+	if ( systemVars.debug ==  DEBUG_GPRS ) {
+		xprintf_P( PSTR(",%s=%.2f\0"),systemVars.d_ch_name[1],pv_data_frame.digital_frame.magnitud[1] );
+		xprintf_P( PSTR(",%s=%.2f\0"),systemVars.d_ch_name[2],pv_data_frame.digital_frame.magnitud[2] );
+	}
+
+	// Bateria
+	xCom_printf_P( fdGPRS, PSTR(",bt=%.2f\0"),pv_data_frame.battery );
+	if ( systemVars.debug ==  DEBUG_GPRS ) {
+		xprintf_P( PSTR(",bt=%.2f\r\n\0"),pv_data_frame.battery );
+	}
+
+}
+//------------------------------------------------------------------------------------
+static void pv_tx_dataRecord_modo_SPX(void)
+{
+
+uint8_t channel;
+st_data_frame pv_data_frame;
+FAT_t l_fat;
+
+	// Paso1: Leo un registro de memoria
+	FF_readRcd( &pv_data_frame, sizeof(st_data_frame));
+	FAT_read(&l_fat);
+
+	// Paso2: Armo el frame
+	// Siempre trasmito los datos aunque vengan papasfritas.
+	//pub_gprs_flush_RX_buffer();
+
+	// Indice de la linea,Fecha y hora
+	xCom_printf_P( fdGPRS,PSTR("&CTL=%d&LINE=%04d%02d%02d,%02d%02d%02d\0"), l_fat.rdPTR,pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day,pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
+	// DEBUG & LOG
+	if ( systemVars.debug ==  DEBUG_GPRS ) {
+		xprintf_P( PSTR("GPRS: sent> CTL=%d&LINE=%04d%02d%02d,%02d%02d%02d\0"), l_fat.rdPTR,pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day,pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
+	}
+
+	// Valores analogicos
+	// Solo muestro los que tengo configurados.
+	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
+		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) )
+			continue;
+
+		xCom_printf_P( fdGPRS, PSTR(",%s=%.02f\0"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P( PSTR(",%s=%.02f\0"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+		}
+
+	}
+
+	// Valores digitales. Lo que mostramos depende de lo que tenemos configurado
+	// Niveles logicos.
+	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
+		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) ) {
+			continue;
+		}
+		// Level ?
+		if ( systemVars.d_ch_type[channel] == 'L') {
+			xCom_printf_P( fdGPRS, PSTR(",%s=%d\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
+			// DEBUG & LOG
+			if ( systemVars.debug ==  DEBUG_GPRS ) {
+				xprintf_P( PSTR(",%s=%d\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
+			}
+
+		} else {
+		// Counter ?
+			xCom_printf_P( fdGPRS, PSTR(",%s=%.2f\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
+			// DEBUG & LOG
+			if ( systemVars.debug ==  DEBUG_GPRS ) {
+				xprintf_P( PSTR(",%s=%.2f\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
+			}
+
+		}
+	}
+
+	// Bateria
+	xCom_printf_P( fdGPRS, PSTR(",bt=%.2f\0"),pv_data_frame.battery );
+	if ( systemVars.debug ==  DEBUG_GPRS ) {
+		xprintf_P( PSTR(",bt=%.2f\r\n\0"),pv_data_frame.battery );
 	}
 
 }

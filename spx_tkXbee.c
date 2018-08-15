@@ -3,6 +3,18 @@
  *
  *  Created on: 5 de jun. de 2018
  *      Author: pablo
+ *
+ *  Funcionamiento:
+ *  El XBEE puede ser MASTER o SLAVE.
+ *  Esta tarea solo se aplica al modo MASTER.
+ *  En este caso, se esta a la espera de un mensaje enviado por el SLAVE.
+ *  Este mensaje trae un frame poleado en el dispositivo remoto.
+ *  Cuando se recibe, se parsea para determinar los pares ( nombre_canal, valor ).
+ *  Si algun canal local esta configurado como R ( Remoto ), y al parsear un par tiene
+ *  el mismo nombre, el valor ( remoto ) se asigna al canal local.
+ *  De este modo, cuando este datalogger transmita un frame, los canales 'R' van a llevar
+ *  los valores poleados en el SLAVE.
+ *
  */
 
 #include "spx.h"

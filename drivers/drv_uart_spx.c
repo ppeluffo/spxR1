@@ -149,6 +149,7 @@ uint8_t tempCTRLA;
 void drv_set_baudrate(uint32_t baudRate, uint8_t *baudA, uint8_t *baudB, uint8_t *ctl )
 {
 #if F_CPU == 32000000
+
 	/* Set Baudrate to 115200 bps:
 	 * Use the default I/O clock frequency that is 32 MHz.
 	 * Los valores los extraigo de la planilla provista por Atmel
@@ -158,8 +159,17 @@ void drv_set_baudrate(uint32_t baudRate, uint8_t *baudA, uint8_t *baudB, uint8_t
 	 * CLK2X = 0
 	 * %error = 0,01%
 	 */
-	*baudA = (uint8_t) 2094;
-	*baudB = ( -7 << USART_BSCALE0_bp)|(2094 >> 8);
+	switch(baudRate) {
+	case 115200:
+		*baudA = (uint8_t) 2094;
+		*baudB = ( -7 << USART_BSCALE0_bp)|(2094 >> 8);
+		break;
+	case 9600:
+		*baudA = (uint8_t) 1663;
+		*baudB = ( -2 << USART_BSCALE0_bp)|(1663 >> 8);
+		break;
+	}
+
 #endif
 
 #if F_CPU == 8000000
@@ -398,6 +408,7 @@ void drv_uart_bt_open( uint32_t baudrate )
 	// TXD pin output
 	// baudrate / frame format
 	// Enable TX,RX
+	// Debe operar a 9600 para que se pueda conectar con el celular.
 
 uint8_t baudA, baudB, ctl;
 

@@ -17,6 +17,8 @@ static bool pv_data_guardar_BD( void );
 static void pv_data_signal_to_tkgprs(void);
 static void pv_data_xbee_print_frame(void);
 static void pv_data_update_remote_channels(void);
+static void pv_data_print_frame_modo_SPX(void);
+static void pv_data_print_frame_modo_SP5K(void);
 
 // VARIABLES LOCALES
 static st_data_frame pv_data_frame;
@@ -76,6 +78,7 @@ TickType_t xLastWakeTime;
 		while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 			taskYIELD();
 		waiting_ticks = (uint32_t)(systemVars.timerPoll) * 1000 / portTICK_RATE_MS;
+
 		pub_ctl_reload_timerPoll();
 		xSemaphoreGive( sem_SYSVars );
 
@@ -239,13 +242,33 @@ void pub_data_print_frame(void)
 {
 	// Imprime el frame actual en consola
 
-uint8_t channel;
-
 	// HEADER
 	xprintf_P(PSTR("frame: " ) );
 	// timeStamp.
 	xprintf_P(PSTR( "%04d%02d%02d,"),pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day );
 	xprintf_P(PSTR("%02d%02d%02d"),pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
+
+	switch ( systemVars.modo ) {
+	case MODO_SP5K:
+		pv_data_print_frame_modo_SP5K();
+		break;
+	case MODO_SPX:
+		pv_data_print_frame_modo_SPX();
+		break;
+	default:
+		pv_data_print_frame_modo_SP5K();
+		break;
+	}
+
+	// TAIL
+	xprintf_P(PSTR("\r\n\0") );
+
+}
+//------------------------------------------------------------------------------------
+static void pv_data_print_frame_modo_SPX(void)
+{
+
+uint8_t channel;
 
 	// Valores analogicos
 	// Solo muestro los que tengo configurados.
@@ -275,8 +298,27 @@ uint8_t channel;
 	// bateria
 	xprintf_P(PSTR(",BAT=%.02f"), pv_data_frame.battery );
 
-	// TAIL
-	xprintf_P(PSTR("\r\n\0") );
+}
+//------------------------------------------------------------------------------------
+static void pv_data_print_frame_modo_SP5K(void)
+{
+
+	// Este modo es compatible con el protocolo sp5K.
+	// Considero solo 3 canales analogicos y 2 canales digitales como contadores
+
+uint8_t channel;
+
+	// Valores analogicos: Solo muestro los 3 primeros.
+	for ( channel = 0; channel < 3; channel++) {
+		xprintf_P(PSTR(",%s=%.02f"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+	}
+
+	// Valores digitales. Solo muestro los canales contadores ( 1,2)
+	xprintf_P(PSTR(",%s=%.02f"),systemVars.d_ch_name[1],pv_data_frame.digital_frame.magnitud[1] );
+	xprintf_P(PSTR(",%s=%.02f"),systemVars.d_ch_name[2],pv_data_frame.digital_frame.magnitud[2] );
+
+	// bateria
+	xprintf_P(PSTR(",BAT=%.02f"), pv_data_frame.battery );
 
 }
 //------------------------------------------------------------------------------------

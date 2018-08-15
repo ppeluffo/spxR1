@@ -170,7 +170,7 @@ int8_t FF_readRcd( void *pvBuffer, uint8_t xSize )
 uint8_t rdCheckSum;
 uint16_t rdAddress;
 int8_t bytes_read = 0U;
-uint16_t rcdPos = 0;
+//uint16_t rcdPos = 0;
 
 	// Lo primero es obtener el semaforo
 	while ( xSemaphoreTake(sem_FAT, ( TickType_t ) 5 ) != pdTRUE )
@@ -188,7 +188,7 @@ uint16_t rcdPos = 0;
 	memset( FCB.rw_buffer,0xFF, FF_RECD_SIZE );
 	// EE READ:
 	// Direccion interna en la EE.(comienzo del registro / frontera)
-	rcdPos = FCB.fat.rdPTR;
+	//rcdPos = FCB.fat.rdPTR;
 	rdAddress = FF_ADDR_START + FCB.fat.rdPTR * FF_RECD_SIZE;
 	bytes_read = EE_read( rdAddress, (char *)&FCB.rw_buffer, FF_RECD_SIZE);
 	if (bytes_read == -1 )

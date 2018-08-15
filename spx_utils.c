@@ -176,10 +176,22 @@ void RTC32_ToscEnable( bool use1khz )
 //	do { } while ( RTC32_ToscBusy() );
 }
 //-----------------------------------------------------------
-void pub_load_defaults(void)
+void pub_load_defaults(modo_t modo)
 {
 
-	strncpy_P(systemVars.dlgId, PSTR("SPX000\0"),DLGID_LENGTH);
+	switch ( modo ) {
+	case MODO_SP5K:
+		systemVars.modo = MODO_SP5K;
+		break;
+	case MODO_SPX:
+		systemVars.modo = MODO_SPX;
+		break;
+	default:
+		systemVars.modo = MODO_SP5K;
+		break;
+	}
+
+	strncpy_P(systemVars.dlgId, PSTR("SPX001\0"),DLGID_LENGTH);
 	systemVars.debug = DEBUG_NONE;
 
 	// PwrSave
@@ -193,8 +205,8 @@ void pub_load_defaults(void)
 	systemVars.xbee = XBEE_OFF;
 
 	pub_analog_load_defaults();
-	pub_digital_load_defaults();
-	pub_gprs_load_defaults();
+	pub_digital_load_defaults(modo);
+	pub_gprs_load_defaults(modo);
 	pub_output_load_defaults();
 	pub_rangeMeter_load_defaults();
 

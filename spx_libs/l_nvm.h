@@ -19,7 +19,7 @@ uint8_t signature[11];
 
 #define NVMEE_read( rdAddress, data, length ) NVMEE_read_buffer (  rdAddress, data, length );
 #define NVMEE_write( wrAddress, data, length ) NVMEE_write_buffer ( wrAddress, data, length );
-void NVMEE_readID( char *str );
+char *NVMEE_readID( void );
 
 // API END
 //--------------------------------------------------------------------------------

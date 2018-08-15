@@ -13,12 +13,16 @@ static void pv_TX_init_frame(void);
 static void pv_process_server_clock(void);
 static void pv_reconfigure_params(void);
 
+static uint8_t pv_process_dlg_id(void);
 static uint8_t pv_process_pwrSave(void);
 static uint8_t pv_process_timerPoll(void);
 static uint8_t pv_process_timerDial(void);
 static uint8_t pv_process_digitalCh(uint8_t channel);
 static uint8_t pv_process_AnalogCh(uint8_t channel);
 static uint8_t pv_process_Outputs(void);
+
+static void pv_TX_init_parameters_modo_SP5K(void);
+static void pv_TX_init_parameters_modo_SPX(void);
 
 // La tarea no puede demorar mas de 180s.
 #define WDG_GPRS_TO_INIT	180
@@ -187,8 +191,6 @@ static void pv_TX_init_frame(void)
 	// Host: www.spymovil.com
 	// Connection: close\r\r ( no mando el close )
 
-uint8_t i;
-
 	if ( systemVars.debug == DEBUG_GPRS  ) {
 		xprintf_P( PSTR("GPRS: iniframe: Sent\r\n\0"));
 	}
@@ -199,12 +201,22 @@ uint8_t i;
 	pub_gprs_flush_RX_buffer();
 	pub_gprs_flush_TX_buffer();
 
-	xCom_printf_P( fdGPRS,PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV );
-	// DEBUG & LOG
-	if ( systemVars.debug ==  DEBUG_GPRS ) {
-		xprintf_P( PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV );
-	}
+	if ( systemVars.modo == MODO_SPX ) {
+		xCom_printf_P( fdGPRS,PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s&UID=%s&SIMID=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV, NVMEE_readID(), &buff_gprs_ccid );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P( PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s&UID=%s&SIMID=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV, NVMEE_readID(), &buff_gprs_ccid );
+		}
+	} else {
 
+		xCom_printf_P( fdGPRS,PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=6.0.0&UID=%s&SIMID=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, NVMEE_readID(), &buff_gprs_ccid );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P( PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=6.0.0&UID=%s&SIMID=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, NVMEE_readID(), &buff_gprs_ccid );
+		}
+
+
+	}
 	// BODY ( 1a parte) :
 	// timerpoll,timerdial
 	xCom_printf_P( fdGPRS, PSTR("&INIT&TPOLL=%d&TDIAL=%d\0"), systemVars.timerPoll,systemVars.timerDial);
@@ -220,37 +232,22 @@ uint8_t i;
 	}
 
 	// outputs,csq
-	xCom_printf_P( fdGPRS, PSTR("&OUTS=%d,%02d%02d,%02d%02d&CSQ=%d\0"),systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min,systemVars.dbm );
+	xCom_printf_P( fdGPRS, PSTR("&OUTS=%d,%02d%02d,%02d%02d&CSQ=%d\0"),systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min,systemVars.csq );
 	// DEBUG & LOG
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		xprintf_P( PSTR("&OUTS=%d,%02d%02d,%02d%02d&CSQ=%d\0"), systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min,systemVars.dbm );
+		xprintf_P( PSTR("&OUTS=%d,%02d%02d,%02d%02d&CSQ=%d\0"), systemVars.outputs.modo,systemVars.outputs.consigna_diurna.hour,systemVars.outputs.consigna_diurna.min,systemVars.outputs.consigna_nocturna.hour,systemVars.outputs.consigna_nocturna.min,systemVars.csq );
 	}
 
-	// BODY ( 2a parte) : Configuracion de canales
-	// Configuracion de canales analogicos
-	for ( i = 0; i < NRO_ANALOG_CHANNELS; i++) {
-		// No trasmito los canales que estan con X ( apagados )
-		if (!strcmp_P( systemVars.an_ch_name[i], PSTR("X"))) {
-			continue;
-		}
-		xCom_printf_P( fdGPRS,PSTR("&A%d=%s,%d,%d,%.02f,%.02f\0"), i,systemVars.an_ch_name[i],systemVars.imin[i], systemVars.imax[i], systemVars.mmin[i], systemVars.mmax[i]);
-		// DEBUG & LOG
-		if ( systemVars.debug ==  DEBUG_GPRS ) {
-			xprintf_P( PSTR("&A%d=%s,%d,%d,%.02f,%.02f\0"), i,systemVars.an_ch_name[i],systemVars.imin[i], systemVars.imax[i], systemVars.mmin[i], systemVars.mmax[i]);
-		}
-	}
-
-	// Configuracion de canales digitales
-	for (i = 0; i < NRO_DIGITAL_CHANNELS; i++) {
-		// No trasmito los canales que estan con X ( apagados )
-		if (!strcmp_P( systemVars.d_ch_name[i], PSTR("X"))) {
-			continue;
-		}
-		xCom_printf_P( fdGPRS,PSTR("&D%d=%c,%s,%.02f\0"),i, systemVars.d_ch_type[i], systemVars.d_ch_name[i], systemVars.d_ch_magpp[i] );
-		// DEBUG & LOG
-		if ( systemVars.debug ==  DEBUG_GPRS ) {
-			xprintf_P( PSTR("&D%d=%c,%s,%.02f\0"),i, systemVars.d_ch_type[i], systemVars.d_ch_name[i], systemVars.d_ch_magpp[i] );
-		}
+	switch(systemVars.modo) {
+	case MODO_SP5K:
+		pv_TX_init_parameters_modo_SP5K();
+		break;
+	case MODO_SPX:
+		pv_TX_init_parameters_modo_SPX();
+		break;
+	default:
+		pv_TX_init_parameters_modo_SP5K();
+		break;
 	}
 
 	// TAIL ( No mando el close ya que espero la respuesta y no quiero que el socket se cierre )
@@ -273,6 +270,8 @@ uint8_t saveFlag = 0;
 
 	// Proceso la respuesta del INIT para reconfigurar los parametros
 	pv_process_server_clock();
+
+	saveFlag += pv_process_dlg_id();
 
 	saveFlag += pv_process_timerPoll();
 	saveFlag += pv_process_timerDial();
@@ -358,6 +357,42 @@ int8_t xBytes;
 		xprintf_P( PSTR("GPRS: Update rtc to: %s\r\n\0"), rtcStr );
 	}
 
+}
+//------------------------------------------------------------------------------------
+static uint8_t pv_process_dlg_id(void)
+{
+	//	La linea recibida es del tipo: <h1>INIT_OK:CLOCK=1402251122:DLGID=TH001:PWRM=DISC:</h1>
+
+char *p;
+uint8_t ret = 0;
+char localStr[32];
+char *stringp;
+char *token;
+char *delim = ",=:><";
+
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "DLGID");
+	if ( p == NULL ) {
+		goto quit;
+	}
+
+	// Copio el mensaje enviado a un buffer local porque la funcion strsep lo modifica.
+	memset(localStr,'\0',32);
+	memcpy(localStr,p,sizeof(localStr));
+
+	stringp = localStr;
+	token = strsep(&stringp,delim);	// DLGID
+	token = strsep(&stringp,delim);	// TH001
+
+	strncpy(systemVars.dlgId, token,DLGID_LENGTH);
+
+	ret = 1;
+	if ( systemVars.debug == DEBUG_GPRS ) {
+		xprintf_P( PSTR("GPRS: Reconfig DLGID\r\n\0"));
+	}
+
+quit:
+
+	return(ret);
 }
 //------------------------------------------------------------------------------------
 static uint8_t pv_process_timerPoll(void)
@@ -520,7 +555,7 @@ char *chName,*s_iMin,*s_iMax,*s_mMin,*s_mMax;
 	memcpy(localStr,stringp,31);
 
 	stringp = localStr;
-	token = strsep(&stringp,delim);	//A0
+	token = strsep(&stringp,delim);		//A0
 
 	chName = strsep(&stringp,delim);	//name
 	s_iMin = strsep(&stringp,delim);	//iMin
@@ -645,3 +680,64 @@ quit:
 
 }
 //--------------------------------------------------------------------------------------
+static void pv_TX_init_parameters_modo_SP5K(void)
+{
+
+	uint8_t i;
+
+	// BODY ( 2a parte) : Configuracion de canales
+	// Configuracion de canales analogicos
+	for ( i = 0; i < 3; i++) {
+		xCom_printf_P( fdGPRS,PSTR("&A%d=%s,%d,%d,%.02f,%.02f\0"), i,systemVars.an_ch_name[i],systemVars.imin[i], systemVars.imax[i], systemVars.mmin[i], systemVars.mmax[i]);
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P( PSTR("&A%d=%s,%d,%d,%.02f,%.02f\0"), i,systemVars.an_ch_name[i],systemVars.imin[i], systemVars.imax[i], systemVars.mmin[i], systemVars.mmax[i]);
+		}
+	}
+
+	// Configuracion de canales digitales
+	xCom_printf_P( fdGPRS,PSTR("&D%d=%s,%.02f\0"),i,systemVars.d_ch_name[1], systemVars.d_ch_magpp[1] );
+	xCom_printf_P( fdGPRS,PSTR("&D%d=%s,%.02f\0"),i,systemVars.d_ch_name[2], systemVars.d_ch_magpp[2] );
+
+	// DEBUG & LOG
+	if ( systemVars.debug ==  DEBUG_GPRS ) {
+		xprintf_P( PSTR("&D%d=%s,%.02f\0"),i,systemVars.d_ch_name[1], systemVars.d_ch_magpp[1] );
+		xprintf_P( PSTR("&D%d=%s,%.02f\0"),i,systemVars.d_ch_name[2], systemVars.d_ch_magpp[2] );
+	}
+}
+//--------------------------------------------------------------------------------------
+static void pv_TX_init_parameters_modo_SPX(void)
+{
+
+uint8_t i;
+
+	// BODY ( 2a parte) : Configuracion de canales
+	// Configuracion de canales analogicos
+	for ( i = 0; i < NRO_ANALOG_CHANNELS; i++) {
+		// No trasmito los canales que estan con X ( apagados )
+		if (!strcmp_P( systemVars.an_ch_name[i], PSTR("X"))) {
+			continue;
+		}
+		xCom_printf_P( fdGPRS,PSTR("&A%d=%s,%d,%d,%.02f,%.02f\0"), i,systemVars.an_ch_name[i],systemVars.imin[i], systemVars.imax[i], systemVars.mmin[i], systemVars.mmax[i]);
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P( PSTR("&A%d=%s,%d,%d,%.02f,%.02f\0"), i,systemVars.an_ch_name[i],systemVars.imin[i], systemVars.imax[i], systemVars.mmin[i], systemVars.mmax[i]);
+		}
+	}
+
+	// Configuracion de canales digitales
+	for (i = 0; i < NRO_DIGITAL_CHANNELS; i++) {
+		// No trasmito los canales que estan con X ( apagados )
+		if (!strcmp_P( systemVars.d_ch_name[i], PSTR("X"))) {
+			continue;
+		}
+		xCom_printf_P( fdGPRS,PSTR("&D%d=%c,%s,%.02f\0"),i, systemVars.d_ch_type[i], systemVars.d_ch_name[i], systemVars.d_ch_magpp[i] );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P( PSTR("&D%d=%c,%s,%.02f\0"),i, systemVars.d_ch_type[i], systemVars.d_ch_name[i], systemVars.d_ch_magpp[i] );
+		}
+	}
+
+}
+//--------------------------------------------------------------------------------------
+

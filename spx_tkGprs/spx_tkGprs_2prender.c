@@ -14,6 +14,7 @@
 #include "spx_tkGprs.h"
 
 static void pv_gprs_readImei(void);
+static void pv_gprs_readCcid(void);
 
 // La tarea no puede demorar mas de 180s.
 #define WDG_GPRS_TO_PRENDER	180
@@ -96,6 +97,7 @@ EXIT:
 	// Ajusto la flag modem_prendido ya que termino el ciclo y el micro pueda entrar en sleep.
 	if ( exit_flag == bool_CONTINUAR ) {
 		pv_gprs_readImei();		// Leo el IMEI
+		pv_gprs_readCcid();		// Leo el CCID
 	}
 
 	return(exit_flag);
@@ -149,6 +151,65 @@ uint8_t i,j,start, end;
 EXIT:
 
 	xprintf_P( PSTR("GPRS: IMEI[%s]\r\n\0"),buff_gprs_imei);
+
+
+}
+//--------------------------------------------------------------------------------------
+static void pv_gprs_readCcid(void)
+{
+	// Leo el ccid del sim para poder trasmitirlo al server y asi
+	// llevar un control de donde esta c/sim
+	// AT+CCID
+	// +CCID: "8959801611637152574F"
+	//
+	// OK
+
+
+uint8_t i,j,start, end;
+
+	// Envio un AT+CGSN para leer el SIM ID
+	pub_gprs_flush_RX_buffer();
+	xCom_printf_P( fdGPRS,PSTR("AT+CCID\r\0"));
+	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
+	if ( systemVars.debug == DEBUG_GPRS ) {
+		pub_gprs_print_RX_Buffer();
+	}
+
+	// Leo y Evaluo la respuesta al comando AT+CCID
+	if ( pub_gprs_check_response("OK\0") ) {
+		// Extraigoel CCID del token. Voy a usar el buffer  de print ya que la respuesta
+		// Guardo
+		start = 0;
+		end = 0;
+		j = 0;
+		// Busco el primer digito
+		for ( i = 0; i < 64; i++ ) {
+			if ( isdigit( pv_gprsRxCbuffer.buffer[i]) ) {
+				start = i;
+				break;
+			}
+		}
+		if ( start == end )		// No lo pude leer.
+			goto EXIT;
+
+		// Busco el ultimo digito y copio todos
+		for ( i = start; i < 64; i++ ) {
+			if ( isdigit( pv_gprsRxCbuffer.buffer[i]) ) {
+				buff_gprs_ccid[j++] = pv_gprsRxCbuffer.buffer[i];
+				if ( j > 18) break;
+			} else {
+				break;
+			}
+		}
+
+		// El CCID que usa ANTEL es de 18 digitos.
+		buff_gprs_ccid[18] = '\0';
+	}
+
+// Exit
+EXIT:
+
+	xprintf_P( PSTR("GPRS: CCID[%s]\r\n\0"),buff_gprs_ccid);
 
 
 }

@@ -12,8 +12,6 @@ typedef enum { RISING_EDGE = 0, FALLING_EDGE } t_edge_sensing;
 
 #define MAX_RANGEMETER_STACK 32
 
-static char rangeMeter_printfBuff[CHAR64];
-
 static struct {
 	uint8_t ptr;
 	int32_t stack[MAX_RANGEMETER_STACK];

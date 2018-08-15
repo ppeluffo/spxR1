@@ -231,16 +231,31 @@ uint8_t i;
 
 }
 //------------------------------------------------------------------------------------
-void pub_digital_load_defaults(void)
+void pub_digital_load_defaults(modo_t modo)
 {
 
 	// Realiza la configuracion por defecto de los canales digitales.
 
-	// Nombres
-	snprintf_P( systemVars.d_ch_name[0], PARAMNAME_LENGTH, PSTR("L0\0") );
-	snprintf_P( systemVars.d_ch_name[1], PARAMNAME_LENGTH, PSTR("C0\0") );
-	snprintf_P( systemVars.d_ch_name[2], PARAMNAME_LENGTH, PSTR("C1\0") );
-	snprintf_P( systemVars.d_ch_name[3], PARAMNAME_LENGTH, PSTR("L1\0") );
+	switch(modo) {
+	case MODO_SP5K:
+		snprintf_P( systemVars.d_ch_name[0], PARAMNAME_LENGTH, PSTR("X\0") );
+		snprintf_P( systemVars.d_ch_name[1], PARAMNAME_LENGTH, PSTR("C0\0") );
+		snprintf_P( systemVars.d_ch_name[2], PARAMNAME_LENGTH, PSTR("C1\0") );
+		snprintf_P( systemVars.d_ch_name[3], PARAMNAME_LENGTH, PSTR("\0") );
+		break;
+	case MODO_SPX:
+		snprintf_P( systemVars.d_ch_name[0], PARAMNAME_LENGTH, PSTR("L0\0") );
+		snprintf_P( systemVars.d_ch_name[1], PARAMNAME_LENGTH, PSTR("C0\0") );
+		snprintf_P( systemVars.d_ch_name[2], PARAMNAME_LENGTH, PSTR("C1\0") );
+		snprintf_P( systemVars.d_ch_name[3], PARAMNAME_LENGTH, PSTR("L1\0") );
+		break;
+	default:
+		snprintf_P( systemVars.d_ch_name[0], PARAMNAME_LENGTH, PSTR("X\0") );
+		snprintf_P( systemVars.d_ch_name[1], PARAMNAME_LENGTH, PSTR("C0\0") );
+		snprintf_P( systemVars.d_ch_name[2], PARAMNAME_LENGTH, PSTR("C1\0") );
+		snprintf_P( systemVars.d_ch_name[3], PARAMNAME_LENGTH, PSTR("\0") );
+		break;
+	}
 
 	// Tipos
 	systemVars.d_ch_type[0] = 'L';	// JP15, D0 level

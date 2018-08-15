@@ -20,6 +20,15 @@
  *  avr-nm -n spxR1.elf | more
  *
  *------------------------------------------------------------------------------------------
+ *- 2018-08-15:
+ *- Creo un parametro el systemVars 'modo' que permite trabajar en modo SPX o SP5K.
+ *- Envio en los init el SIMID. Para que se procese la version debe ser >5.3.0 por lo que
+ *- en modo SP5K, la version pasa a ser 6.0.0 la que se envia.
+ *------------------------------------------------------------------------------------------
+ * 2018-07-26:
+ * - Enviar UID en INIT y contemplar la reconfiguracion del dlgid.
+ * - Ver cuando trasmito que el modem no este reseteado !!!
+ *------------------------------------------------------------------------------------------
  * 2018-07-24:
  * - Cuando configuro las salidas solo lo hago en el systemVars. No las aplico sino que dejo
  * que la propia tarea lo haga luego.
@@ -163,7 +172,7 @@ int main( void )
 
 	frtos_open(fdUSB, 115200);
 	frtos_open(fdGPRS, 115200);
-	frtos_open(fdBT, 9600);
+//	frtos_open(fdBT, 9600);
 	frtos_open(fdI2C, 100 );
 
 	// Creo los semaforos

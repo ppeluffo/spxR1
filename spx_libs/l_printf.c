@@ -37,6 +37,7 @@ int i;
 	va_start(args, fmt);
 	vsnprintf_P( (char *)stdout_buff,sizeof(stdout_buff),fmt,args);
 	i = frtos_write(fdUSB, (char *)stdout_buff, PRINTF_BUFFER_SIZE );
+//	i = frtos_write(fdBT, (char *)stdout_buff, PRINTF_BUFFER_SIZE );
 
 	xSemaphoreGive( sem_STDOUT );
 	return(i);
@@ -62,6 +63,7 @@ int i;
 	va_start(args, fmt);
 	vsnprintf( (char *)stdout_buff,sizeof(stdout_buff),fmt,args);
 	i = frtos_write(fdUSB, (char *)stdout_buff, PRINTF_BUFFER_SIZE );
+//	i = frtos_write(fdBT, (char *)stdout_buff, PRINTF_BUFFER_SIZE );
 
 	xSemaphoreGive( sem_STDOUT );
 	return(i);
@@ -81,6 +83,11 @@ int bytes2wr = 0;
 	frtos_ioctl (fdUSB,ioctl_OBTAIN_BUS_SEMPH, NULL );
 	bytes2wr = frtos_write( fdUSB, pvBuffer, xBytes );
 	frtos_ioctl (fdUSB,ioctl_RELEASE_BUS_SEMPH, NULL);
+
+//	frtos_ioctl (fdBT,ioctl_OBTAIN_BUS_SEMPH, NULL );
+//	bytes2wr = frtos_write( fdBT, pvBuffer, xBytes );
+//	frtos_ioctl (fdBT,ioctl_RELEASE_BUS_SEMPH, NULL);
+
 	return(bytes2wr);
 
 }

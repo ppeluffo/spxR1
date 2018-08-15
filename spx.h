@@ -57,13 +57,14 @@
 // DEFINES
 //------------------------------------------------------------------------------------
 #define SPX_FW_REV "1.0.0"
-#define SPX_FW_DATE "@ 20180724"
+#define SPX_FW_DATE "@ 20180815"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
 
 // El datalogger tiene 6 canales fisicos pero 5 disponibles
 // ya que uno esta para monitorear la bateria.
+//
 #define NRO_ANALOG_CHANNELS		5
 #define NRO_DIGITAL_CHANNELS	4
 
@@ -122,6 +123,7 @@ typedef enum { CONSIGNA_DIURNA = 0, CONSIGNA_NOCTURNA } t_consigna_aplicada;
 typedef enum { modoPWRSAVE_OFF = 0, modoPWRSAVE_ON } t_pwrSave;
 typedef enum { XBEE_OFF = 0, XBEE_MASTER, XBEE_SLAVE } t_modoXbee;
 typedef enum { USER_NORMAL, USER_TECNICO } usuario_t;
+typedef enum { MODO_SP5K, MODO_SPX } modo_t;
 //------------------------------------------------------------------------------------
 
 // Estructura para manejar la hora de aplicar las consignas
@@ -174,6 +176,8 @@ typedef struct {
 
 typedef struct {
 	// Variables de trabajo.
+
+	modo_t modo;
 
 	char dlgId[DLGID_LENGTH];
 	char apn[APN_LENGTH];
@@ -242,7 +246,7 @@ StaticSemaphore_t SYSVARS_xMutexBuffer;
 void u_configure_systemMainClock(void);
 void u_configure_RTC32(void);
 void initMCU(void);
-void pub_load_defaults(void);
+void pub_load_defaults (modo_t modo);
 uint8_t pub_save_params_in_NVMEE(void);
 bool u_load_params_from_NVMEE(void);
 void u_convert_str_to_time_t ( char *time_str, time_t *time_struct );
@@ -268,7 +272,7 @@ void pub_data_read_frame(void);
 
 // digital
 void pub_digital_read_frame( st_digital_frame * dframe, bool reset_counters );
-void pub_digital_load_defaults(void);
+void pub_digital_load_defaults(modo_t modo);
 bool pub_digital_config_channel( uint8_t channel,char *s_type, char *s_dname, char *s_magPP );
 
 // tkCtl
@@ -283,7 +287,7 @@ void pub_ctl_reload_timerPoll(void);
 int32_t pub_gprs_readTimeToNextDial(void);
 void pub_gprs_redial(void);
 void pub_gprs_config_timerdial ( char *s_timerdial );
-void pub_gprs_load_defaults(void);
+void pub_gprs_load_defaults(modo_t modo);
 bool pub_modem_prendido(void);
 
 // tkOutputs

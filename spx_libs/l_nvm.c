@@ -13,6 +13,8 @@ static void pv_NVMEE_WaitForNVM( void );
 
 static uint8_t pv_ReadSignatureByte(uint16_t Address);
 bool signature_ok = false;
+char nvmid_str[32];
+
 //------------------------------------------------------------------------------------
 // NVM EEPROM
 //------------------------------------------------------------------------------------
@@ -25,12 +27,16 @@ int bytes2wr = 0;
 
 	if ( address >= NVMEEPROM_SIZE) return(bytes2wr);
 
+	taskENTER_CRITICAL();
+
 	while (len > 0) {
 		NVMEE_write_byte(address++, *(uint8_t*)buf);
         buf = (uint8_t*)buf + 1;
         len--;
         bytes2wr++;
     }
+
+	taskEXIT_CRITICAL();
 
 	return(bytes2wr);
 }
@@ -88,11 +94,15 @@ int bytes2rd = 0;
 
 	if ( address >= NVMEEPROM_SIZE) return(bytes2rd);
 
+	taskENTER_CRITICAL();
+
 	while (len--) {
 		rb = NVMEE_ReadByte(address++);
 		*buf++ = rb;
 		bytes2rd++;
     }
+
+	taskEXIT_CRITICAL();
 
 	return(bytes2rd);
 }
@@ -137,7 +147,7 @@ static void pv_NVMEE_WaitForNVM( void )
 //------------------------------------------------------------------------------------
 // NVM ID
 //------------------------------------------------------------------------------------
-void NVMEE_readID( char *str )
+char *NVMEE_readID( void )
 {
 
 	if ( ! signature_ok ) {
@@ -154,10 +164,12 @@ void NVMEE_readID( char *str )
 		signature[ 9]=pv_ReadSignatureByte(COORDY0);
 		signature[10]=pv_ReadSignatureByte(COORDY1);
 
+		snprintf( nvmid_str, 32 ,"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\0",signature[0],signature[1],signature[2],signature[3],signature[4],signature[5],signature[6],signature[7],signature[8],signature[9],signature[10]  );
 		signature_ok = true;
+
 	}
 
-	snprintf( str, 32 ,"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",signature[0],signature[1],signature[2],signature[3],signature[4],signature[5],signature[6],signature[7],signature[8],signature[9],signature[10]  );
+	return(&nvmid_str);
 }
 //------------------------------------------------------------------------------------
 static uint8_t pv_ReadSignatureByte(uint16_t Address) {

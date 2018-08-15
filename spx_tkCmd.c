@@ -51,7 +51,6 @@ static void pv_config_modo( char *tipo_canal, char *nro_canal, char *modo );
 
 static usuario_t tipo_usuario;
 RtcTimeType_t rtc;
-char aux_buffer[32];
 
 //------------------------------------------------------------------------------------
 void tkCmd(void * pvParameters)
@@ -117,17 +116,27 @@ static void cmdStatusFunction(void)
 uint8_t channel;
 FAT_t l_fat;
 
-	xprintf_P( PSTR("\r\nSpymovil %s %s %s %s\r\n\0"), SPX_HW_MODELO, SPX_FTROS_VERSION, SPX_FW_REV, SPX_FW_DATE);
+	xprintf_P( PSTR("\r\nSpymovil %s %s %s %s \r\n\0"), SPX_HW_MODELO, SPX_FTROS_VERSION, SPX_FW_REV, SPX_FW_DATE);
 	xprintf_P( PSTR("Clock %d Mhz, Tick %d Hz\r\n\0"),SYSMAINCLK, configTICK_RATE_HZ );
 
 	// SIGNATURE ID
-	memset(aux_buffer,'\0', sizeof(aux_buffer));
-	NVMEE_readID((char *)&aux_buffer);
-	xprintf_P( PSTR("uID=%s\r\n\0"), aux_buffer);
+	xprintf_P( PSTR("uID=%s\r\n\0"), NVMEE_readID() );
 
 	// Fecha y Hora
 	pv_cmd_rwRTC( RD_CMD );
 
+	// Protocolo
+	switch(systemVars.modo) {
+	case MODO_SPX:
+		xprintf_P( PSTR("Protocolo SPX.\r\n\0" ));
+		break;
+	case MODO_SP5K:
+		xprintf_P( PSTR("Protocolo SP5K R6.0.0\r\n\0" ));
+		break;
+	default:
+		xprintf_P( PSTR("ERROR !! Protocolo desconocido.\r\n\0" ));
+		break;
+	}
 	// DlgId
 	xprintf_P( PSTR("dlgid: %s\r\n\0"), systemVars.dlgId );
 
@@ -210,9 +219,9 @@ FAT_t l_fat;
 
 	// PULSE WIDTH
 	if ( systemVars.rangeMeter_enabled ) {
-		xprintf_P( PSTR("  RangeMeter: ON\r\n"));
+		xprintf_P( PSTR("  rangeMeter: ON\r\n"));
 	} else {
-		xprintf_P( PSTR("  RangeMeter: OFF\r\n"));
+		xprintf_P( PSTR("  rangeMeter: OFF\r\n"));
 	}
 
 	// PWR SAVE:
@@ -225,50 +234,65 @@ FAT_t l_fat;
 	// OUTPUTS:
 	switch( systemVars.outputs.modo ) {
 	case OUT_OFF:
-		xprintf_P( PSTR("  Outputs: OFF\r\n"));
+		xprintf_P( PSTR("  outputs: OFF\r\n"));
 		break;
 	case OUT_CONSIGNA:
-		xprintf_P( PSTR("  Outputs: CONSIGNA(c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
+		xprintf_P( PSTR("  outputs: CONSIGNA(c_dia=%02d:%02d, c_noche=%02d:%02d)\r\n"), systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
 		break;
 	case OUT_NORMAL:
-		xprintf_P( PSTR("  Outputs: NORMAL (out_A=%d, out_B=%d)\r\n"), systemVars.outputs.out_A, systemVars.outputs.out_B );
+		xprintf_P( PSTR("  outputs: NORMAL (out_A=%d, out_B=%d)\r\n"), systemVars.outputs.out_A, systemVars.outputs.out_B );
 		break;
 	default:
-		xprintf_P( PSTR("  Outputs: ERROR(%d) (out_A=%d, out_B=%d)\r\n"), systemVars.outputs.modo, systemVars.outputs.out_A, systemVars.outputs.out_B );
+		xprintf_P( PSTR("  outputs: ERROR(%d) (out_A=%d, out_B=%d)\r\n"), systemVars.outputs.modo, systemVars.outputs.out_A, systemVars.outputs.out_B );
 		break;
 	}
 
 	// Configuracion de canales analogicos
-	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
-		if ( systemVars.a_ch_modo[channel] == 'R') {
-			xprintf_P( PSTR("  a%d(*) [%d-%d mA/ %.02f,%.02f | %04d | %s]\r\n\0"),channel, systemVars.imin[channel],systemVars.imax[channel],systemVars.mmin[channel],systemVars.mmax[channel], systemVars.coef_calibracion[channel], systemVars.an_ch_name[channel] );
-		} else {
+	if ( systemVars.modo == MODO_SPX ) {
+
+		for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
+			if ( systemVars.a_ch_modo[channel] == 'R') {
+				xprintf_P( PSTR("  a%d(*) [%d-%d mA/ %.02f,%.02f | %04d | %s]\r\n\0"),channel, systemVars.imin[channel],systemVars.imax[channel],systemVars.mmin[channel],systemVars.mmax[channel], systemVars.coef_calibracion[channel], systemVars.an_ch_name[channel] );
+			} else {
+				xprintf_P( PSTR("  a%d( ) [%d-%d mA/ %.02f,%.02f | %04d | %s]\r\n\0"),channel, systemVars.imin[channel],systemVars.imax[channel],systemVars.mmin[channel],systemVars.mmax[channel], systemVars.coef_calibracion[channel], systemVars.an_ch_name[channel] );
+			}
+		}
+
+		// Configuracion de canales digitales
+		for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
+			if ( systemVars.d_ch_modo[channel] == 'R') {
+				if ( systemVars.d_ch_type[channel] == 'C') {
+					// Los canales de contadores de pulsos 'C' muestran el factor de conversion
+					xprintf_P( PSTR("  d%d(*) [ C | %s | %.02f ]\r\n\0"),channel, systemVars.d_ch_name[channel],systemVars.d_ch_magpp[channel] );
+				} else {
+					// Los canales de nivel solo muestran el nombre.
+					xprintf_P( PSTR("  d%d(*) [ L | %s ]\r\n\0"),channel, systemVars.d_ch_name[channel] );
+				}
+
+			} else {
+
+				if ( systemVars.d_ch_type[channel] == 'C') {
+					// Los canales de contadores de pulsos 'C' muestran el factor de conversion
+					xprintf_P( PSTR("  d%d( ) [ C | %s | %.02f ]\r\n\0"),channel, systemVars.d_ch_name[channel],systemVars.d_ch_magpp[channel] );
+				} else {
+					// Los canales de nivel solo muestran el nombre.
+					xprintf_P( PSTR("  d%d( ) [ L | %s ]\r\n\0"),channel, systemVars.d_ch_name[channel] );
+				}
+
+			}
+		}
+
+	} else {
+		// Modo SP5K
+		// Canales analogicos
+		for ( channel = 0; channel < 3; channel++) {
 			xprintf_P( PSTR("  a%d( ) [%d-%d mA/ %.02f,%.02f | %04d | %s]\r\n\0"),channel, systemVars.imin[channel],systemVars.imax[channel],systemVars.mmin[channel],systemVars.mmax[channel], systemVars.coef_calibracion[channel], systemVars.an_ch_name[channel] );
 		}
-	}
 
-	// Configuracion de canales digitales
-	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-		if ( systemVars.d_ch_modo[channel] == 'R') {
-			if ( systemVars.d_ch_type[channel] == 'C') {
-				// Los canales de contadores de pulsos 'C' muestran el factor de conversion
-				xprintf_P( PSTR("  d%d(*) [ C | %s | %.02f ]\r\n\0"),channel, systemVars.d_ch_name[channel],systemVars.d_ch_magpp[channel] );
-			} else {
-				// Los canales de nivel solo muestran el nombre.
-				xprintf_P( PSTR("  d%d(*) [ L | %s ]\r\n\0"),channel, systemVars.d_ch_name[channel] );
-			}
+		// Canales digitales
+		xprintf_P( PSTR("  d0( ) [ %s | %.02f ]\r\n\0"),systemVars.d_ch_name[1],systemVars.d_ch_magpp[1] );
+		xprintf_P( PSTR("  d1( ) [ %s | %.02f ]\r\n\0"),systemVars.d_ch_name[2],systemVars.d_ch_magpp[2] );
 
-		} else {
-
-			if ( systemVars.d_ch_type[channel] == 'C') {
-				// Los canales de contadores de pulsos 'C' muestran el factor de conversion
-				xprintf_P( PSTR("  d%d( ) [ C | %s | %.02f ]\r\n\0"),channel, systemVars.d_ch_name[channel],systemVars.d_ch_magpp[channel] );
-			} else {
-				// Los canales de nivel solo muestran el nombre.
-				xprintf_P( PSTR("  d%d( ) [ L | %s ]\r\n\0"),channel, systemVars.d_ch_name[channel] );
-			}
-
-		}
 	}
 
 	// Valores actuales:
@@ -289,9 +313,11 @@ static void cmdResetFunction(void)
 
 		if (!strcmp_P( strupr(argv[2]), PSTR("SOFT\0"))) {
 			FF_format(false );
-		}
-		if (!strcmp_P( strupr(argv[2]), PSTR("HARD\0"))) {
+		} else if (!strcmp_P( strupr(argv[2]), PSTR("HARD\0"))) {
 			FF_format(true);
+		} else {
+			xprintf_P( PSTR("ERROR\r\nUSO: reset memory {hard|soft}\r\n\0"));
+			return;
 		}
 	}
 
@@ -478,9 +504,7 @@ float mag_val;
 	// SIGNATURE
 	// read id
 	if (!strcmp_P( strupr(argv[1]), PSTR("ID\0"))) {
-		memset(aux_buffer,'\0', sizeof(aux_buffer));
-		NVMEE_readID((char *)&aux_buffer);
-		xprintf_P( PSTR("uID=%s\r\n\0"), aux_buffer);
+		xprintf_P( PSTR("uID=%s\r\n\0"), NVMEE_readID() );
 		return;
 	}
 
@@ -720,7 +744,13 @@ bool retS = false;
 
 	// config default
 	if (!strcmp_P( strupr(argv[1]), PSTR("DEFAULT\0"))) {
-		pub_load_defaults();
+		if (!strcmp_P( strupr(argv[2]), PSTR("SP5K\0"))) {
+			pub_load_defaults( MODO_SP5K );
+		} else 	if (!strcmp_P( strupr(argv[2]), PSTR("SPX\0"))) {
+			pub_load_defaults( MODO_SPX );
+		} else {
+			pub_load_defaults( MODO_SP5K );
+		}
 		pv_snprintfP_OK();
 		return;
 	}
@@ -868,18 +898,22 @@ static void cmdHelpFunction(void)
 	else if (!strcmp_P( strupr(argv[1]), PSTR("CONFIG\0"))) {
 		xprintf_P( PSTR("-config\r\n\0"));
 		xprintf_P( PSTR("  user {normal|tecnico}\r\n\0"));
-		xprintf_P( PSTR("  analog {0..4} aname imin imax mmin mmax\r\n\0"));
+		xprintf_P( PSTR("  analog {0..%d} aname imin imax mmin mmax\r\n\0"),( NRO_ANALOG_CHANNELS - 1 ) );
 		xprintf_P( PSTR("  cfactor {ch} {coef}\r\n\0"));
-		xprintf_P( PSTR("  digital {0..3} type(L,C) dname magPP\r\n\0"));
-		xprintf_P( PSTR("  rangemeter {on|off}\r\n\0"));
-		xprintf_P( PSTR("  modo {analog|digital} {0..n} {local|remoto}\r\n\0"));
-		xprintf_P( PSTR("  xbee {off|master|slave}\r\n\0"));
+		xprintf_P( PSTR("  digital {0..%d} type(L,C) dname magPP\r\n\0"), ( NRO_DIGITAL_CHANNELS - 1 ) );
+
+		if ( systemVars.modo == MODO_SPX ) {
+			xprintf_P( PSTR("  rangemeter {on|off}\r\n\0"));
+			xprintf_P( PSTR("  modo {analog|digital} {0..n} {local|remoto}\r\n\0"));
+			xprintf_P( PSTR("  xbee {off|master|slave}\r\n\0"));
+		}
+
 		xprintf_P( PSTR("  outputs {off}|{consigna hhmm_dia hhmm_noche}|{normal o0 o1}\r\n\0"));
 		xprintf_P( PSTR("  timerpoll, timerdial, dlgid {name}\r\n\0"));
 		xprintf_P( PSTR("  pwrsave modo [{on|off}] [{hhmm1}, {hhmm2}]\r\n\0"));
 		xprintf_P( PSTR("  apn, port, ip, script, passwd\r\n\0"));
 		xprintf_P( PSTR("  debug {none,gprs,digital,range}\r\n\0"));
-		xprintf_P( PSTR("  default\r\n\0"));
+		xprintf_P( PSTR("  default {sp5k | spx}\r\n\0"));
 		xprintf_P( PSTR("  save\r\n\0"));
 		return;
 
@@ -1178,7 +1212,6 @@ static void pv_cmd_rwRTC(uint8_t cmd_mode )
 
 char datetime[24];
 RtcTimeType_t rtc;
-bool retS;
 int8_t xBytes;
 
 	if ( cmd_mode == WR_CMD ) {

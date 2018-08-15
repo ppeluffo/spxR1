@@ -51,7 +51,7 @@ uint8_t i2c_error_code;
 	}
 
 	if (xReturn != xBytes ) {
-		return ( -1 );
+		xReturn = -1;
 	}
 
 	frtos_ioctl( fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);
@@ -101,7 +101,7 @@ uint8_t i2c_error_code;
 	}
 
 	if (xReturn != xBytes ) {
-		return ( -1 );
+		xReturn = -1 ;
 	}
 
 	frtos_ioctl(fdI2C,ioctl_RELEASE_BUS_SEMPH, NULL);

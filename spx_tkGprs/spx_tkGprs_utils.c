@@ -122,7 +122,7 @@ void pub_gprs_modem_pwr_sw(void)
 
 }
 //------------------------------------------------------------------------------------
-void pub_gprs_load_defaults(void)
+void pub_gprs_load_defaults(modo_t modo)
 {
 
 	systemVars.timerDial = 900;
@@ -131,8 +131,18 @@ void pub_gprs_load_defaults(void)
 	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),16);
 	strncpy_P(systemVars.server_tcp_port, PSTR("80\0"),PORT_LENGTH	);
 	strncpy_P(systemVars.passwd, PSTR("spymovil123\0"),PASSWD_LENGTH);
-	strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spx.pl\0"),SCRIPT_LENGTH);
 
+	switch(modo) {
+	case MODO_SP5K:
+		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
+		break;
+	case MODO_SPX:
+		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spx.pl\0"),SCRIPT_LENGTH);
+		break;
+	default:
+		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
+		break;
+	}
 
 }
 //------------------------------------------------------------------------------------
