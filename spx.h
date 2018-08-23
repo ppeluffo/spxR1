@@ -56,11 +56,15 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "1.0.0"
-#define SPX_FW_DATE "@ 20180815"
+#define SPX_FW_REV "1.0.2"
+#define SPX_FW_DATE "@ 20180821"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
+
+//#define PROTO_SPX
+#define PROTO_SP5K
+//#define PROTO_LATAHONA
 
 // El datalogger tiene 6 canales fisicos pero 5 disponibles
 // ya que uno esta para monitorear la bateria.
@@ -97,7 +101,7 @@
 #define tkOutputs_TASK_PRIORITY		( tskIDLE_PRIORITY + 1 )
 #define tkXbee_TASK_PRIORITY		( tskIDLE_PRIORITY + 1 )
 
-#define DLGID_LENGTH		7
+#define DLGID_LENGTH		10
 #define PARAMNAME_LENGTH	5
 #define IP_LENGTH			24
 #define APN_LENGTH			32

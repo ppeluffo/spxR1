@@ -103,7 +103,8 @@ uint8_t ticks;
 			c = '\0';	// Lo borro para que luego del un CR no resetee siempre el timer.
 			// el read se bloquea 50ms. lo que genera la espera.
 			//while ( CMD_read( (char *)&c, 1 ) == 1 ) {
-			while ( frtos_read( fdUSB, (char *)&c, 1 ) == 1 ) {
+		//	while ( frtos_read( fdUSB, (char *)&c, 1 ) == 1 ) {
+			while ( ( frtos_read( fdUSB, (char *)&c, 1 ) == 1 ) || ( frtos_read( fdBT, (char *)&c, 1 ) == 1 ) ) {
 				FRTOS_CMD_process(c);
 			}
 		}

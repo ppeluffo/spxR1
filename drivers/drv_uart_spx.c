@@ -165,8 +165,9 @@ void drv_set_baudrate(uint32_t baudRate, uint8_t *baudA, uint8_t *baudB, uint8_t
 		*baudB = ( -7 << USART_BSCALE0_bp)|(2094 >> 8);
 		break;
 	case 9600:
-		*baudA = (uint8_t) 1663;
-		*baudB = ( -2 << USART_BSCALE0_bp)|(1663 >> 8);
+		// 9600
+		*baudA = (uint8_t) 3317;
+		*baudB = ( -4 << USART_BSCALE0_bp)|(3317 >> 8);
 		break;
 	}
 
