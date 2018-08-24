@@ -290,8 +290,19 @@ uint8_t modo = 0;
 	}
 
 	systemVars.outputs.modo = modo;
-	if ( param1 != NULL ) { u_convert_str_to_time_t(param1, &systemVars.outputs.consigna_diurna); }
-	if ( param2 != NULL ) { u_convert_str_to_time_t(param2, &systemVars.outputs.consigna_nocturna); }
+
+	switch ( systemVars.outputs.modo ) {
+	case OUT_OFF:
+		break;
+	case OUT_CONSIGNA:
+		if ( param1 != NULL ) { u_convert_str_to_time_t(param1, &systemVars.outputs.consigna_diurna); }
+		if ( param2 != NULL ) { u_convert_str_to_time_t(param2, &systemVars.outputs.consigna_nocturna); }
+		break;
+	case OUT_NORMAL:
+		if ( param1 != NULL ) {  ( atoi(param1) == 0 )? (systemVars.outputs.out_A = 0 ) : ( systemVars.outputs.out_A = 1 ); }
+		if ( param2 != NULL ) {  ( atoi(param2) == 0 )? (systemVars.outputs.out_B = 0 ) : ( systemVars.outputs.out_B = 1 ); }
+		break;
+	}
 
 	// Indico que se deben reinicializar las consignas
 	reinit_consignas = true;

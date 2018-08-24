@@ -900,15 +900,17 @@ static void cmdHelpFunction(void)
 		xprintf_P( PSTR("-config\r\n\0"));
 		xprintf_P( PSTR("  user {normal|tecnico}\r\n\0"));
 		xprintf_P( PSTR("  analog {0..%d} aname imin imax mmin mmax\r\n\0"),( NRO_ANALOG_CHANNELS - 1 ) );
-		xprintf_P( PSTR("  cfactor {ch} {coef}\r\n\0"));
-		xprintf_P( PSTR("  digital {0..%d} type(L,C) dname magPP\r\n\0"), ( NRO_DIGITAL_CHANNELS - 1 ) );
-
 		if ( systemVars.modo == MODO_SPX ) {
+			xprintf_P( PSTR("  cfactor {ch} {coef}\r\n\0"));
+			xprintf_P( PSTR("  digital {0..%d} type(L,C) dname magPP\r\n\0"), ( NRO_DIGITAL_CHANNELS - 1 ) );
 			xprintf_P( PSTR("  rangemeter {on|off}\r\n\0"));
 			xprintf_P( PSTR("  modo {analog|digital} {0..n} {local|remoto}\r\n\0"));
 			xprintf_P( PSTR("  xbee {off|master|slave}\r\n\0"));
 		}
+		if ( systemVars.modo == MODO_SP5K ) {
+			xprintf_P( PSTR("  digital {0,1} dname magPP\r\n\0") );
 
+		}
 		xprintf_P( PSTR("  outputs {off}|{consigna hhmm_dia hhmm_noche}|{normal o0 o1}\r\n\0"));
 		xprintf_P( PSTR("  timerpoll, timerdial, dlgid {name}\r\n\0"));
 		xprintf_P( PSTR("  pwrsave modo [{on|off}] [{hhmm1}, {hhmm2}]\r\n\0"));

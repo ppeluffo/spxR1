@@ -56,14 +56,14 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "1.0.2"
-#define SPX_FW_DATE "@ 20180821"
+#define SPX_FW_REV "1.0.4"
+#define SPX_FW_DATE "@ 20180824"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
 
-//#define PROTO_SPX
-#define PROTO_SP5K
+#define PROTO_SPX
+//#define PROTO_SP5K
 //#define PROTO_LATAHONA
 
 // El datalogger tiene 6 canales fisicos pero 5 disponibles
@@ -83,14 +83,14 @@
 #define CHAR128	128
 #define CHAR256	256
 
-#define tkCtl_STACK_SIZE		384
-#define tkCmd_STACK_SIZE		384
-#define tkData_STACK_SIZE		384
-#define tkDigital_STACK_SIZE	384
-#define tkGprs_rx_STACK_SIZE	512
-#define tkGprs_tx_STACK_SIZE	640
-#define tkOutputs_STACK_SIZE	384
-#define tkXbee_STACK_SIZE		384
+#define tkCtl_STACK_SIZE		512
+#define tkCmd_STACK_SIZE		512
+#define tkData_STACK_SIZE		512
+#define tkDigital_STACK_SIZE	512
+#define tkGprs_rx_STACK_SIZE	1024
+#define tkGprs_tx_STACK_SIZE	1024
+#define tkOutputs_STACK_SIZE	512
+#define tkXbee_STACK_SIZE		512
 
 #define tkCtl_TASK_PRIORITY	 		( tskIDLE_PRIORITY + 1 )
 #define tkCmd_TASK_PRIORITY	 		( tskIDLE_PRIORITY + 1 )
@@ -277,7 +277,8 @@ void pub_data_read_frame(void);
 // digital
 void pub_digital_read_frame( st_digital_frame * dframe, bool reset_counters );
 void pub_digital_load_defaults(modo_t modo);
-bool pub_digital_config_channel( uint8_t channel,char *s_type, char *s_dname, char *s_magPP );
+//bool pub_digital_config_channel( uint8_t channel,char *s_type, char *s_dname, char *s_magPP );
+bool pub_digital_config_channel( uint8_t channel,char *s_param0, char *s_param1, char *s_param2 );
 
 // tkCtl
 bool pub_ctl_terminal_is_on(void);

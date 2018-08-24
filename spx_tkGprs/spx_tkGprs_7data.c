@@ -231,9 +231,19 @@ static void pv_trasmitir_dataHeader( void )
 	pub_gprs_flush_TX_buffer();
 
 	// Armo el header en el buffer
-	xCom_printf_P( fdGPRS, PSTR("GET %s?DLGID=%s&PASSWD=%s&VER=%s\0"), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, SPX_FW_REV);
-	if ( systemVars.debug == DEBUG_GPRS ) {
-		xprintf_P( PSTR("GPRS: sent>GET %s?DLGID=%s&PASSWD=%s&VER=%s\r\n\0"), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, SPX_FW_REV);
+
+	if ( systemVars.modo == MODO_SPX ) {
+		xCom_printf_P( fdGPRS, PSTR("GET %s?DLGID=%s&PASSWD=%s&VER=%s\0"), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, SPX_FW_REV);
+		if ( systemVars.debug == DEBUG_GPRS ) {
+			xprintf_P( PSTR("GPRS: sent>GET %s?DLGID=%s&PASSWD=%s&VER=%s\r\n\0"), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, SPX_FW_REV);
+		}
+
+	} else {
+		// Modo emulacion SP5K
+		xCom_printf_P( fdGPRS, PSTR("GET %s?DLGID=%s&PASSWD=%s&VER=6.0.0\0"), systemVars.serverScript, systemVars.dlgId, systemVars.passwd );
+		if ( systemVars.debug == DEBUG_GPRS ) {
+			xprintf_P( PSTR("GPRS: sent>GET %s?DLGID=%s&PASSWD=%s&VER=6.0.0\r\n\0"), systemVars.serverScript, systemVars.dlgId, systemVars.passwd );
+		}
 	}
 	// Para darle tiempo a vaciar el buffer y que no se corten los datos que se estan trasmitiendo
 	// por sobreescribir el gprs_printBuff.

@@ -278,34 +278,71 @@ void pub_digital_load_defaults(modo_t modo)
 
 }
 //------------------------------------------------------------------------------------
-bool pub_digital_config_channel( uint8_t channel,char *s_type, char *s_dname, char *s_magPP )
+//bool pub_digital_config_channel( uint8_t channel,char *s_type, char *s_dname, char *s_magPP )
+bool pub_digital_config_channel( uint8_t channel,char *s_param0, char *s_param1, char *s_param2 )
 {
 
 	// {0..3} type dname magPP
+	// En modo SP5K el canal 0 corresponde al 1 y el 1 al 2. !!!!
 
 char tipo;
 bool retS = false;
 
+
+//	xprintf_P( PSTR("DEBUG1 CHANNEL: %d\r\n\0"), channel );
+//	xprintf_P( PSTR("DEBUG1 PARAM0: %s\r\n\0"), s_param0 );
+//	xprintf_P( PSTR("DEBUG1 PARAM1: %s\r\n\0"), s_param1 );
+//	xprintf_P( PSTR("DEBUG1 PARAM2: %s\r\n\0"), s_param2 );
+
 	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 		taskYIELD();
 
-	// Controlo que los parametros sean correctos.
-	if ( channel > 3 ) goto EXIT;
-	tipo = (char) (*s_type);
+	if (systemVars.modo == MODO_SP5K ) {
+		// s_param0 = NAME
+		// s_param1 = MAGPP
+		// tipo no importa porque en SP5K son siempre contadores
+		// El channel 0 corresponde al 1 y el 1 al 2 fisicamente.
+		// Channel ID
+		if ( channel > 1 ) goto EXIT;
+		channel++;
 
-	if ( ( tipo != 'L') && (tipo != 'C') ) goto EXIT;
+		// TIPO
+		systemVars.d_ch_type[channel] = 'C';
 
-	// Canal 0 y 3 solo pueden ser LEVEL.
-	if ( ( channel == 0 ) && (tipo != 'L') ) goto EXIT;
-	if ( ( channel == 3 ) && (tipo != 'L') ) goto EXIT;
+		// NOMBRE
+		pub_control_string(s_param0);
+		snprintf_P( systemVars.d_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_param0 );
 
-	systemVars.d_ch_type[channel] = tipo;
+		// MAGPP
+		if ( s_param1 != NULL ) { systemVars.d_ch_magpp[channel] = atof(s_param1); }
+		retS = true;
+		goto EXIT;
+	}
 
-	pub_control_string(s_dname);
-	snprintf_P( systemVars.d_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_dname );
-	if ( s_magPP != NULL ) { systemVars.d_ch_magpp[channel] = atof(s_magPP); }
+	if (systemVars.modo == MODO_SPX ) {
+		// s_param1 = TIPO
+		// s_param1 = NAME
+		// s_param2 = MAGPP
+		// Controlo que los parametros sean correctos.
+		// Channel ID
+		if ( channel > 3 ) goto EXIT;
 
-	retS = true;
+		// TIPO
+		tipo = (char) (*s_param0);
+		if ( ( tipo != 'L') && (tipo != 'C') ) goto EXIT;
+		// Canal 0 y 3 solo pueden ser LEVEL.
+		if ( ( channel == 0 ) && (tipo != 'L') ) goto EXIT;
+		if ( ( channel == 3 ) && (tipo != 'L') ) goto EXIT;
+		systemVars.d_ch_type[channel] = tipo;
+
+		// NAME
+		pub_control_string(s_param1);
+		snprintf_P( systemVars.d_ch_name[channel], PARAMNAME_LENGTH, PSTR("%s\0"), s_param1 );
+		if ( s_param2 != NULL ) { systemVars.d_ch_magpp[channel] = atof(s_param2); }
+
+		retS = true;
+		goto EXIT;
+	}
 
 EXIT:
 	xSemaphoreGive( sem_SYSVars );

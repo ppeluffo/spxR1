@@ -208,7 +208,7 @@ static void pv_TX_init_frame(void)
 			xprintf_P( PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=%s&UID=%s&SIMID=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, SPX_FW_REV, NVMEE_readID(), &buff_gprs_ccid );
 		}
 	} else {
-
+		// Modo emulacion SP5K
 		xCom_printf_P( fdGPRS,PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=6.0.0&UID=%s&SIMID=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, NVMEE_readID(), &buff_gprs_ccid );
 		// DEBUG & LOG
 		if ( systemVars.debug ==  DEBUG_GPRS ) {
@@ -620,11 +620,24 @@ char *chType, *chName, *s_magPP;
 	stringp = localStr;
 	token = strsep(&stringp,delim);	//D0
 
-	chType = strsep(&stringp,delim);	//tipo
-	chName = strsep(&stringp,delim);	//name
-	s_magPP = strsep(&stringp,delim);	//magPp
-	pub_digital_config_channel( channel, chType, chName, s_magPP );
-	ret = 1;
+	if ( systemVars.modo == MODO_SPX ) {
+		chType = strsep(&stringp,delim);	//tipo
+		chName = strsep(&stringp,delim);	//name
+		s_magPP = strsep(&stringp,delim);	//magPp
+		pub_digital_config_channel( channel, chType, chName, s_magPP );
+		ret = 1;
+	}
+
+	if ( systemVars.modo == MODO_SP5K ) {
+		// D0=X,1:D1=q0,1:
+		chName = strsep(&stringp,delim);	//name
+		s_magPP = strsep(&stringp,delim);	//magPp
+		chType = NULL;
+		pub_digital_config_channel( channel, chName, s_magPP, NULL );
+		ret = 1;
+	}
+
+
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: Reconfig D%d\r\n\0"), channel);
 	}
@@ -695,14 +708,14 @@ static void pv_TX_init_parameters_modo_SP5K(void)
 		}
 	}
 
-	// Configuracion de canales digitales
-	xCom_printf_P( fdGPRS,PSTR("&D%d=%s,%.02f\0"),i,systemVars.d_ch_name[1], systemVars.d_ch_magpp[1] );
-	xCom_printf_P( fdGPRS,PSTR("&D%d=%s,%.02f\0"),i,systemVars.d_ch_name[2], systemVars.d_ch_magpp[2] );
+	// Configuracion de canales digitales ( D0/D1)
+	xCom_printf_P( fdGPRS,PSTR("&D0=%s,%.02f\0"),systemVars.d_ch_name[1], systemVars.d_ch_magpp[1] );
+	xCom_printf_P( fdGPRS,PSTR("&D1=%s,%.02f\0"),systemVars.d_ch_name[2], systemVars.d_ch_magpp[2] );
 
 	// DEBUG & LOG
 	if ( systemVars.debug ==  DEBUG_GPRS ) {
-		xprintf_P( PSTR("&D%d=%s,%.02f\0"),i,systemVars.d_ch_name[1], systemVars.d_ch_magpp[1] );
-		xprintf_P( PSTR("&D%d=%s,%.02f\0"),i,systemVars.d_ch_name[2], systemVars.d_ch_magpp[2] );
+		xprintf_P( PSTR("&D0=%s,%.02f\0"),systemVars.d_ch_name[1], systemVars.d_ch_magpp[1] );
+		xprintf_P( PSTR("&D1=%s,%.02f\0"),systemVars.d_ch_name[2], systemVars.d_ch_magpp[2] );
 	}
 }
 //--------------------------------------------------------------------------------------
