@@ -81,7 +81,8 @@ void pub_gprs_config_timerdial ( char *s_timerdial )
 
 	// Controlo que este en los rangos permitidos
 	if ( (systemVars.timerDial > 0) && (systemVars.timerDial < 900) ) {
-		systemVars.timerDial = 900;
+		systemVars.timerDial = 0;
+		xprintf_P( PSTR("TDIAL warn !! Default to 0. ( continuo TDIAL=0, discreto TDIAL > 900)\r\n\0"));
 	}
 
 	xSemaphoreGive( sem_SYSVars );

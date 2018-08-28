@@ -56,8 +56,8 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "1.0.4"
-#define SPX_FW_DATE "@ 20180824"
+#define SPX_FW_REV "1.0.5"
+#define SPX_FW_DATE "@ 20180828"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
@@ -121,7 +121,7 @@ char stdout_buff[CHAR64];
 #define TK_REDIAL				0x04	//
 
 //------------------------------------------------------------------------------------
-typedef enum { DEBUG_NONE = 0, DEBUG_GPRS, DEBUG_RANGEMETER, DEBUG_DIGITAL } t_debug;
+typedef enum { DEBUG_NONE = 0, DEBUG_GPRS, DEBUG_RANGEMETER, DEBUG_DIGITAL, DEBUG_XBEE } t_debug;
 typedef enum { OUT_OFF = 0, OUT_CONSIGNA, OUT_NORMAL } t_outputs;
 typedef enum { CONSIGNA_DIURNA = 0, CONSIGNA_NOCTURNA } t_consigna_aplicada;
 typedef enum { modoPWRSAVE_OFF = 0, modoPWRSAVE_ON } t_pwrSave;

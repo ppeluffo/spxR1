@@ -213,6 +213,12 @@ FAT_t l_fat;
 	case DEBUG_DIGITAL:
 		xprintf_P( PSTR("  debug: digital\r\n\0") );
 		break;
+	case DEBUG_XBEE:
+		xprintf_P( PSTR("  debug: xbee\r\n\0") );
+		break;
+	default:
+		xprintf_P( PSTR("  debug: ???\r\n\0") );
+		break;
 	}
 
 	xprintf_P( PSTR("  timerDial: [%lu s]/%li\r\n\0"),systemVars.timerDial, pub_gprs_readTimeToNextDial() );
@@ -287,12 +293,25 @@ FAT_t l_fat;
 		// Modo SP5K
 		// Canales analogicos
 		for ( channel = 0; channel < 3; channel++) {
-			xprintf_P( PSTR("  a%d( ) [%d-%d mA/ %.02f,%.02f | %04d | %s]\r\n\0"),channel, systemVars.imin[channel],systemVars.imax[channel],systemVars.mmin[channel],systemVars.mmax[channel], systemVars.coef_calibracion[channel], systemVars.an_ch_name[channel] );
+			if ( systemVars.a_ch_modo[channel] == 'R') {
+				xprintf_P( PSTR("  a%d(*) [%d-%d mA/ %.02f,%.02f | %04d | %s]\r\n\0"),channel, systemVars.imin[channel],systemVars.imax[channel],systemVars.mmin[channel],systemVars.mmax[channel], systemVars.coef_calibracion[channel], systemVars.an_ch_name[channel] );
+			} else {
+				xprintf_P( PSTR("  a%d( ) [%d-%d mA/ %.02f,%.02f | %04d | %s]\r\n\0"),channel, systemVars.imin[channel],systemVars.imax[channel],systemVars.mmin[channel],systemVars.mmax[channel], systemVars.coef_calibracion[channel], systemVars.an_ch_name[channel] );
+			}
 		}
 
 		// Canales digitales
-		xprintf_P( PSTR("  d0( ) [ %s | %.02f ]\r\n\0"),systemVars.d_ch_name[1],systemVars.d_ch_magpp[1] );
-		xprintf_P( PSTR("  d1( ) [ %s | %.02f ]\r\n\0"),systemVars.d_ch_name[2],systemVars.d_ch_magpp[2] );
+		if ( systemVars.d_ch_modo[1] == 'R') {
+			xprintf_P( PSTR("  d0(*) [ %s | %.02f ]\r\n\0"),systemVars.d_ch_name[1],systemVars.d_ch_magpp[1] );
+		} else {
+			xprintf_P( PSTR("  d0( ) [ %s | %.02f ]\r\n\0"),systemVars.d_ch_name[1],systemVars.d_ch_magpp[1] );
+		}
+
+		if ( systemVars.d_ch_modo[2] == 'R') {
+			xprintf_P( PSTR("  d1(*) [ %s | %.02f ]\r\n\0"),systemVars.d_ch_name[2],systemVars.d_ch_magpp[2] );
+		} else {
+			xprintf_P( PSTR("  d1( ) [ %s | %.02f ]\r\n\0"),systemVars.d_ch_name[2],systemVars.d_ch_magpp[2] );
+		}
 
 	}
 
@@ -691,6 +710,9 @@ bool retS = false;
 		} else if (!strcmp_P( strupr(argv[2]), PSTR("DIGITAL\0"))) {
 			systemVars.debug = DEBUG_DIGITAL;
 			retS = true;
+		} else if (!strcmp_P( strupr(argv[2]), PSTR("XBEE\0"))) {
+			systemVars.debug = DEBUG_XBEE;
+			retS = true;
 		} else {
 			retS = false;
 		}
@@ -899,23 +921,25 @@ static void cmdHelpFunction(void)
 	else if (!strcmp_P( strupr(argv[1]), PSTR("CONFIG\0"))) {
 		xprintf_P( PSTR("-config\r\n\0"));
 		xprintf_P( PSTR("  user {normal|tecnico}\r\n\0"));
-		xprintf_P( PSTR("  analog {0..%d} aname imin imax mmin mmax\r\n\0"),( NRO_ANALOG_CHANNELS - 1 ) );
 		if ( systemVars.modo == MODO_SPX ) {
-			xprintf_P( PSTR("  cfactor {ch} {coef}\r\n\0"));
+			xprintf_P( PSTR("  analog {0..%d} aname imin imax mmin mmax\r\n\0"),( NRO_ANALOG_CHANNELS - 1 ) );
 			xprintf_P( PSTR("  digital {0..%d} type(L,C) dname magPP\r\n\0"), ( NRO_DIGITAL_CHANNELS - 1 ) );
-			xprintf_P( PSTR("  rangemeter {on|off}\r\n\0"));
-			xprintf_P( PSTR("  modo {analog|digital} {0..n} {local|remoto}\r\n\0"));
-			xprintf_P( PSTR("  xbee {off|master|slave}\r\n\0"));
 		}
-		if ( systemVars.modo == MODO_SP5K ) {
-			xprintf_P( PSTR("  digital {0,1} dname magPP\r\n\0") );
 
+		if ( systemVars.modo == MODO_SP5K ) {
+			xprintf_P( PSTR("  analog {0..2} aname imin imax mmin mmax\r\n\0") );
+			xprintf_P( PSTR("  digital {0,1} dname magPP\r\n\0") );
 		}
+
+		xprintf_P( PSTR("  cfactor {ch} {coef}\r\n\0"));
+		xprintf_P( PSTR("  rangemeter {on|off}\r\n\0"));
+		xprintf_P( PSTR("  modo {analog|digital} {0..n} {local|remoto}\r\n\0"));
+		xprintf_P( PSTR("  xbee {off|master|slave}\r\n\0"));
 		xprintf_P( PSTR("  outputs {off}|{consigna hhmm_dia hhmm_noche}|{normal o0 o1}\r\n\0"));
 		xprintf_P( PSTR("  timerpoll, timerdial, dlgid {name}\r\n\0"));
 		xprintf_P( PSTR("  pwrsave modo [{on|off}] [{hhmm1}, {hhmm2}]\r\n\0"));
 		xprintf_P( PSTR("  apn, port, ip, script, passwd\r\n\0"));
-		xprintf_P( PSTR("  debug {none,gprs,digital,range}\r\n\0"));
+		xprintf_P( PSTR("  debug {none,gprs,digital,range, xbee}\r\n\0"));
 		xprintf_P( PSTR("  default {sp5k | spx}\r\n\0"));
 		xprintf_P( PSTR("  save\r\n\0"));
 		return;
@@ -1599,11 +1623,9 @@ static void pv_cmd_rwXBEE(uint8_t cmd_mode )
 		// MSG
 		// write xbee msg
 		// Transmito el msg por el puerto del XBEE al dispositivo remoto.
-
 		if (!strcmp_P(strupr(argv[2]), PSTR("MSG\0"))) {
 			xprintf_P( PSTR("%s\r\0"),argv[3] );
-//			FreeRTOS_write( &pdUART_XBEE, cmd_printfBuff, sizeof(cmd_printfBuff) );
-
+			xCom_printf_P( fdXBEE,PSTR("%s\r\0"),argv[3] );
 			xprintf_P( PSTR("xbee_sent->%s\r\n\0"),argv[3] );
 			return;
 		}

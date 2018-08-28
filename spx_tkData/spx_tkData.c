@@ -15,8 +15,15 @@
 
 static bool pv_data_guardar_BD( void );
 static void pv_data_signal_to_tkgprs(void);
+
 static void pv_data_xbee_print_frame(void);
+static void pv_data_xbee_print_frame_SPX(void);
+static void pv_data_xbee_print_frame_SP5K(void);
+
 static void pv_data_update_remote_channels(void);
+static void pv_data_update_remote_channels_SPX(void);
+static void pv_data_update_remote_channels_SP5K(void);
+
 static void pv_data_print_frame_modo_SPX(void);
 static void pv_data_print_frame_modo_SP5K(void);
 
@@ -132,15 +139,36 @@ static void pv_data_xbee_print_frame(void)
 {
 	// Imprime el frame actual por el xbee xcom.
 
+	switch(systemVars.modo) {
+	case MODO_SP5K:
+		pv_data_xbee_print_frame_SP5K();
+		break;
+	case MODO_SPX:
+		pv_data_xbee_print_frame_SPX();
+		break;
+	default:
+		pv_data_xbee_print_frame_SP5K();
+		break;
+	}
+}
+//------------------------------------------------------------------------------------
+static void pv_data_xbee_print_frame_SPX(void)
+{
 uint8_t channel;
 
 	// Valores analogicos
 	// Solo muestro los que tengo configurados.
+
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) )
 			continue;
 
 		xCom_printf_P( fdXBEE, PSTR("%s=%.02f,"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+
+		if ( systemVars.debug ==  DEBUG_XBEE ) {
+			xprintf_P( PSTR("%s=%.02f,"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+		}
+
 	}
 
 	// Valores digitales. Lo que mostramos depende de lo que tenemos configurado
@@ -153,19 +181,71 @@ uint8_t channel;
 		// Level ?
 		if ( systemVars.d_ch_type[channel] == 'L') {
 			xCom_printf_P( fdXBEE, PSTR("%s=%d,"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
+			if ( systemVars.debug ==  DEBUG_XBEE ) {
+				xprintf_P( PSTR("%s=%d,"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
+			}
 		} else {
 		// Counter ?
 			xCom_printf_P( fdXBEE, PSTR("%s=%.02f,"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
+			if ( systemVars.debug ==  DEBUG_XBEE ) {
+				xprintf_P( PSTR("%s=%.02f,"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
+			}
 		}
 	}
 
 	// Range Meter
 	if ( systemVars.rangeMeter_enabled ) {
 		xCom_printf_P( fdXBEE, PSTR("PW=%d"), pv_data_frame.range );
+		if ( systemVars.debug ==  DEBUG_XBEE ) {
+			xprintf_P( PSTR("PW=%d"), pv_data_frame.range );
+		}
 	}
 
 	// TAIL
 	xCom_printf_P( fdXBEE, PSTR("\r\n\0") );
+
+}
+//------------------------------------------------------------------------------------
+static void pv_data_xbee_print_frame_SP5K(void)
+{
+
+	uint8_t i;
+
+	if ( systemVars.debug ==  DEBUG_XBEE ) {
+		xprintf_P( PSTR("XBEE>\0") );
+	}
+	// Canales analogicos
+	for ( i = 0; i < 3; i++) {
+		xCom_printf_P( fdXBEE, PSTR("%s=%.02f,"),systemVars.an_ch_name[i],pv_data_frame.analog_frame.mag_val[i] );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_XBEE ) {
+			xprintf_P( PSTR("%s=%.02f,"),systemVars.an_ch_name[i],pv_data_frame.analog_frame.mag_val[i] );
+		}
+	}
+
+	// Canales digitales
+	xCom_printf_P( fdXBEE, PSTR("%s=%.02f,"),systemVars.d_ch_name[1],pv_data_frame.digital_frame.magnitud[1] );
+	xCom_printf_P( fdXBEE, PSTR("%s=%.02f"),systemVars.d_ch_name[2],pv_data_frame.digital_frame.magnitud[2] );
+	// DEBUG & LOG
+	if ( systemVars.debug ==  DEBUG_XBEE ) {
+		xprintf_P( PSTR("%s=%.02f,"),systemVars.d_ch_name[1],pv_data_frame.digital_frame.magnitud[1] );
+		xprintf_P( PSTR("%s=%.02f"),systemVars.d_ch_name[2],pv_data_frame.digital_frame.magnitud[2] );
+	}
+
+	// Range Meter
+	if ( systemVars.rangeMeter_enabled ) {
+		xCom_printf_P( fdXBEE, PSTR(",PW=%d"), pv_data_frame.range );
+		if ( systemVars.debug ==  DEBUG_XBEE ) {
+			xprintf_P( PSTR(",PW=%d"), pv_data_frame.range );
+		}
+
+	}
+
+	// TAIL
+	xCom_printf_P( fdXBEE, PSTR("\r\n\0") );
+	if ( systemVars.debug ==  DEBUG_XBEE ) {
+		xprintf_P( PSTR("\r\n\0") );
+	}
 
 }
 //------------------------------------------------------------------------------------
@@ -174,6 +254,22 @@ static void pv_data_update_remote_channels(void)
 	// Para los canales que estan configurados como remotos, el valor lo leo
 	// del frame que trajo el XBEE.
 
+	switch(systemVars.modo) {
+	case MODO_SP5K:
+		pv_data_update_remote_channels_SP5K();
+		break;
+	case MODO_SPX:
+		pv_data_update_remote_channels_SPX();
+		break;
+	default:
+		pv_data_update_remote_channels_SP5K();
+		break;
+	}
+
+}
+//------------------------------------------------------------------------------------
+static void pv_data_update_remote_channels_SPX(void)
+{
 uint8_t channel;
 st_remote_values *rv;
 
@@ -199,6 +295,37 @@ st_remote_values *rv;
 			rv->digital_val[channel] = 0; // Leo una vez y pongo en 0 para detectar problemas
 		}
 	}
+}
+//------------------------------------------------------------------------------------
+static void pv_data_update_remote_channels_SP5K(void)
+{
+
+uint8_t channel;
+st_remote_values *rv;
+
+	// Leo los valores
+	rv = pub_xbee_get_remote_values_ptr();
+
+
+	// Canales analogicos
+	for ( channel = 0; channel < 3; channel++ ) {
+		if ( systemVars.a_ch_modo[channel] == 'R') {
+			pv_data_frame.analog_frame.mag_val[channel] = rv->analog_val[channel];
+			rv->analog_val[channel] = 0; // Leo una vez y pongo en 0 para detectar problemas
+		}
+	}
+
+	// Canales digitales:
+	if ( systemVars.d_ch_modo[1] == 'R') {
+		pv_data_frame.digital_frame.magnitud[1] = rv->digital_val[1];
+		rv->digital_val[1] = 0; // Leo una vez y pongo en 0 para detectar problemas
+	}
+
+	if ( systemVars.d_ch_modo[2] == 'R') {
+		pv_data_frame.digital_frame.magnitud[2] = rv->digital_val[2];
+		rv->digital_val[2] = 0; // Leo una vez y pongo en 0 para detectar problemas
+	}
+
 }
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS

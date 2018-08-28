@@ -118,19 +118,25 @@ uint8_t channel;
 		// Separo por '=' para tener el par {nombre,valor}
 		name = strsep(&token,delim2);
 		val = atof(token);
-		xprintf_P ( PSTR("NAME=%s,VAL=%.02f\r\n\0"), name,val );
+//		xprintf_P ( PSTR("NAME=%s,VAL=%.02f\r\n\0"), name,val );
 		
 		// Veo a que canal corresponde para asignarlo
 		// Empiezo por los analogicos.
 		for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++ ) {
 			if ( ( systemVars.a_ch_modo[channel] == 'R') && ( strcmp(name,systemVars.an_ch_name[channel] ) == 0 ) ) {
 				remote_val.analog_val[channel] = val;
+				if ( systemVars.debug == DEBUG_XBEE ) {
+					xprintf_P ( PSTR("RCH: NAME=%s,VAL=%.02f\r\n\0"), name,val );
+				}
 			}
 		}
 		// Sigo con los digitales
 		for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++ ) {
 			if ( ( systemVars.d_ch_modo[channel] == 'R') && ( strcmp(name,systemVars.d_ch_name[channel] ) == 0 ) ) {
 				remote_val.digital_val[channel] = val;
+				if ( systemVars.debug == DEBUG_XBEE ) {
+					xprintf_P ( PSTR("RCH: NAME=%s,VAL=%.02f\r\n\0"), name,val );
+				}
 			}
 		}
 	}

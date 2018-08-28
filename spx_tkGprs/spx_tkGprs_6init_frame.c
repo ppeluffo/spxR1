@@ -214,9 +214,8 @@ static void pv_TX_init_frame(void)
 		if ( systemVars.debug ==  DEBUG_GPRS ) {
 			xprintf_P( PSTR("GET %s?DLGID=%s&PASSWD=%s&IMEI=%s&VER=6.0.0&UID=%s&SIMID=%s\0" ), systemVars.serverScript, systemVars.dlgId, systemVars.passwd, &buff_gprs_imei, NVMEE_readID(), &buff_gprs_ccid );
 		}
-
-
 	}
+
 	// BODY ( 1a parte) :
 	// timerpoll,timerdial
 	xCom_printf_P( fdGPRS, PSTR("&INIT&TPOLL=%d&TDIAL=%d\0"), systemVars.timerPoll,systemVars.timerDial);
@@ -457,11 +456,12 @@ char *delim = ",=:><";
 
 	token = strsep(&stringp,delim);	// timerDial
 
-	pub_gprs_config_timerdial(token);
-	ret = 1;
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: Reconfig TDIAL\r\n\0"));
 	}
+
+	pub_gprs_config_timerdial(token);
+	ret = 1;
 
 quit:
 
@@ -714,6 +714,7 @@ static void pv_TX_init_parameters_modo_SP5K(void)
 
 	// DEBUG & LOG
 	if ( systemVars.debug ==  DEBUG_GPRS ) {
+		//xprintf_P( PSTR("DEBUG_sp5k\r\n\0"));
 		xprintf_P( PSTR("&D0=%s,%.02f\0"),systemVars.d_ch_name[1], systemVars.d_ch_magpp[1] );
 		xprintf_P( PSTR("&D1=%s,%.02f\0"),systemVars.d_ch_name[2], systemVars.d_ch_magpp[2] );
 	}
@@ -738,6 +739,7 @@ uint8_t i;
 		}
 	}
 
+	//xprintf_P( PSTR("DEBUG_spx\r\n\0"));
 	// Configuracion de canales digitales
 	for (i = 0; i < NRO_DIGITAL_CHANNELS; i++) {
 		// No trasmito los canales que estan con X ( apagados )

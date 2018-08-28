@@ -19,6 +19,12 @@
  *  Para ver el uso de memoria usamos
  *  avr-nm -n spxR1.elf | more
  *
+ *
+ *------------------------------------------------------------------------------------------
+ * -2018-08-27: R1.0.5
+ * - Arreglo bugs en configuracion local/online de canales digitales.
+ * - Agrego un mensaje de error al usar parametros incorrectos en TDIAL.
+ * - Arreglo bugs en xbee ( master / slave )
  *------------------------------------------------------------------------------------------
  *- 2018-08-19:
  *- Modifico funciones de l_printf para usar el BT en paralelo con USB.
@@ -177,6 +183,7 @@ int main( void )
 	frtos_open(fdUSB, 115200);
 	frtos_open(fdGPRS, 115200);
 	frtos_open(fdBT, 9600 );
+	frtos_open(fdXBEE, 9600 );
 	frtos_open(fdI2C, 100 );
 
 	// Creo los semaforos
