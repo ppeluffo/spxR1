@@ -71,12 +71,19 @@
 
 // Aplicacion a usar en modo SPX
 #ifdef PROTO_SPX
-	#define APP_SPYMOVIL
-	#ifndef APP_SPYMOVIL
-		#define APP_LATAHONA
+	#define APP_SPX_SPYMOVIL
+	#ifndef APP_SPX_SPYMOVIL
+		#define APP_SPX_LATAHONA
 	#endif
 #endif
 
+// Aplicacion a usar en modo SP5K
+#ifdef PROTO_SP5K
+//	#define APP_SP5K_SPYMOVIL
+	#ifndef APP_SP5K_SPYMOVIL
+		#define APP_SP5K_OSE
+	#endif
+#endif
 // El datalogger tiene 6 canales fisicos pero 5 disponibles
 // ya que uno esta para monitorear la bateria.
 //

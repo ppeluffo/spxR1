@@ -128,24 +128,36 @@ void pub_gprs_load_defaults(modo_t modo)
 
 	systemVars.timerDial = 900;
 
-	snprintf_P( systemVars.apn, APN_LENGTH, PSTR("SPYMOVIL.VPNANTEL\0") );
-	strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),16);
 	strncpy_P(systemVars.server_tcp_port, PSTR("80\0"),PORT_LENGTH	);
 	strncpy_P(systemVars.passwd, PSTR("spymovil123\0"),PASSWD_LENGTH);
 
 	switch(modo) {
 	case MODO_SP5K:
+#ifdef APP_SP5K_SPYMOVIL
+		snprintf_P( systemVars.apn, APN_LENGTH, PSTR("SPYMOVIL.VPNANTEL\0") );
+		strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),16);
 		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
+#endif
+#ifdef APP_SP5K_OSE
+		snprintf_P( systemVars.apn, APN_LENGTH, PSTR("STG1.VPNANTEL\0") );
+		strncpy_P(systemVars.server_ip_address, PSTR("172.27.0.26\0"),16);
+		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
+#endif
 		break;
 	case MODO_SPX:
-#ifdef APP_LATAHONA
+#ifdef APP_SPX_LATAHONA
+		snprintf_P( systemVars.apn, APN_LENGTH, PSTR("SPYMOVIL.VPNANTEL\0") );
+		strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),16);
 		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spx_th.pl\0"),SCRIPT_LENGTH);
 #endif
-#ifdef APP_SPYMOVIL
+#ifdef APP_SPX_SPYMOVIL
+		snprintf_P( systemVars.apn, APN_LENGTH, PSTR("SPYMOVIL.VPNANTEL\0") );
+		strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),16);
 		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spx.pl\0"),SCRIPT_LENGTH);
 #endif
 		break;
 	default:
+		strncpy_P(systemVars.server_ip_address, PSTR("192.168.0.9\0"),16);
 		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
 		break;
 	}

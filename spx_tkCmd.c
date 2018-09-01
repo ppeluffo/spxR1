@@ -119,17 +119,23 @@ FAT_t l_fat;
 
 	xprintf_P( PSTR("\r\nSpymovil %s %s %s %s \r\n\0"), SPX_HW_MODELO, SPX_FTROS_VERSION, SPX_FW_REV, SPX_FW_DATE);
 #ifdef PROTO_SPX
-	#ifdef APP_SPYMOVIL
+	#ifdef APP_SPX_SPYMOVIL
 		xprintf_P( PSTR("Compilacion: SPX/SPY\r\n\0") );
 	#endif
-	#ifdef APP_LATAHONA
+	#ifdef APP_SPX_LATAHONA
 		xprintf_P( PSTR("Compilacion: SPX/TAHONA\r\n\0") );
 	#endif
 #endif
 
 #ifdef PROTO_SP5K
-	xprintf_P( PSTR("Compilacion: SP5K\r\n\0") );
+	#ifdef APP_SP5K_SPYMOVIL
+		xprintf_P( PSTR("Compilacion: SP5K/SPY\r\n\0") );
+	#endif
+	#ifdef APP_SP5K_OSE
+		xprintf_P( PSTR("Compilacion: SP5K/OSE\r\n\0") );
+	#endif
 #endif
+
 	xprintf_P( PSTR("Clock %d Mhz, Tick %d Hz\r\n\0"),SYSMAINCLK, configTICK_RATE_HZ );
 
 	// SIGNATURE ID
