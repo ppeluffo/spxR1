@@ -138,7 +138,12 @@ void pub_gprs_load_defaults(modo_t modo)
 		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);
 		break;
 	case MODO_SPX:
+#ifdef APP_LATAHONA
 		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spx_th.pl\0"),SCRIPT_LENGTH);
+#endif
+#ifdef APP_SPYMOVIL
+		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/spx/spx.pl\0"),SCRIPT_LENGTH);
+#endif
 		break;
 	default:
 		strncpy_P(systemVars.serverScript, PSTR("/cgi-bin/sp5K/sp5K.pl\0"),SCRIPT_LENGTH);

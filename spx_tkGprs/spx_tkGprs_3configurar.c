@@ -230,7 +230,9 @@ static void pg_gprs_DCDMODE(void)
 	pub_gprs_flush_RX_buffer();
 	xCom_printf_P( fdGPRS,PSTR("AT&C1\r\0"));
 	vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );
-	pub_gprs_print_RX_Buffer();
+	if ( systemVars.debug == DEBUG_GPRS ) {
+		pub_gprs_print_RX_Buffer();
+	}
 
 
 }

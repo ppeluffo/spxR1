@@ -8,18 +8,18 @@
 #include "spx_tkGprs.h"
 
 static bool pv_send_init_frame(void);
-static bool pv_process_init_response(void);
+static t_init_responses pv_process_init_response(void);
 static void pv_TX_init_frame(void);
 static void pv_process_server_clock(void);
 static void pv_reconfigure_params(void);
 
-static uint8_t pv_process_dlg_id(void);
-static uint8_t pv_process_pwrSave(void);
-static uint8_t pv_process_timerPoll(void);
-static uint8_t pv_process_timerDial(void);
-static uint8_t pv_process_digitalCh(uint8_t channel);
-static uint8_t pv_process_AnalogCh(uint8_t channel);
-static uint8_t pv_process_Outputs(void);
+static uint8_t pv_gprs_config_dlg_id(void);
+static uint8_t pv_gprs_config_pwrSave(void);
+static uint8_t pv_gprs_config_timerPoll(void);
+static uint8_t pv_gprs_config_timerDial(void);
+static uint8_t pv_gprs_config_digitalCh(uint8_t channel);
+static uint8_t pv_gprs_config_AnalogCh(uint8_t channel);
+static uint8_t pv_gprs_config_Outputs(void);
 
 static void pv_TX_init_parameters_modo_SP5K(void);
 static void pv_TX_init_parameters_modo_SPX(void);
@@ -51,14 +51,29 @@ bool exit_flag = false;
 	// Intenteo MAX_INIT_TRYES procesar correctamente el INIT
 	for ( intentos = 0; intentos < MAX_INIT_TRYES; intentos++ ) {
 
-		if ( pv_send_init_frame() && pv_process_init_response() ) {		// Intento madar el frame al servidor
-			// Aqui es que anduvo todo bien y debo salir para pasar al modo DATA
-			if ( systemVars.debug == DEBUG_GPRS ) {
-				xprintf_P( PSTR("\r\nGPRS: Init frame OK.\r\n\0" ));
-			}
+		if ( pv_send_init_frame() ) {
 
-			exit_flag = true;
-			goto EXIT;
+			switch( pv_process_init_response() ) {
+			case INIT_ERROR:
+				// Reintento
+				break;
+			case INIT_SOCK_CLOSE:
+				// Reintento
+				break;
+			case INIT_OK:
+				// Aqui es que anduvo todo bien y debo salir para pasar al modo DATA
+				if ( systemVars.debug == DEBUG_GPRS ) {
+					xprintf_P( PSTR("\r\nGPRS: Init frame OK.\r\n\0" ));
+				}
+				exit_flag = true;
+				goto EXIT;
+				break;
+			case INIT_NOT_ALLOWED:
+				// Respondio bien pero debo salir a apagarme
+				exit_flag = false;
+				goto EXIT;
+				break;
+			}
 
 		} else {
 
@@ -130,27 +145,28 @@ t_socket_status socket_status;
 	return(exit_flag);
 }
 //------------------------------------------------------------------------------------
-static bool pv_process_init_response(void)
+static t_init_responses pv_process_init_response(void)
 {
+
 	// Espero la respuesta al frame de INIT.
 	// Si la recibo la proceso.
 	// Salgo por timeout 10s o por socket closed.
 
 uint8_t timeout;
-bool exit_flag = false;
+uint8_t exit_code = INIT_OK;
 
 	for ( timeout = 0; timeout < 10; timeout++) {
 
 		vTaskDelay( (portTickType)( 1000 / portTICK_RATE_MS ) );	// Espero 1s
 
 		if ( pub_gprs_check_socket_status() != SOCK_OPEN ) {		// El socket se cerro
-			exit_flag = false;
+			exit_code = INIT_SOCK_CLOSE;
 			goto EXIT;
 		}
 
 		if ( pub_gprs_check_response("ERROR") ) {	// Recibi un ERROR de respuesta
 			pub_gprs_print_RX_Buffer();
-			exit_flag = false;
+			exit_code = INIT_ERROR;
 			goto EXIT;
 		}
 
@@ -161,9 +177,16 @@ bool exit_flag = false;
 			} else {
 				pub_gprs_print_RX_response();
 			}
+
 			if ( pub_gprs_check_response("INIT_OK") ) {	// Respuesta correcta
 				pv_reconfigure_params();
-				exit_flag = true;
+				exit_code = INIT_OK;
+				goto EXIT;
+			}
+
+			if ( pub_gprs_check_response("NOT_ALLOWED") ) {	// Datalogger esta usando un script incorrecto
+				xprintf_P( PSTR("GPRS: SCRIPT ERROR !!.\r\n\0" ));
+				exit_code = INIT_NOT_ALLOWED;
 				goto EXIT;
 			}
 		}
@@ -173,7 +196,7 @@ bool exit_flag = false;
 // Exit:
 EXIT:
 
-	return(exit_flag);
+	return(exit_code);
 
 }
 //------------------------------------------------------------------------------------
@@ -270,27 +293,27 @@ uint8_t saveFlag = 0;
 	// Proceso la respuesta del INIT para reconfigurar los parametros
 	pv_process_server_clock();
 
-	saveFlag += pv_process_dlg_id();
+	saveFlag += pv_gprs_config_dlg_id();
 
-	saveFlag += pv_process_timerPoll();
-	saveFlag += pv_process_timerDial();
-	saveFlag += pv_process_pwrSave();
+	saveFlag += pv_gprs_config_timerPoll();
+	saveFlag += pv_gprs_config_timerDial();
+	saveFlag += pv_gprs_config_pwrSave();
 
 	// Canales analogicos.
-	saveFlag += pv_process_AnalogCh(0);
-	saveFlag += pv_process_AnalogCh(1);
-	saveFlag += pv_process_AnalogCh(2);
-	saveFlag += pv_process_AnalogCh(3);
-	saveFlag += pv_process_AnalogCh(4);
+	saveFlag += pv_gprs_config_AnalogCh(0);
+	saveFlag += pv_gprs_config_AnalogCh(1);
+	saveFlag += pv_gprs_config_AnalogCh(2);
+	saveFlag += pv_gprs_config_AnalogCh(3);
+	saveFlag += pv_gprs_config_AnalogCh(4);
 
 	// Canales digitales
-	saveFlag += pv_process_digitalCh(0);
-	saveFlag += pv_process_digitalCh(1);
-	saveFlag += pv_process_digitalCh(2);
-	saveFlag += pv_process_digitalCh(3);
+	saveFlag += pv_gprs_config_digitalCh(0);
+	saveFlag += pv_gprs_config_digitalCh(1);
+	saveFlag += pv_gprs_config_digitalCh(2);
+	saveFlag += pv_gprs_config_digitalCh(3);
 
 	// Outputs/Consignas
-	saveFlag += pv_process_Outputs();
+	saveFlag += pv_gprs_config_Outputs();
 
 	if ( saveFlag > 0 ) {
 
@@ -358,7 +381,7 @@ int8_t xBytes;
 
 }
 //------------------------------------------------------------------------------------
-static uint8_t pv_process_dlg_id(void)
+static uint8_t pv_gprs_config_dlg_id(void)
 {
 	//	La linea recibida es del tipo: <h1>INIT_OK:CLOCK=1402251122:DLGID=TH001:PWRM=DISC:</h1>
 
@@ -394,7 +417,7 @@ quit:
 	return(ret);
 }
 //------------------------------------------------------------------------------------
-static uint8_t pv_process_timerPoll(void)
+static uint8_t pv_gprs_config_timerPoll(void)
 {
 //	La linea recibida es del tipo: <h1>INIT_OK:CLOCK=1402251122:TPOLL=600:PWRM=DISC:</h1>
 
@@ -431,7 +454,7 @@ quit:
 	return(ret);
 }
 //------------------------------------------------------------------------------------
-static uint8_t pv_process_timerDial(void)
+static uint8_t pv_gprs_config_timerDial(void)
 {
 	//	La linea recibida es del tipo: <h1>INIT_OK:CLOCK=1402251122:TPOLL=600:TDIAL=10300:PWRM=DISC:CD=1230:CN=0530</h1>
 
@@ -468,7 +491,7 @@ quit:
 	return(ret);
 }
 //------------------------------------------------------------------------------------
-static uint8_t pv_process_pwrSave(void)
+static uint8_t pv_gprs_config_pwrSave(void)
 {
 //	La linea recibida es del tipo:
 //	<h1>INIT_OK:CLOCK=1402251122:TPOLL=600:TDIAL=10300:PWRS=1,2230,0600:D0=q0,1.00:D1=q1,1.00</h1>
@@ -511,7 +534,7 @@ quit:
 
 }
 //--------------------------------------------------------------------------------------
-static uint8_t pv_process_AnalogCh(uint8_t channel)
+static uint8_t pv_gprs_config_AnalogCh(uint8_t channel)
 {
 //	La linea recibida es del tipo:
 //	<h1>INIT_OK:CLOCK=1402251122:TPOLL=600:TDIAL=10300:PWRM=DISC:A0=pA,0,20,0,6:A1=pB,0,20,0,10:A2=pC,0,20,0,10:D0=q0,1.00:D1=q1,1.00</h1>
@@ -573,7 +596,7 @@ quit:
 	return(ret);
 }
 //--------------------------------------------------------------------------------------
-static uint8_t pv_process_digitalCh(uint8_t channel)
+static uint8_t pv_gprs_config_digitalCh(uint8_t channel)
 {
 
 //	La linea recibida es del tipo:
@@ -648,7 +671,7 @@ quit:
 
 }
 //--------------------------------------------------------------------------------------
-static uint8_t pv_process_Outputs(void)
+static uint8_t pv_gprs_config_Outputs(void)
 {
 	// La linea recibida es del tipo:
 	// <h1>INIT_OK:OUTS=modo,param1,param2:</h1>
@@ -685,7 +708,8 @@ char *p;
 	ret = 1;
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
-		xprintf_P( PSTR("GPRS: Reconfig OUTPUTS (p0=%s,p1=%s,p2=%s)\r\n\0"), p0, p1,p2);
+	//	xprintf_P( PSTR("GPRS: Reconfig OUTPUTS (p0=%s,p1=%s,p2=%s)\r\n\0"), p0, p1,p2);
+		xprintf_P( PSTR("GPRS: Reconfig OUTPUTS\r\n\0"));
 	}
 
 quit:

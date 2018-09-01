@@ -94,10 +94,6 @@ uint8_t wdg;
 	// Leo los parametros del la EE y si tengo error, cargo por defecto
 	if ( ! u_load_params_from_NVMEE() ) {
 
-#ifdef PROTO_LATAHONA
-		pub_load_defaults( MODO_SPX );
-#endif
-
 #ifdef PROTO_SPX
 		pub_load_defaults( MODO_SPX );
 #endif

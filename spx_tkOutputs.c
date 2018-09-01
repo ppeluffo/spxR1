@@ -299,7 +299,9 @@ uint8_t modo = 0;
 		if ( param2 != NULL ) { u_convert_str_to_time_t(param2, &systemVars.outputs.consigna_nocturna); }
 		break;
 	case OUT_NORMAL:
+		systemVars.outputs.out_A = 0;
 		if ( param1 != NULL ) {  ( atoi(param1) == 0 )? (systemVars.outputs.out_A = 0 ) : ( systemVars.outputs.out_A = 1 ); }
+		systemVars.outputs.out_B = 0;
 		if ( param2 != NULL ) {  ( atoi(param2) == 0 )? (systemVars.outputs.out_B = 0 ) : ( systemVars.outputs.out_B = 1 ); }
 		break;
 	}
@@ -350,18 +352,17 @@ void pub_output_set_consigna_nocturna(void)
 void pub_output_set_outputs( char id_output, uint8_t value)
 {
 
-/*
 	switch(id_output) {
 	case 'A':
-		( value == 0 ) ? OUT_valve('A', CLOSE,0 ): OUT_valve('A', OPEN,0 );
+		( value == 0 ) ? OUT_driver( id_output, OUT_SET_10 ): OUT_driver( id_output, OUT_SET_01 );
 		systemVars.outputs.out_A = value;
 		break;
 	case 'B':
-		( value == 0 ) ? OUT_valve('B', CLOSE,0 ): OUT_valve('B', OPEN,0 );
+		( value == 0 ) ? OUT_driver( id_output, OUT_SET_10 ): OUT_driver( id_output, OUT_SET_01 );
 		systemVars.outputs.out_B = value;
 		break;
 	}
-*/
+
 	xprintf_P( PSTR("OUTPUTS: Set out_%c=%d\r\n\0"),id_output,value );
 
 }

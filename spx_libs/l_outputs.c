@@ -212,7 +212,7 @@ int xRet = -1;
 			// Saco al driver 8814 de reposo.
 			OUT_reset_pin(1);				// El reset y sleep son pines comunes
 			OUT_sleep_pin(1);
-			OUT_phase_pin(driver_id, 1);	// SET_10: xOUT1 = 1, xOUT2 = 0 ( APERTURA )
+			OUT_phase_pin(driver_id, 0);	// SET_01: xOUT1 = 0, xOUT2 = 1 ( APERTURA )
 			OUT_enable_pin(driver_id, 1);
 			vTaskDelay( ( TickType_t)( duracion / portTICK_RATE_MS ) );
 			// Pongo el 8814 en reposo
@@ -225,7 +225,7 @@ int xRet = -1;
 			// Saco al driver 8814 de reposo.
 			OUT_reset_pin(1);				// El reset y sleep son pines comunes
 			OUT_sleep_pin(1);
-			OUT_phase_pin(driver_id, 0);	// SET_01: xOUT1 = 0, xOUT2 = 1	( CIERRE )
+			OUT_phase_pin(driver_id, 1);	// SET_10: xOUT1 = 1, xOUT2 = 0	( CIERRE )
 			OUT_enable_pin(driver_id, 1);
 			vTaskDelay( ( TickType_t)( duracion / portTICK_RATE_MS ) );
 			// Pongo el 8814 en reposo

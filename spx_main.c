@@ -21,6 +21,12 @@
  *
  *
  *------------------------------------------------------------------------------------------
+ * -2018-08-31: R1.0.6
+ * - Ajusto las salidas para que sea coherente con el esquema de los SP5K.
+ * - La configuracion de las salidas a modo normal las deja por defecto en 0 y no las cambia.
+ * - Para cambiarlas debo usar el comando write.
+ * - Los canales se configuran como remotos solo si xbee esta en slave.
+ *------------------------------------------------------------------------------------------
  * -2018-08-27: R1.0.5
  * - Arreglo bugs en configuracion local/online de canales digitales.
  * - Agrego un mensaje de error al usar parametros incorrectos en TDIAL.

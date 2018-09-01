@@ -387,6 +387,7 @@ static void pv_process_response_OUTS(void)
 {
 	// Recibi algo del estilo >RX_OK:285:OUTS=1,0.
 	// Extraigo el valor de las salidas y las seteo.
+	// Es valido solo si las salidas estan configuradas para modo NORMAL.
 
 char localStr[32];
 char *stringp;
@@ -409,21 +410,23 @@ uint8_t out_A,out_B;
 	token = strsep(&stringp,delim);	//OUTS
 
 	p1 = strsep(&stringp,delim);	// out0
-	out_A = atoi(p1);
 	p2 = strsep(&stringp,delim); 	// out1
+
+	out_A = atoi(p1);
+	pub_output_set_outputs('A', out_A);
+	//( out_A == 0 )? ( systemVars.outputs.out_A = 0 ) : ( systemVars.outputs.out_A = 1);
 	out_B = atoi(p2);
+	pub_output_set_outputs('B', out_B);
+	//( out_B == 0 )? ( systemVars.outputs.out_B = 0 ) : ( systemVars.outputs.out_B = 1);
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: processOUTS %d %d\r\n\0"), out_A, out_B);
 	}
 
-	if ( ( systemVars.outputs.out_A != out_A ) || ( systemVars.outputs.out_B != out_B )) {
+//	if ( ( systemVars.outputs.out_A != out_A ) || ( systemVars.outputs.out_B != out_B )) {
 		// Mando una señal a la tarea de OUTPUTS para que procese ensegida el cambio.
 		//f_send_signal = true;
-	}
-
-	systemVars.outputs.out_A = out_A;
-	systemVars.outputs.out_B = out_B;
+//	}
 
 }
 //------------------------------------------------------------------------------------
@@ -532,7 +535,8 @@ FAT_t l_fat;
 	// Valores digitales. Lo que mostramos depende de lo que tenemos configurado
 	// Niveles logicos.
 	for ( channel = 0; channel < NRO_DIGITAL_CHANNELS; channel++) {
-		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) ) {
+
+		if ( ! strcmp ( systemVars.d_ch_name[channel], "X" ) ) {
 			continue;
 		}
 		// Level ?

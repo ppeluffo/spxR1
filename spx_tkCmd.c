@@ -118,6 +118,18 @@ uint8_t channel;
 FAT_t l_fat;
 
 	xprintf_P( PSTR("\r\nSpymovil %s %s %s %s \r\n\0"), SPX_HW_MODELO, SPX_FTROS_VERSION, SPX_FW_REV, SPX_FW_DATE);
+#ifdef PROTO_SPX
+	#ifdef APP_SPYMOVIL
+		xprintf_P( PSTR("Compilacion: SPX/SPY\r\n\0") );
+	#endif
+	#ifdef APP_LATAHONA
+		xprintf_P( PSTR("Compilacion: SPX/TAHONA\r\n\0") );
+	#endif
+#endif
+
+#ifdef PROTO_SP5K
+	xprintf_P( PSTR("Compilacion: SP5K\r\n\0") );
+#endif
 	xprintf_P( PSTR("Clock %d Mhz, Tick %d Hz\r\n\0"),SYSMAINCLK, configTICK_RATE_HZ );
 
 	// SIGNATURE ID
@@ -474,8 +486,11 @@ static void cmdWriteFunction(void)
 	// write outputs {x,x}
 	// Debo esperar para que se carguen los condensadores
 	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUTS\0")) && ( tipo_usuario == USER_TECNICO) ) {
+		if ( systemVars.outputs.modo != OUT_NORMAL ) {
+			xprintf_P( PSTR("ERROR\r\nOutput mode no compatible!!\r\n\0"));
+			return;
+		}
 		pub_output_set_outputs( 'A', atoi(argv[2]) );
-		vTaskDelay( ( TickType_t)( 3000 / portTICK_RATE_MS ) );
 		pub_output_set_outputs( 'B', atoi(argv[3]) );
 		pv_snprintfP_OK();
 		return;
@@ -772,7 +787,15 @@ bool retS = false;
 		} else 	if (!strcmp_P( strupr(argv[2]), PSTR("SPX\0"))) {
 			pub_load_defaults( MODO_SPX );
 		} else {
-			pub_load_defaults( MODO_SP5K );
+
+#ifdef PROTO_SPX
+		pub_load_defaults( MODO_SPX );
+#endif
+
+#ifdef PROTO_SP5K
+		pub_load_defaults( MODO_SP5K );
+#endif
+
 		}
 		pv_snprintfP_OK();
 		return;
@@ -879,6 +902,7 @@ static void cmdHelpFunction(void)
 			xprintf_P( PSTR("  out { (enable|disable),(set|reset),(sleep|awake),(ph01|ph10) } {A/B}\r\n\0"));
 			xprintf_P( PSTR("      valve (open|close) (A|B) (ms)\r\n\0"));
 			xprintf_P( PSTR("      power {on|off}\r\n\0"));
+			xprintf_P( PSTR("  outputs (0|1) (0|1)\r\n\0"));
 			xprintf_P( PSTR("  gprs (pwr|sw|cts|dtr) {on|off}\r\n\0"));
 			xprintf_P( PSTR("      cmd {atcmd}, redial\r\n\0"));
 			xprintf_P( PSTR("  xbee (pwr|sleep|reset) {on|off}\r\n\0"));
@@ -935,7 +959,7 @@ static void cmdHelpFunction(void)
 		xprintf_P( PSTR("  rangemeter {on|off}\r\n\0"));
 		xprintf_P( PSTR("  modo {analog|digital} {0..n} {local|remoto}\r\n\0"));
 		xprintf_P( PSTR("  xbee {off|master|slave}\r\n\0"));
-		xprintf_P( PSTR("  outputs {off}|{consigna hhmm_dia hhmm_noche}|{normal o0 o1}\r\n\0"));
+		xprintf_P( PSTR("  outputs {off}|{normal}|{consigna hhmm_dia hhmm_noche}\r\n\0"));
 		xprintf_P( PSTR("  timerpoll, timerdial, dlgid {name}\r\n\0"));
 		xprintf_P( PSTR("  pwrsave modo [{on|off}] [{hhmm1}, {hhmm2}]\r\n\0"));
 		xprintf_P( PSTR("  apn, port, ip, script, passwd\r\n\0"));
@@ -1687,7 +1711,18 @@ uint8_t channel;
 //------------------------------------------------------------------------------------
 static void pv_config_modo( char *tipo_canal, char *nro_canal, char *modo )
 {
+
+	// Configura el modo de los canales como LOCAL o REMOTO.
+	// Los canales remotos son solo si el XBEE esta en SLAVE.
+	// En MASTER u OFF no se configuran
+
 uint8_t channel;
+
+	if ( systemVars.xbee != XBEE_SLAVE ) {
+		xprintf_P( PSTR("Debe configurar xbee a modo remoto !!\r\n\0"));
+		return;
+	}
+
 
 	channel = atoi(nro_canal);
 

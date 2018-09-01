@@ -36,6 +36,7 @@ char buff_gprs_ccid[IMEIBUFFSIZE];
 
 typedef enum { G_ESPERA_APAGADO = 0, G_PRENDER, G_CONFIGURAR, G_MON_SQE, G_GET_IP, G_INIT_FRAME, G_DATA } t_gprs_states;
 typedef enum { SOCK_CLOSED = 0, SOCK_OPEN, SOCK_ERROR } t_socket_status;
+typedef enum { INIT_ERROR = 0, INIT_SOCK_CLOSE, INIT_OK, INIT_NOT_ALLOWED } t_init_responses;
 
 struct {
 	bool modem_prendido;

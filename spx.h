@@ -56,15 +56,26 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "1.0.5"
-#define SPX_FW_DATE "@ 20180828"
+#define SPX_FW_REV "1.0.6"
+#define SPX_FW_DATE "@ 20180901"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
 
+// Compatibilidad del protocolo
 #define PROTO_SPX
-//#define PROTO_SP5K
-//#define PROTO_LATAHONA
+
+#ifndef PROTO_SPX
+	#define PROTO_SP5K
+#endif
+
+// Aplicacion a usar en modo SPX
+#ifdef PROTO_SPX
+	#define APP_SPYMOVIL
+	#ifndef APP_SPYMOVIL
+		#define APP_LATAHONA
+	#endif
+#endif
 
 // El datalogger tiene 6 canales fisicos pero 5 disponibles
 // ya que uno esta para monitorear la bateria.
