@@ -17,7 +17,7 @@
 #define MAX_IP_QUERIES 			4	// Intentos de conseguir una IP
 #define MAX_INIT_TRYES			4	// Intentos de procesar un frame de INIT
 #define MAX_TRYES_OPEN_SOCKET	4 	// Intentos de abrir un socket
-#define MAX_RCDS_WINDOW_SIZE	10	// Maximos registros enviados en un bulk de datos
+#define MAX_RCDS_WINDOW_SIZE	8	// Maximos registros enviados en un bulk de datos
 #define MAX_TX_WINDOW_TRYES		4	// Intentos de enviar el mismo paquete de datos
 
 // Datos del buffer local de recepcion de datos del GPRS.

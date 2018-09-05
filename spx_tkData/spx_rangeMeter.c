@@ -211,7 +211,7 @@ uint8_t i, items;
 		}
 
 		if ( systemVars.debug == DEBUG_RANGEMETER ) {
-			xprintf_P( PSTR("RANGE: [%02d][%02d] %d %lu"), i,items,s_rangeMeter_stack.stack[i], sum );
+			xprintf_P( PSTR("RANGE: [%02d][%02d] %d %lu\r\n\0"), i,items,s_rangeMeter_stack.stack[i], sum );
 		}
 	}
 	*avg = (uint16_t) (sum / items);

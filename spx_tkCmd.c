@@ -25,6 +25,7 @@ static void cmdReadFunction(void);
 static void cmdStatusFunction(void);
 static void cmdConfigFunction(void);
 static void cmdKillFunction(void);
+static void cmdPokeFunction(void);
 
 static void pv_cmd_INA(uint8_t cmd_mode );
 static void pv_cmd_sens12V(void);
@@ -43,6 +44,7 @@ static void pv_cmd_range(void);
 static void pv_cmd_rwXBEE(uint8_t cmd_mode );
 static void pv_cmd_rwACH(uint8_t cmd_mode );
 static void pv_config_modo( char *tipo_canal, char *nro_canal, char *modo );
+static void pv_init_ptr_sv(void);
 
 #define WR_CMD 0
 #define RD_CMD 1
@@ -51,6 +53,7 @@ static void pv_config_modo( char *tipo_canal, char *nro_canal, char *modo );
 
 static usuario_t tipo_usuario;
 RtcTimeType_t rtc;
+void *ptr_sv[50];
 
 //------------------------------------------------------------------------------------
 void tkCmd(void * pvParameters)
@@ -76,6 +79,7 @@ uint8_t ticks;
 	FRTOS_CMD_register( "status\0", cmdStatusFunction );
 	FRTOS_CMD_register( "config\0", cmdConfigFunction );
 	FRTOS_CMD_register( "kill\0", cmdKillFunction );
+	FRTOS_CMD_register( "poke\0", cmdPokeFunction );
 
 	// Fijo el timeout del READ
 	ticks = 5;
@@ -83,6 +87,8 @@ uint8_t ticks;
 	frtos_ioctl( fdBT,ioctl_SET_TIMEOUT, &ticks );
 
 	tipo_usuario = USER_TECNICO;
+
+	pv_init_ptr_sv();
 
 	xprintf_P( PSTR("starting tkCmd..\r\n\0") );
 
@@ -932,7 +938,7 @@ static void cmdHelpFunction(void)
 			xprintf_P( PSTR("  ach {0..4}, battery\r\n\0"));
 			xprintf_P( PSTR("  din\r\n\0"));
 			xprintf_P( PSTR("  gprs (rsp,rts,dcd,ri)\r\n\0"));
-			xprintf_P( PSTR("  pulse\r\n\0"));
+			xprintf_P( PSTR("  pulses\r\n\0"));
 		}
 		return;
 
@@ -1053,6 +1059,37 @@ static void cmdKillFunction(void)
 
 	pv_snprintfP_OK();
 	return;
+}
+//------------------------------------------------------------------------------------
+static void cmdPokeFunction(void)
+{
+	// Guarda una variable en la memoria
+	// Es para usar para programar todo el systemVars desde un programa externo.
+
+	// poke 1 c DLG01
+
+uint8_t address;
+char var_type;
+
+	FRTOS_CMD_makeArgv();
+
+	address = atoi(argv[1]);
+	var_type = ( char ) argv[2][0];
+
+	switch( var_type ) {
+	case 'i':
+//		ptr_sv[address] = atoi(argv[3]);
+		break;
+	case 'c':
+//		strcpy( ptr_sv[address], &argv[3]);
+		break;
+	case 'f':
+//		ptr_sv[address] = atof(argv[3]);
+		break;
+	}
+
+	xprintf_P( PSTR("ADDR=%d, TYPE=%c, VALUE=%c\r\n\0"), address, var_type, argv[3]);
+	xprintf_P( PSTR("ok\r\n\0"));
 }
 //------------------------------------------------------------------------------------
 static void pv_snprintfP_OK(void )
@@ -1765,6 +1802,54 @@ uint8_t channel;
 			}
 		}
 	}
+
+}
+//------------------------------------------------------------------------------------
+static void pv_init_ptr_sv(void)
+{
+	ptr_sv[0] = (char *)&systemVars.dlgId;
+	ptr_sv[1] = (char *)&systemVars.apn;
+	ptr_sv[2] = (char *)&systemVars.server_tcp_port;
+	ptr_sv[3] = (char *)&systemVars.server_ip_address;
+	ptr_sv[4] = (char *)&systemVars.serverScript;
+	ptr_sv[5] = (char *)&systemVars.passwd;
+
+	// Canales analogicos
+	ptr_sv[6] = (uint16_t *)&systemVars.coef_calibracion[0];
+	ptr_sv[7] = (uint16_t *)&systemVars.coef_calibracion[1];
+	ptr_sv[8] = (uint16_t *)&systemVars.coef_calibracion[2];
+	ptr_sv[9] = (uint16_t *)&systemVars.coef_calibracion[3];
+	ptr_sv[10] = (uint16_t *)&systemVars.coef_calibracion[4];
+	ptr_sv[11] = (uint8_t *)&systemVars.imin[0];
+	ptr_sv[12] = (uint8_t *)&systemVars.imin[1];
+	ptr_sv[13] = (uint8_t *)&systemVars.imin[2];
+	ptr_sv[14] = (uint8_t *)&systemVars.imin[3];
+	ptr_sv[15] = (uint8_t *)&systemVars.imin[4];
+	ptr_sv[16] = (uint8_t *)&systemVars.imax[0];
+	ptr_sv[17] = (uint8_t *)&systemVars.imax[1];
+	ptr_sv[18] = (uint8_t *)&systemVars.imax[2];
+	ptr_sv[19] = (uint8_t *)&systemVars.imax[3];
+	ptr_sv[20] = (uint8_t *)&systemVars.imax[4];
+	ptr_sv[21] = (float *)&systemVars.mmin[0];
+	ptr_sv[22] = (float *)&systemVars.mmin[1];
+	ptr_sv[23] = (float *)&systemVars.mmin[2];
+	ptr_sv[24] = (float *)&systemVars.mmin[3];
+	ptr_sv[25] = (float *)&systemVars.mmin[4];
+	ptr_sv[26] = (float *)&systemVars.mmax[0];
+	ptr_sv[27] = (float *)&systemVars.mmax[1];
+	ptr_sv[28] = (float *)&systemVars.mmax[2];
+	ptr_sv[29] = (float *)&systemVars.mmax[3];
+	ptr_sv[30] = (float *)&systemVars.mmax[4];
+	ptr_sv[31] = (char *)&systemVars.an_ch_name[0];
+	ptr_sv[32] = (char *)&systemVars.an_ch_name[1];
+	ptr_sv[33] = (char *)&systemVars.an_ch_name[2];
+	ptr_sv[34] = (char *)&systemVars.an_ch_name[3];
+	ptr_sv[35] = (char *)&systemVars.an_ch_name[4];
+	ptr_sv[36] = (char *)&systemVars.a_ch_modo[0];
+	ptr_sv[37] = (char *)&systemVars.a_ch_modo[1];
+	ptr_sv[38] = (char *)&systemVars.a_ch_modo[2];
+	ptr_sv[39] = (char *)&systemVars.a_ch_modo[3];
+	ptr_sv[40] = (char *)&systemVars.a_ch_modo[4];
 
 }
 //------------------------------------------------------------------------------------

@@ -54,6 +54,9 @@ TickType_t xLastWakeTime;
     // Initialise the xLastWakeTime variable with the current time.
     xLastWakeTime = xTaskGetTickCount();
 
+    // Inicializo el sistema de medida de ancho de pulsos
+    pub_rangeMeter_init();
+
     // Al arrancar poleo a los 10s
     waiting_ticks = (uint32_t)(10) * 1000 / portTICK_RATE_MS;
 

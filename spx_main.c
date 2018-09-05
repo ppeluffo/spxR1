@@ -19,7 +19,10 @@
  *  Para ver el uso de memoria usamos
  *  avr-nm -n spxR1.elf | more
  *
- *
+ *------------------------------------------------------------------------------------------
+ * -2018-09-05: R1.0.7
+ * - Bug: Los caudales no se calculan con el timerpoll sino que solo multiplica los pulsos
+ *   por magpp. Corrijo para que se expresen en mt/3.
  *------------------------------------------------------------------------------------------
  * -2018-08-31: R1.0.6
  * - Ajusto las salidas para que sea coherente con el esquema de los SP5K.

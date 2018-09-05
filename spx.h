@@ -56,34 +56,43 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "1.0.6"
-#define SPX_FW_DATE "@ 20180901"
+#define SPX_FW_REV "1.0.7"
+#define SPX_FW_DATE "@ 20180905"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
 
 // Compatibilidad del protocolo
-#define PROTO_SPX
+#define CONFIG_SPX_SPYMOVIL
+//#define CONFIG_SPX_TAHONA
+//#define CONFIG_SP5K_SPYMOVIL
+//#define CONFIG_SP5K_OSE
 
-#ifndef PROTO_SPX
-	#define PROTO_SP5K
-#endif
-
-// Aplicacion a usar en modo SPX
-#ifdef PROTO_SPX
+//----------------------------------------------------------------------------------
+#ifdef CONFIG_SPX_SPYMOVIL
+	// Protocolo SPX,App SPYMOVIL
+	#define PROTO_SPX
 	#define APP_SPX_SPYMOVIL
-	#ifndef APP_SPX_SPYMOVIL
-		#define APP_SPX_LATAHONA
-	#endif
 #endif
 
-// Aplicacion a usar en modo SP5K
-#ifdef PROTO_SP5K
-//	#define APP_SP5K_SPYMOVIL
-	#ifndef APP_SP5K_SPYMOVIL
-		#define APP_SP5K_OSE
-	#endif
+#ifdef CONFIG_SPX_TAHONA
+	// Protocolo SPX, App LA_TAHONA
+	#define PROTO_SPX
+	#define APP_SPX_LATAHONA
 #endif
+
+#ifdef CONFIG_SP5K_SPYMOVIL
+	// Protocolo SP5K,App SPYMOVIL
+	#define PROTO_SP5K
+	#define APP_SP5K_SPYMOVIL
+#endif
+
+#ifdef CONFIG_SP5K_OSE
+	// Protocolo SP5K,App OSE
+	#define PROTO_SP5K
+	#define APP_SP5K_OSE
+#endif
+
 // El datalogger tiene 6 canales fisicos pero 5 disponibles
 // ya que uno esta para monitorear la bateria.
 //
