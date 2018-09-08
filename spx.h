@@ -56,8 +56,8 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "1.0.7"
-#define SPX_FW_DATE "@ 20180905"
+#define SPX_FW_REV "1.0.8"
+#define SPX_FW_DATE "@ 20180906"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
@@ -155,6 +155,7 @@ typedef enum { modoPWRSAVE_OFF = 0, modoPWRSAVE_ON } t_pwrSave;
 typedef enum { XBEE_OFF = 0, XBEE_MASTER, XBEE_SLAVE } t_modoXbee;
 typedef enum { USER_NORMAL, USER_TECNICO } usuario_t;
 typedef enum { MODO_SP5K, MODO_SPX } modo_t;
+typedef enum { modoRANGEMETER_OFF = 0, modoRANGEMETER_ON } t_rangeMeter;
 //------------------------------------------------------------------------------------
 
 // Estructura para manejar la hora de aplicar las consignas
@@ -234,6 +235,8 @@ typedef struct {
 	char d_ch_type[NRO_DIGITAL_CHANNELS];
 	char d_ch_modo[NRO_DIGITAL_CHANNELS];
 
+	uint8_t pwr_settle_time;
+
 	uint16_t timerPoll;
 	uint32_t timerDial;
 
@@ -245,7 +248,7 @@ typedef struct {
 
 	pwrsave_t pwrSave;
 
-	bool rangeMeter_enabled;
+	t_rangeMeter rangeMeter_enabled;
 
 	t_modoXbee xbee;
 
@@ -290,6 +293,7 @@ void pub_analog_config_INAS( uint16_t conf_reg_value );
 void pub_analog_load_defaults(void);
 void pub_analog_config_channel( uint8_t channel,char *_s_aname,char *s_imin,char *s_imax,char *s_mmin,char *s_mmax );
 void pub_analog_config_timerpoll ( char *s_timerpoll );
+void pub_analog_config_sensortime ( char *s_sensortime );
 void pub_analog_config_spanfactor ( uint8_t channel, char *s_spanfactor );
 void pub_analog_read_channel ( uint8_t channel, uint16_t *raw_val, float *mag_val );
 void pub_analog_read_battery ( float *mag_val );
@@ -333,6 +337,7 @@ void pub_output_set_outputs( char id_output, uint8_t value);
 void pub_rangeMeter_init(void);
 void pub_rangeMeter_ping(int16_t *range);
 void pub_rangeMeter_load_defaults(void);
+bool pub_rangeMeter_config( char *s );
 
 // xBee
 st_remote_values *pub_xbee_get_remote_values_ptr(void);

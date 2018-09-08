@@ -20,6 +20,7 @@ static uint8_t pv_gprs_config_timerDial(void);
 static uint8_t pv_gprs_config_digitalCh(uint8_t channel);
 static uint8_t pv_gprs_config_AnalogCh(uint8_t channel);
 static uint8_t pv_gprs_config_Outputs(void);
+static uint8_t pv_gprs_config_RangeMeter(void);
 
 static void pv_TX_init_parameters_modo_SP5K(void);
 static void pv_TX_init_parameters_modo_SPX(void);
@@ -315,6 +316,9 @@ uint8_t saveFlag = 0;
 	// Outputs/Consignas
 	saveFlag += pv_gprs_config_Outputs();
 
+	// RangeMeter
+	saveFlag += pv_gprs_config_RangeMeter();
+
 	if ( saveFlag > 0 ) {
 
 		pub_save_params_in_NVMEE();
@@ -534,6 +538,35 @@ quit:
 
 }
 //--------------------------------------------------------------------------------------
+static uint8_t pv_gprs_config_RangeMeter(void)
+{
+
+uint8_t ret = 0;
+char *p;
+
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "DIST=1");
+	if ( p != NULL ) {
+		pub_rangeMeter_config("ON\0");
+		ret = 1;
+		goto quit;
+	}
+
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "DIST=0");
+	if ( p != NULL ) {
+		pub_rangeMeter_config("OFF\0");
+		ret = 1;
+		goto quit;
+	}
+
+	if ( ( ret == 1 ) && ( systemVars.debug == DEBUG_GPRS ) ) {
+		xprintf_P( PSTR("GPRS: Reconfig DIST\r\n\0"));
+	}
+
+quit:
+	return(ret);
+
+}
+//--------------------------------------------------------------------------------------
 static uint8_t pv_gprs_config_AnalogCh(uint8_t channel)
 {
 //	La linea recibida es del tipo:
@@ -742,6 +775,21 @@ static void pv_TX_init_parameters_modo_SP5K(void)
 		xprintf_P( PSTR("&D0=%s,%.02f\0"),systemVars.d_ch_name[1], systemVars.d_ch_magpp[1] );
 		xprintf_P( PSTR("&D1=%s,%.02f\0"),systemVars.d_ch_name[2], systemVars.d_ch_magpp[2] );
 	}
+
+	// Configuracion del rangeMeter
+	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
+		xCom_printf_P( fdGPRS,PSTR("&DIST=1\0"));
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf( PSTR("&DIST=1\0"));
+		}
+
+	} else {
+		xCom_printf_P( fdGPRS,PSTR("&DIST=0\0"));
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf( PSTR("&DIST=0\0"));
+		}
+	}
+
 }
 //--------------------------------------------------------------------------------------
 static void pv_TX_init_parameters_modo_SPX(void)
@@ -774,6 +822,20 @@ uint8_t i;
 		// DEBUG & LOG
 		if ( systemVars.debug ==  DEBUG_GPRS ) {
 			xprintf_P( PSTR("&D%d=%c,%s,%.02f\0"),i, systemVars.d_ch_type[i], systemVars.d_ch_name[i], systemVars.d_ch_magpp[i] );
+		}
+	}
+
+	// Configuracion del rangeMeter
+	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
+		xCom_printf_P( fdGPRS,PSTR("&DIST=1\0"));
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf( PSTR("&DIST=1\0"));
+		}
+
+	} else {
+		xCom_printf_P( fdGPRS,PSTR("&DIST=0\0"));
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf( PSTR("&DIST=0\0"));
 		}
 	}
 

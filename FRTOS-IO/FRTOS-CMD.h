@@ -19,7 +19,7 @@
 #include "l_printf.h"
 
 #define CMDLINE_MAX_CMD_LENGTH	10
-#define CMDLINE_MAX_COMMANDS	10
+#define CMDLINE_MAX_COMMANDS	12
 #define CMDLINE_HISTORYSIZE		3
 
 typedef void (*CmdlineFuncPtrType)(void);

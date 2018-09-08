@@ -35,6 +35,7 @@ void pub_analog_load_defaults(void)
 uint8_t channel;
 
 	systemVars.timerPoll = 300;
+	systemVars.pwr_settle_time = 1;
 
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		systemVars.coef_calibracion[channel] = 3646;
@@ -86,6 +87,27 @@ void pub_analog_config_timerpoll ( char *s_timerpoll )
 
 	if ( systemVars.timerPoll > 3600 )
 		systemVars.timerPoll = 300;
+
+	xSemaphoreGive( sem_SYSVars );
+	return;
+}
+//------------------------------------------------------------------------------------
+void pub_analog_config_sensortime ( char *s_sensortime )
+{
+	// Configura el tiempo de espera entre que prendo  la fuente de los sensores y comienzo el poleo.
+	// Se utiliza solo desde el modo comando.
+	// El tiempo de espera debe estar entre 1s y 15s
+
+	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
+		taskYIELD();
+
+	systemVars.pwr_settle_time = atoi(s_sensortime);
+
+	if ( systemVars.pwr_settle_time < 1 )
+		systemVars.pwr_settle_time = 1;
+
+	if ( systemVars.pwr_settle_time > 15 )
+		systemVars.pwr_settle_time = 15;
 
 	xSemaphoreGive( sem_SYSVars );
 	return;

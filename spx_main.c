@@ -20,6 +20,12 @@
  *  avr-nm -n spxR1.elf | more
  *
  *------------------------------------------------------------------------------------------
+ * -2018-09-06: R1.0.8
+ * - Agrego la variable uint8_t pwr_settle_time para configurar el tiempo de espera entre
+ *   que prendo la fuente y que poleo. Se usa en los caudalimetros.
+ * - Incorporo las funciones de rangeMeter.
+ *
+ *------------------------------------------------------------------------------------------
  * -2018-09-05: R1.0.7
  * - Bug: Los caudales no se calculan con el timerpoll sino que solo multiplica los pulsos
  *   por magpp. Corrijo para que se expresen en mt/3.

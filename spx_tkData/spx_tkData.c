@@ -197,7 +197,7 @@ uint8_t channel;
 	}
 
 	// Range Meter
-	if ( systemVars.rangeMeter_enabled ) {
+	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
 		xCom_printf_P( fdXBEE, PSTR("PW=%d"), pv_data_frame.range );
 		if ( systemVars.debug ==  DEBUG_XBEE ) {
 			xprintf_P( PSTR("PW=%d"), pv_data_frame.range );
@@ -236,7 +236,7 @@ static void pv_data_xbee_print_frame_SP5K(void)
 	}
 
 	// Range Meter
-	if ( systemVars.rangeMeter_enabled ) {
+	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
 		xCom_printf_P( fdXBEE, PSTR(",PW=%d"), pv_data_frame.range );
 		if ( systemVars.debug ==  DEBUG_XBEE ) {
 			xprintf_P( PSTR(",PW=%d"), pv_data_frame.range );
@@ -347,7 +347,11 @@ int8_t xBytes;
 	// Prendo los sensores, espero un settle time de 1s, los leo y apago los sensores.
 	ACH_prender_12V();
 	pub_analog_config_INAS(CONF_INAS_AVG128);	// Saco a los INA del modo pwr_down
-	vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
+
+	// Normalmente espero 1s de settle time que esta bien para los sensores
+	// pero cuando hay un caudalimetro de corriente, necesita casi 5s
+	// vTaskDelay( ( TickType_t)( 1000 / portTICK_RATE_MS ) );
+	vTaskDelay( ( TickType_t)( ( 1000 * systemVars.pwr_settle_time ) / portTICK_RATE_MS ) );
 	pub_analog_read_frame( &pv_data_frame.analog_frame);
 	pub_analog_config_INAS(CONF_INAS_SLEEP);	// Pongo a los INA a dormir.
 	ACH_apagar_12V();
@@ -366,6 +370,10 @@ int8_t xBytes;
 	if ( xBytes == -1 )
 		xprintf_P(PSTR("ERROR: I2C:RTC:pub_data_read_frame\r\n\0"));
 
+	// Leo el ancho de pulso ( rangeMeter ). Demora 5s.
+	if ( systemVars.rangeMeter_enabled ==  modoRANGEMETER_ON ) {
+		pub_rangeMeter_ping( &pv_data_frame.range);
+	}
 }
 //------------------------------------------------------------------------------------
 void pub_data_print_frame(void)
@@ -375,7 +383,7 @@ void pub_data_print_frame(void)
 	// HEADER
 	xprintf_P(PSTR("frame: " ) );
 	// timeStamp.
-	xprintf_P(PSTR( "%04d%02d%02d,"),pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day );
+	xprintf_P(PSTR("%04d%02d%02d,"),pv_data_frame.rtc.year,pv_data_frame.rtc.month,pv_data_frame.rtc.day );
 	xprintf_P(PSTR("%02d%02d%02d"),pv_data_frame.rtc.hour,pv_data_frame.rtc.min, pv_data_frame.rtc.sec );
 
 	switch ( systemVars.modo ) {
@@ -425,6 +433,10 @@ uint8_t channel;
 		}
 	}
 
+	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
+		xprintf_P(PSTR(",DIST=%d\0"), pv_data_frame.range );
+	}
+
 	// bateria
 	xprintf_P(PSTR(",BAT=%.02f"), pv_data_frame.battery );
 
@@ -446,6 +458,10 @@ uint8_t channel;
 	// Valores digitales. Solo muestro los canales contadores ( 1,2)
 	xprintf_P(PSTR(",%s=%.02f"),systemVars.d_ch_name[1],pv_data_frame.digital_frame.magnitud[1] );
 	xprintf_P(PSTR(",%s=%.02f"),systemVars.d_ch_name[2],pv_data_frame.digital_frame.magnitud[2] );
+
+	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
+		xprintf_P(PSTR(",DIST=%d\0"), pv_data_frame.range );
+	}
 
 	// bateria
 	xprintf_P(PSTR(",BAT=%.02f"), pv_data_frame.battery );

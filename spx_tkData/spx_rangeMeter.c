@@ -116,9 +116,29 @@ void pub_rangeMeter_load_defaults(void)
 
 	// Realiza la configuracion por defecto del medidor de ancho de pulsos.
 	// Por defecto esta apagado.
-	systemVars.rangeMeter_enabled = false;
+	systemVars.rangeMeter_enabled = modoRANGEMETER_OFF;
 
 }
+//------------------------------------------------------------------------------------
+bool pub_rangeMeter_config( char *s )
+{
+bool retS;
+
+	if (!strcmp_P( strupr(s), PSTR("ON\0"))) {
+		systemVars.rangeMeter_enabled =  modoRANGEMETER_ON;
+		retS = true;
+	} else if (!strcmp_P( strupr(s), PSTR("OFF\0"))) {
+		systemVars.rangeMeter_enabled =  modoRANGEMETER_OFF;
+		retS = true;
+	} else {
+		retS = false;
+	}
+
+	return(retS);
+}
+
+//------------------------------------------------------------------------------------
+// FUNCIONES PRIVADAS
 //------------------------------------------------------------------------------------
 void pv_rangeMeter_start(void)
 {
@@ -141,8 +161,6 @@ void pv_rangeMeter_stop(void)
 	IO_set_UPULSE_RUN();
 
 }
-//------------------------------------------------------------------------------------
-// FUNCIONES PRIVADAS
 //------------------------------------------------------------------------------------
 void pv_flush_stack_rangeMeter(void)
 {

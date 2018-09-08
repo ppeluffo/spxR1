@@ -26,6 +26,7 @@ static void cmdStatusFunction(void);
 static void cmdConfigFunction(void);
 static void cmdKillFunction(void);
 static void cmdPokeFunction(void);
+static void cmdPeekFunction(void);
 
 static void pv_cmd_INA(uint8_t cmd_mode );
 static void pv_cmd_sens12V(void);
@@ -80,6 +81,7 @@ uint8_t ticks;
 	FRTOS_CMD_register( "config\0", cmdConfigFunction );
 	FRTOS_CMD_register( "kill\0", cmdKillFunction );
 	FRTOS_CMD_register( "poke\0", cmdPokeFunction );
+	FRTOS_CMD_register( "peek\0", cmdPeekFunction );
 
 	// Fijo el timeout del READ
 	ticks = 5;
@@ -247,9 +249,10 @@ FAT_t l_fat;
 
 	xprintf_P( PSTR("  timerDial: [%lu s]/%li\r\n\0"),systemVars.timerDial, pub_gprs_readTimeToNextDial() );
 	xprintf_P( PSTR("  timerPoll: [%d s]/%d\r\n\0"),systemVars.timerPoll, pub_ctl_readTimeToNextPoll() );
+	xprintf_P( PSTR("  sensorTime: [%d s]\r\n\0"),systemVars.pwr_settle_time );
 
 	// PULSE WIDTH
-	if ( systemVars.rangeMeter_enabled ) {
+	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
 		xprintf_P( PSTR("  rangeMeter: ON\r\n"));
 	} else {
 		xprintf_P( PSTR("  rangeMeter: OFF\r\n"));
@@ -621,9 +624,9 @@ float mag_val;
 		return;
 	}
 
-	// PULSES
-	// read pulses
-	if (!strcmp_P( strupr(argv[1]), PSTR("PULSES\0")) && ( tipo_usuario == USER_TECNICO) ) {
+	// DIST
+	// read dist
+	if (!strcmp_P( strupr(argv[1]), PSTR("DIST\0")) && ( tipo_usuario == USER_TECNICO) ) {
 		pv_cmd_range();
 		return;
 	}
@@ -710,16 +713,11 @@ bool retS = false;
 
 	// rangemeter {on|off}
 	if (!strcmp_P( strupr(argv[1]), PSTR("RANGEMETER\0"))) {
-		if (!strcmp_P( strupr(argv[2]), PSTR("ON\0"))) {
-			systemVars.rangeMeter_enabled = true;
-			retS = true;
-		} else if (!strcmp_P( strupr(argv[2]), PSTR("OFF\0"))) {
-			systemVars.rangeMeter_enabled = false;
-			retS = true;
+		if ( pub_rangeMeter_config( argv[2]) ) {
+			pv_snprintfP_OK();
 		} else {
-			retS = false;
+			pv_snprintfP_ERR();
 		}
-		retS ? pv_snprintfP_OK() : 	pv_snprintfP_ERR();
 		return;
 	}
 
@@ -781,6 +779,13 @@ bool retS = false;
 	// config timerdial
 	if (!strcmp_P( strupr(argv[1]), PSTR("TIMERDIAL\0")) ) {
 		pub_gprs_config_timerdial( argv[2] );
+		pv_snprintfP_OK();
+		return;
+	}
+
+	// config sensortime
+	if (!strcmp_P( strupr(argv[1]), PSTR("SENSORTIME\0")) ) {
+		pub_analog_config_sensortime( argv[2] );
 		pv_snprintfP_OK();
 		return;
 	}
@@ -938,7 +943,7 @@ static void cmdHelpFunction(void)
 			xprintf_P( PSTR("  ach {0..4}, battery\r\n\0"));
 			xprintf_P( PSTR("  din\r\n\0"));
 			xprintf_P( PSTR("  gprs (rsp,rts,dcd,ri)\r\n\0"));
-			xprintf_P( PSTR("  pulses\r\n\0"));
+			xprintf_P( PSTR("  dist\r\n\0"));
 		}
 		return;
 
@@ -972,7 +977,7 @@ static void cmdHelpFunction(void)
 		xprintf_P( PSTR("  modo {analog|digital} {0..n} {local|remoto}\r\n\0"));
 		xprintf_P( PSTR("  xbee {off|master|slave}\r\n\0"));
 		xprintf_P( PSTR("  outputs {off}|{normal}|{consigna hhmm_dia hhmm_noche}\r\n\0"));
-		xprintf_P( PSTR("  timerpoll, timerdial, dlgid {name}\r\n\0"));
+		xprintf_P( PSTR("  timerpoll, timerdial, dlgid {name}, sensortime\r\n\0"));
 		xprintf_P( PSTR("  pwrsave modo [{on|off}] [{hhmm1}, {hhmm2}]\r\n\0"));
 		xprintf_P( PSTR("  apn, port, ip, script, passwd\r\n\0"));
 		xprintf_P( PSTR("  debug {none,gprs,digital,range, xbee}\r\n\0"));
@@ -1066,30 +1071,175 @@ static void cmdPokeFunction(void)
 	// Guarda una variable en la memoria
 	// Es para usar para programar todo el systemVars desde un programa externo.
 
-	// poke 1 c DLG01
-
-uint8_t address;
-char var_type;
+	// poke 1 DLG01
 
 	FRTOS_CMD_makeArgv();
 
-	address = atoi(argv[1]);
-	var_type = ( char ) argv[2][0];
-
-	switch( var_type ) {
-	case 'i':
-//		ptr_sv[address] = atoi(argv[3]);
+	switch ( atoi(argv[1])) {
+	case 0:
+		memcpy(systemVars.dlgId, argv[2], sizeof(systemVars.dlgId));
+		systemVars.dlgId[DLGID_LENGTH - 1] = '\0';
 		break;
-	case 'c':
-//		strcpy( ptr_sv[address], &argv[3]);
+	case 1:
+		memcpy(systemVars.apn, argv[2], sizeof(systemVars.apn));
+		systemVars.apn[APN_LENGTH - 1] = '\0';
 		break;
-	case 'f':
-//		ptr_sv[address] = atof(argv[3]);
+	case 2:
+		memcpy(systemVars.server_tcp_port, argv[2], sizeof(systemVars.server_tcp_port));
+		systemVars.server_tcp_port[PORT_LENGTH - 1] = '\0';
 		break;
+	case 3:
+		memcpy(systemVars.server_ip_address, argv[2], sizeof(systemVars.server_ip_address));
+		systemVars.server_ip_address[IP_LENGTH - 1] = '\0';
+		break;
+	case 4:
+		memcpy(systemVars.serverScript, argv[2], sizeof(systemVars.serverScript));
+		systemVars.serverScript[SCRIPT_LENGTH - 1] = '\0';
+		break;
+	case 5:
+		memcpy(systemVars.passwd, argv[2], sizeof(systemVars.passwd));
+		systemVars.passwd[PASSWD_LENGTH - 1] = '\0';
+		break;
+	case 6:
+		//xprintf_P(PSTR("A0=%s,%0.2f,%0.2f,%d,%d,%d,%c\r\n\0"), systemVars.an_ch_name[0],systemVars.mmin[0],systemVars.mmax[0],systemVars.imin[0],systemVars.imax[0],systemVars.coef_calibracion[0],systemVars.a_ch_modo[0]  );
+		break;
+	case 7:
+		//xprintf_P(PSTR("A1=%s,%0.2f,%0.2f,%d,%d,%d,%c\r\n\0"), systemVars.an_ch_name[1],systemVars.mmin[1],systemVars.mmax[1],systemVars.imin[1],systemVars.imax[1],systemVars.coef_calibracion[1],systemVars.a_ch_modo[1]  );
+		break;
+	case 8:
+		//xprintf_P(PSTR("A2=%s,%0.2f,%0.2f,%d,%d,%d,%c\r\n\0"), systemVars.an_ch_name[2],systemVars.mmin[2],systemVars.mmax[2],systemVars.imin[2],systemVars.imax[2],systemVars.coef_calibracion[2],systemVars.a_ch_modo[2]  );
+		break;
+	case 9:
+		//xprintf_P(PSTR("A3=%s,%0.2f,%0.2f,%d,%d,%d,%c\r\n\0"), systemVars.an_ch_name[3],systemVars.mmin[3],systemVars.mmax[3],systemVars.imin[3],systemVars.imax[3],systemVars.coef_calibracion[3],systemVars.a_ch_modo[3]  );
+		break;
+	case 10:
+		//xprintf_P(PSTR("A4=%s,%0.2f,%0.2f,%d,%d,%d,%c\r\n\0"), systemVars.an_ch_name[4],systemVars.mmin[4],systemVars.mmax[4],systemVars.imin[4],systemVars.imax[4],systemVars.coef_calibracion[4],systemVars.a_ch_modo[4]  );
+		break;
+	case 11:
+		//xprintf_P(PSTR("D0=%s,%0.2f,%c,%c\r\n\0"), systemVars.d_ch_name[0],systemVars.d_ch_magpp[0],systemVars.d_ch_modo[0],systemVars.d_ch_type[0] );
+		break;
+	case 12:
+		//xprintf_P(PSTR("D1=%s,%0.2f,%c,%c\r\n\0"), systemVars.d_ch_name[1],systemVars.d_ch_magpp[1],systemVars.d_ch_modo[1],systemVars.d_ch_type[1] );
+		break;
+	case 13:
+		//xprintf_P(PSTR("D2=%s,%0.2f,%c,%c\r\n\0"), systemVars.d_ch_name[1],systemVars.d_ch_magpp[1],systemVars.d_ch_modo[1],systemVars.d_ch_type[1] );
+		break;
+	case 14:
+		xprintf_P(PSTR("D3=%s,%0.2f,%c,%c\r\n\0"), systemVars.d_ch_name[1],systemVars.d_ch_magpp[1],systemVars.d_ch_modo[1],systemVars.d_ch_type[1] );
+		break;
+	case 15:
+		pub_analog_config_sensortime( argv[2] );
+		break;
+	case 16:
+		pub_analog_config_timerpoll( argv[2] );
+		break;
+	case 17:
+		pub_gprs_config_timerdial( argv[2] );
+		break;
+	case 18:
+		//xprintf_P(PSTR("DEBUG=%d\r\n\0"), systemVars.debug );
+		break;
+	case 19:
+		systemVars.rangeMeter_enabled = atoi(argv[2]);
+		break;
+	case 20:
+		systemVars.xbee = atoi(argv[2]);
+		break;
+	case 21:
+		//xprintf_P(PSTR("PWRS=%d,%d,%d,%d,%d\r\n\0"), systemVars.pwrSave.modo, systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min, systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min );
+		break;
+	case 22:
+		//xprintf_P(PSTR("OUTS=%d,%d,%d,%d,%d,%d,%d\r\n\0"), systemVars.outputs.modo,systemVars.outputs.out_A,systemVars.outputs.out_B, systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
+		break;
+	default:
+		xprintf_P(PSTR("ERR\r\n\0"));
+		return;
 	}
 
-	xprintf_P( PSTR("ADDR=%d, TYPE=%c, VALUE=%c\r\n\0"), address, var_type, argv[3]);
-	xprintf_P( PSTR("ok\r\n\0"));
+	xprintf_P(PSTR("OK\r\n\0"));
+}
+//------------------------------------------------------------------------------------
+static void cmdPeekFunction(void)
+{
+
+	FRTOS_CMD_makeArgv();
+
+	xprintf_P(PSTR("peek: \0"));
+
+	switch ( atoi(argv[1])) {
+	case 0:
+		xprintf_P(PSTR("DLGID=%s\r\n\0"), systemVars.dlgId);
+		break;
+	case 1:
+		xprintf_P(PSTR("APN=%s\r\n\0"), systemVars.apn);
+		break;
+	case 2:
+		xprintf_P(PSTR("IPPORT=%s\r\n\0"), systemVars.server_tcp_port);
+		break;
+	case 3:
+		xprintf_P(PSTR("IPADDR=%s\r\n\0"), systemVars.server_ip_address);
+		break;
+	case 4:
+		xprintf_P(PSTR("SCRIPT=%s\r\n\0"), systemVars.serverScript);
+		break;
+	case 5:
+		xprintf_P(PSTR("PASSWD=%s\r\n\0"), systemVars.passwd);
+		break;
+	case 6:
+		xprintf_P(PSTR("A0=%s,%0.2f,%0.2f,%d,%d,%d,%c\r\n\0"), systemVars.an_ch_name[0],systemVars.mmin[0],systemVars.mmax[0],systemVars.imin[0],systemVars.imax[0],systemVars.coef_calibracion[0],systemVars.a_ch_modo[0]  );
+		break;
+	case 7:
+		xprintf_P(PSTR("A1=%s,%0.2f,%0.2f,%d,%d,%d,%c\r\n\0"), systemVars.an_ch_name[1],systemVars.mmin[1],systemVars.mmax[1],systemVars.imin[1],systemVars.imax[1],systemVars.coef_calibracion[1],systemVars.a_ch_modo[1]  );
+		break;
+	case 8:
+		xprintf_P(PSTR("A2=%s,%0.2f,%0.2f,%d,%d,%d,%c\r\n\0"), systemVars.an_ch_name[2],systemVars.mmin[2],systemVars.mmax[2],systemVars.imin[2],systemVars.imax[2],systemVars.coef_calibracion[2],systemVars.a_ch_modo[2]  );
+		break;
+	case 9:
+		xprintf_P(PSTR("A3=%s,%0.2f,%0.2f,%d,%d,%d,%c\r\n\0"), systemVars.an_ch_name[3],systemVars.mmin[3],systemVars.mmax[3],systemVars.imin[3],systemVars.imax[3],systemVars.coef_calibracion[3],systemVars.a_ch_modo[3]  );
+		break;
+	case 10:
+		xprintf_P(PSTR("A4=%s,%0.2f,%0.2f,%d,%d,%d,%c\r\n\0"), systemVars.an_ch_name[4],systemVars.mmin[4],systemVars.mmax[4],systemVars.imin[4],systemVars.imax[4],systemVars.coef_calibracion[4],systemVars.a_ch_modo[4]  );
+		break;
+	case 11:
+		xprintf_P(PSTR("D0=%s,%0.2f,%c,%c\r\n\0"), systemVars.d_ch_name[0],systemVars.d_ch_magpp[0],systemVars.d_ch_modo[0],systemVars.d_ch_type[0] );
+		break;
+	case 12:
+		xprintf_P(PSTR("D1=%s,%0.2f,%c,%c\r\n\0"), systemVars.d_ch_name[1],systemVars.d_ch_magpp[1],systemVars.d_ch_modo[1],systemVars.d_ch_type[1] );
+		break;
+	case 13:
+		xprintf_P(PSTR("D2=%s,%0.2f,%c,%c\r\n\0"), systemVars.d_ch_name[1],systemVars.d_ch_magpp[1],systemVars.d_ch_modo[1],systemVars.d_ch_type[1] );
+		break;
+	case 14:
+		xprintf_P(PSTR("D3=%s,%0.2f,%c,%c\r\n\0"), systemVars.d_ch_name[1],systemVars.d_ch_magpp[1],systemVars.d_ch_modo[1],systemVars.d_ch_type[1] );
+		break;
+	case 15:
+		xprintf_P(PSTR("PWRST=%d\r\n\0"), systemVars.pwr_settle_time );
+		break;
+	case 16:
+		xprintf_P(PSTR("TPOLL=%d\r\n\0"), systemVars.timerPoll );
+		break;
+	case 17:
+		xprintf_P(PSTR("TDIAL=%lu\r\n\0"), systemVars.timerDial );
+		break;
+	case 18:
+		xprintf_P(PSTR("DEBUG=%d\r\n\0"), systemVars.debug );
+		break;
+	case 19:
+		xprintf_P(PSTR("DIST=%d\r\n\0"), systemVars.rangeMeter_enabled );
+		break;
+	case 20:
+		xprintf_P(PSTR("XBEE=%d\r\n\0"), systemVars.xbee );
+		break;
+	case 21:
+		xprintf_P(PSTR("PWRS=%d,%d,%d,%d,%d\r\n\0"), systemVars.pwrSave.modo, systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min, systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min );
+		break;
+	case 22:
+		xprintf_P(PSTR("OUTS=%d,%d,%d,%d,%d,%d,%d\r\n\0"), systemVars.outputs.modo,systemVars.outputs.out_A,systemVars.outputs.out_B, systemVars.outputs.consigna_diurna.hour, systemVars.outputs.consigna_diurna.min, systemVars.outputs.consigna_nocturna.hour, systemVars.outputs.consigna_nocturna.min );
+		break;
+	default:
+		xprintf_P(PSTR("ERR\r\n\0"));
+		break;
+	}
 }
 //------------------------------------------------------------------------------------
 static void pv_snprintfP_OK(void )

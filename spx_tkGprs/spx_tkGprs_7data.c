@@ -488,6 +488,14 @@ FAT_t l_fat;
 		xprintf_P( PSTR(",%s=%.2f\0"),systemVars.d_ch_name[2],pv_data_frame.digital_frame.magnitud[2] );
 	}
 
+	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
+		xCom_printf_P( fdGPRS, PSTR("DIST=%d,\0"), pv_data_frame.range );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P(PSTR("DIST=%d,\0"), pv_data_frame.range );
+		}
+	}
+
 	// Bateria
 	xCom_printf_P( fdGPRS, PSTR(",bt=%.2f\0"),pv_data_frame.battery );
 	if ( systemVars.debug ==  DEBUG_GPRS ) {
@@ -555,6 +563,14 @@ FAT_t l_fat;
 				xprintf_P( PSTR(",%s=%.2f\0"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
 			}
 
+		}
+	}
+
+	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
+		xCom_printf_P( fdGPRS, PSTR("DIST=%d,\0"), pv_data_frame.range );
+		// DEBUG & LOG
+		if ( systemVars.debug ==  DEBUG_GPRS ) {
+			xprintf_P(PSTR("DIST=%d,\0"), pv_data_frame.range );
 		}
 	}
 
