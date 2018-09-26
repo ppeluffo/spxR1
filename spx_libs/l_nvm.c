@@ -184,3 +184,38 @@ static uint8_t pv_ReadSignatureByte(uint16_t Address) {
 	return Result;
 }
 //----------------------------------------------------------------------------------------
+static inline void nvm_wait_until_ready( void )
+{
+	do {
+		// Block execution while waiting for the NVM to be ready
+	} while ((NVM.STATUS & NVM_NVMBUSY_bm) == NVM_NVMBUSY_bm);
+}
+//----------------------------------------------------------------------------------------
+static inline void nvm_issue_command(NVM_CMD_t nvm_command)
+{
+	uint8_t old_cmd;
+
+	old_cmd = NVM.CMD;
+	NVM.CMD = nvm_command;
+	//ccp_write_io((uint8_t *)&NVM.CTRLA, NVM_CMDEX_bm);
+	CCPWrite((uint8_t *)&NVM.CTRLA, NVM_CMDEX_bm);
+
+	NVM.CMD = old_cmd;
+}
+//----------------------------------------------------------------------------------------
+uint8_t nvm_fuses_read(uint8_t fuse)
+{
+	// Wait until NVM is ready
+	nvm_wait_until_ready();
+
+	// Set address
+	NVM.ADDR0 = fuse;
+
+	// Issue READ_FUSES command
+	nvm_issue_command(NVM_CMD_READ_FUSES_gc);
+
+	return NVM.DATA0;
+}
+//----------------------------------------------------------------------------------------
+
+

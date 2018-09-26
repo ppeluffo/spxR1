@@ -20,15 +20,31 @@
  *  avr-nm -n spxR1.elf | more
  *
  *------------------------------------------------------------------------------------------
+ * -2018-09-26: R1.0.10
+ * - Agrego un comando para leer los fuses y ver si estan bien configurados o no. Se usa porque
+ * el fuse del watchdog si no esta bien puede causar problemas.
+ * - Mejoro el watchdog de DATA para detectar fallas.
+ *------------------------------------------------------------------------------------------
  * -2018-09-06: R1.0.8
  * - Agrego la variable uint8_t pwr_settle_time para configurar el tiempo de espera entre
  *   que prendo la fuente y que poleo. Se usa en los caudalimetros.
- * - Incorporo las funciones de rangeMeter.
+ * - Incorporo las funciones de rangeMeter. Paso un parametro que es
+ *
+ * *------------------------------------------------------------------------------------------
+ * -2018-09-21: R1.0.9
+ * Correcciones al modo OUTPUTS:
+ * Separo la configuracion del seteo de las salidas / consignas.
+ * Configuracion: Se hace desde cmd como desde gprs y ambos modifican los parametros para
+ * invocar a l funcion estandar interna pub_outputs_config.
  *
  *------------------------------------------------------------------------------------------
  * -2018-09-05: R1.0.7
  * - Bug: Los caudales no se calculan con el timerpoll sino que solo multiplica los pulsos
  *   por magpp. Corrijo para que se expresen en mt/3.
+ *   Si bien esto seria lo mismo que tenemos en las versiones de sp5K, el tema es que el
+ *   firmware nos queda atado al calculo de caudal y no generico.
+ *   Para dejarlo generico, multiplicamos por magPP solo, y para pasarlo a mt3/h usamos un
+ *   factor adecuado pero siempre en el servidor.
  *------------------------------------------------------------------------------------------
  * -2018-08-31: R1.0.6
  * - Ajusto las salidas para que sea coherente con el esquema de los SP5K.

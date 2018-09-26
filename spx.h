@@ -56,8 +56,8 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "1.0.8"
-#define SPX_FW_DATE "@ 20180906"
+#define SPX_FW_REV "1.0.10"
+#define SPX_FW_DATE "@ 20180926"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
@@ -67,7 +67,7 @@
 //#define CONFIG_SPX_TAHONA
 //#define CONFIG_SP5K_SPYMOVIL
 //#define CONFIG_SP5K_OSE
-
+//#define CONFIG_UTE
 //----------------------------------------------------------------------------------
 #ifdef CONFIG_SPX_SPYMOVIL
 	// Protocolo SPX,App SPYMOVIL
@@ -93,6 +93,11 @@
 	#define APP_SP5K_OSE
 #endif
 
+#ifdef CONFIG_UTE
+	// Protocolo SP5K_UTE,App UTE
+	#define PROTO_SPX_UTE
+	#define APP_SPX_UTE
+#endif
 // El datalogger tiene 6 canales fisicos pero 5 disponibles
 // ya que uno esta para monitorear la bateria.
 //
@@ -249,6 +254,7 @@ typedef struct {
 	pwrsave_t pwrSave;
 
 	t_rangeMeter rangeMeter_enabled;
+	uint16_t rangeMeter_factor;
 
 	t_modoXbee xbee;
 
@@ -284,6 +290,7 @@ void pub_load_defaults (modo_t modo);
 uint8_t pub_save_params_in_NVMEE(void);
 bool u_load_params_from_NVMEE(void);
 void u_convert_str_to_time_t ( char *time_str, time_t *time_struct );
+void u_convert_int_to_time_t ( int int16time, time_t *time_struct );
 void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime);
 void pub_convert_str_to_time_t ( char *time_str, time_t *time_struct );
 void pub_control_string( char *s_name );
@@ -328,7 +335,7 @@ bool pub_modem_prendido(void);
 
 // tkOutputs
 void pub_output_load_defaults(void);
-void pub_output_config( char *param0, char *param1, char *param2 );
+void pub_output_config( t_outputs modo, uint16_t hhmm1, uint16_t hhmm2 );
 void pub_output_set_consigna_diurna(void);
 void pub_output_set_consigna_nocturna(void);
 void pub_output_set_outputs( char id_output, uint8_t value);
@@ -337,7 +344,7 @@ void pub_output_set_outputs( char id_output, uint8_t value);
 void pub_rangeMeter_init(void);
 void pub_rangeMeter_ping(int16_t *range);
 void pub_rangeMeter_load_defaults(void);
-bool pub_rangeMeter_config( char *s );
+bool pub_rangeMeter_config( uint8_t modo, uint16_t factor );
 
 // xBee
 st_remote_values *pub_xbee_get_remote_values_ptr(void);

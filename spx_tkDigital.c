@@ -215,11 +215,9 @@ uint8_t i;
 	}
 
 	// Convierto los contadores a las magnitudes (todos, por ahora no importa cuales son contadores )
-	// Como mido caudales en mt3/h lo convierto.
+	// Siempre multiplico por magPP. Si quiero que sea en mt3/h, en el server debo hacerlo (  * 3600 / systemVars.timerPoll )
 	for (i = 0; i < NRO_DIGITAL_CHANNELS; i++) {
-		if ( systemVars.timerPoll != 0 ) {
-			digital_frame.magnitud[i] = digital_frame.counter[i] * systemVars.d_ch_magpp[i] * 3600 / systemVars.timerPoll;
-		}
+		digital_frame.magnitud[i] = digital_frame.counter[i] * systemVars.d_ch_magpp[i];
 	}
 
 	// Copio el resultado

@@ -45,7 +45,10 @@ static void pv_cmd_range(void);
 static void pv_cmd_rwXBEE(uint8_t cmd_mode );
 static void pv_cmd_rwACH(uint8_t cmd_mode );
 static void pv_config_modo( char *tipo_canal, char *nro_canal, char *modo );
-static void pv_init_ptr_sv(void);
+static void pv_cmd_rangeMeter_config( char *modo, char *factor);
+static void pub_ctl_read_fuses(void);
+
+static void pv_cmd_config_outputs( char *param0, char *param1, char *param2 );
 
 #define WR_CMD 0
 #define RD_CMD 1
@@ -54,7 +57,6 @@ static void pv_init_ptr_sv(void);
 
 static usuario_t tipo_usuario;
 RtcTimeType_t rtc;
-void *ptr_sv[50];
 
 //------------------------------------------------------------------------------------
 void tkCmd(void * pvParameters)
@@ -89,8 +91,6 @@ uint8_t ticks;
 	frtos_ioctl( fdBT,ioctl_SET_TIMEOUT, &ticks );
 
 	tipo_usuario = USER_TECNICO;
-
-	pv_init_ptr_sv();
 
 	xprintf_P( PSTR("starting tkCmd..\r\n\0") );
 
@@ -142,6 +142,10 @@ FAT_t l_fat;
 	#ifdef APP_SP5K_OSE
 		xprintf_P( PSTR("Compilacion: SP5K/OSE\r\n\0") );
 	#endif
+#endif
+
+#ifdef PROTO_SPX_UTE
+		xprintf_P( PSTR("Compilacion: SPX/UTE\r\n\0") );
 #endif
 
 	xprintf_P( PSTR("Clock %d Mhz, Tick %d Hz\r\n\0"),SYSMAINCLK, configTICK_RATE_HZ );
@@ -253,16 +257,16 @@ FAT_t l_fat;
 
 	// PULSE WIDTH
 	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
-		xprintf_P( PSTR("  rangeMeter: ON\r\n"));
+		xprintf_P( PSTR("  rangeMeter: on,%d\r\n"), systemVars.rangeMeter_factor);
 	} else {
-		xprintf_P( PSTR("  rangeMeter: OFF\r\n"));
+		xprintf_P( PSTR("  rangeMeter: off\r\n"));
 	}
 
 	// PWR SAVE:
 	if ( systemVars.pwrSave.modo ==  modoPWRSAVE_OFF ) {
-		xprintf_P(  PSTR("  pwrsave=off\r\n\0"));
+		xprintf_P(  PSTR("  pwrsave: off\r\n\0"));
 	} else if ( systemVars.pwrSave.modo ==  modoPWRSAVE_ON ) {
-		xprintf_P(  PSTR("  pwrsave=on start[%02d:%02d], end[%02d:%02d]\r\n\0"), systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min, systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min);
+		xprintf_P(  PSTR("  pwrsave: on, start[%02d:%02d], end[%02d:%02d]\r\n\0"), systemVars.pwrSave.hora_start.hour, systemVars.pwrSave.hora_start.min, systemVars.pwrSave.hora_fin.hour, systemVars.pwrSave.hora_fin.min);
 	}
 
 	// OUTPUTS:
@@ -370,7 +374,10 @@ static void cmdResetFunction(void)
 
 	cmdClearScreen();
 
-	CCPWrite( &RST.CTRL, RST_SWRST_bm );   /* Issue a Software Reset to initilize the CPU */
+	while(1)
+		;
+
+	//CCPWrite( &RST.CTRL, RST_SWRST_bm );   /* Issue a Software Reset to initilize the CPU */
 
 
 }
@@ -523,6 +530,12 @@ uint16_t raw_val;
 float mag_val;
 
 	FRTOS_CMD_makeArgv();
+
+	// FUSES
+ 	if (!strcmp_P( strupr(argv[1]), PSTR("FUSES\0"))) {
+ 		pub_ctl_read_fuses();
+ 		return;
+ 	}
 
 	// WMK
  	if (!strcmp_P( strupr(argv[1]), PSTR("WMK\0"))) {
@@ -706,18 +719,13 @@ bool retS = false;
 
 	// config outputs
 	if (!strcmp_P( strupr(argv[1]), PSTR("OUTPUTS\0")) ) {
-		pub_output_config( argv[2], argv[3], argv[4] );
-		pv_snprintfP_OK();
+		pv_cmd_config_outputs( argv[2], argv[3], argv[4] );
 		return;
 	}
 
-	// rangemeter {on|off}
+	// rangemeter {on|off} factor
 	if (!strcmp_P( strupr(argv[1]), PSTR("RANGEMETER\0"))) {
-		if ( pub_rangeMeter_config( argv[2]) ) {
-			pv_snprintfP_OK();
-		} else {
-			pv_snprintfP_ERR();
-		}
+		pv_cmd_rangeMeter_config( argv[2], argv[3] );
 		return;
 	}
 
@@ -944,6 +952,7 @@ static void cmdHelpFunction(void)
 			xprintf_P( PSTR("  din\r\n\0"));
 			xprintf_P( PSTR("  gprs (rsp,rts,dcd,ri)\r\n\0"));
 			xprintf_P( PSTR("  dist\r\n\0"));
+			xprintf_P( PSTR("  fuses\r\n\0"));
 		}
 		return;
 
@@ -973,7 +982,7 @@ static void cmdHelpFunction(void)
 		}
 
 		xprintf_P( PSTR("  cfactor {ch} {coef}\r\n\0"));
-		xprintf_P( PSTR("  rangemeter {on|off}\r\n\0"));
+		xprintf_P( PSTR("  rangemeter {on|off} factor\r\n\0"));
 		xprintf_P( PSTR("  modo {analog|digital} {0..n} {local|remoto}\r\n\0"));
 		xprintf_P( PSTR("  xbee {off|master|slave}\r\n\0"));
 		xprintf_P( PSTR("  outputs {off}|{normal}|{consigna hhmm_dia hhmm_noche}\r\n\0"));
@@ -1955,52 +1964,96 @@ uint8_t channel;
 
 }
 //------------------------------------------------------------------------------------
-static void pv_init_ptr_sv(void)
+static void pv_cmd_rangeMeter_config( char *s_modo, char *s_factor)
 {
-	ptr_sv[0] = (char *)&systemVars.dlgId;
-	ptr_sv[1] = (char *)&systemVars.apn;
-	ptr_sv[2] = (char *)&systemVars.server_tcp_port;
-	ptr_sv[3] = (char *)&systemVars.server_ip_address;
-	ptr_sv[4] = (char *)&systemVars.serverScript;
-	ptr_sv[5] = (char *)&systemVars.passwd;
 
-	// Canales analogicos
-	ptr_sv[6] = (uint16_t *)&systemVars.coef_calibracion[0];
-	ptr_sv[7] = (uint16_t *)&systemVars.coef_calibracion[1];
-	ptr_sv[8] = (uint16_t *)&systemVars.coef_calibracion[2];
-	ptr_sv[9] = (uint16_t *)&systemVars.coef_calibracion[3];
-	ptr_sv[10] = (uint16_t *)&systemVars.coef_calibracion[4];
-	ptr_sv[11] = (uint8_t *)&systemVars.imin[0];
-	ptr_sv[12] = (uint8_t *)&systemVars.imin[1];
-	ptr_sv[13] = (uint8_t *)&systemVars.imin[2];
-	ptr_sv[14] = (uint8_t *)&systemVars.imin[3];
-	ptr_sv[15] = (uint8_t *)&systemVars.imin[4];
-	ptr_sv[16] = (uint8_t *)&systemVars.imax[0];
-	ptr_sv[17] = (uint8_t *)&systemVars.imax[1];
-	ptr_sv[18] = (uint8_t *)&systemVars.imax[2];
-	ptr_sv[19] = (uint8_t *)&systemVars.imax[3];
-	ptr_sv[20] = (uint8_t *)&systemVars.imax[4];
-	ptr_sv[21] = (float *)&systemVars.mmin[0];
-	ptr_sv[22] = (float *)&systemVars.mmin[1];
-	ptr_sv[23] = (float *)&systemVars.mmin[2];
-	ptr_sv[24] = (float *)&systemVars.mmin[3];
-	ptr_sv[25] = (float *)&systemVars.mmin[4];
-	ptr_sv[26] = (float *)&systemVars.mmax[0];
-	ptr_sv[27] = (float *)&systemVars.mmax[1];
-	ptr_sv[28] = (float *)&systemVars.mmax[2];
-	ptr_sv[29] = (float *)&systemVars.mmax[3];
-	ptr_sv[30] = (float *)&systemVars.mmax[4];
-	ptr_sv[31] = (char *)&systemVars.an_ch_name[0];
-	ptr_sv[32] = (char *)&systemVars.an_ch_name[1];
-	ptr_sv[33] = (char *)&systemVars.an_ch_name[2];
-	ptr_sv[34] = (char *)&systemVars.an_ch_name[3];
-	ptr_sv[35] = (char *)&systemVars.an_ch_name[4];
-	ptr_sv[36] = (char *)&systemVars.a_ch_modo[0];
-	ptr_sv[37] = (char *)&systemVars.a_ch_modo[1];
-	ptr_sv[38] = (char *)&systemVars.a_ch_modo[2];
-	ptr_sv[39] = (char *)&systemVars.a_ch_modo[3];
-	ptr_sv[40] = (char *)&systemVars.a_ch_modo[4];
+uint8_t modo;
+uint16_t factor;
 
+	if ( !strcmp_P( strupr(s_modo), PSTR("ON\0"))) {
+		modo = modoRANGEMETER_ON;
+	} else if ( !strcmp_P( strupr(s_modo), PSTR("OFF\0"))) {
+		modo = modoRANGEMETER_OFF;
+	} else {
+		goto quit;
+	}
+
+	factor = atoi(s_factor);
+
+	if ( pub_rangeMeter_config (modo, factor) == true ) {
+		pv_snprintfP_OK();
+	} else {
+		pv_snprintfP_ERR();
+	}
+
+quit:
+	return;
+}
+//------------------------------------------------------------------------------------
+static void pv_cmd_config_outputs( char *param0, char *param1, char *param2 )
+{
+	// Convierte los parametros char al modo estandar de la funcion interna
+	// Ej: config outputs consigna 1030 1240
+
+t_outputs modo = OUT_OFF;
+uint16_t hhmm1 = 0;
+uint16_t hhmm2 = 0;
+
+
+	if ( !strcmp_P( strupr(param0), PSTR("OFF\0")) ) {
+		modo = OUT_OFF;
+	} else if (!strcmp_P( strupr(param0), PSTR("CONSIGNA\0")) ) {
+		modo = OUT_CONSIGNA;
+	} else if (!strcmp_P( strupr(param0), PSTR("NORMAL\0")) ) {
+		modo = OUT_NORMAL;
+	} else {
+		pv_snprintfP_ERR();
+		return;
+	}
+
+	if ( param1 != NULL ) {
+		hhmm1 = atoi(param1);
+	}
+	if ( param2 != NULL ) {
+		hhmm2 = atoi(param2);
+	}
+
+	pub_output_config( modo, hhmm1, hhmm2 );
+	pv_snprintfP_OK();
+	return;
+
+}
+//------------------------------------------------------------------------------------
+static void pub_ctl_read_fuses(void)
+{
+	// Lee los fuses.
+
+uint8_t fuse0,fuse1,fuse2,fuse4,fuse5;
+
+	fuse0 = nvm_fuses_read(0x00);	// FUSE0
+	xprintf_P( PSTR("FUSE0=0x%x\r\n\0"),fuse0);
+
+	fuse1 = nvm_fuses_read(0x01);	// FUSE1
+	xprintf_P( PSTR("FUSE1=0x%x\r\n\0"),fuse1);
+
+	fuse2 = nvm_fuses_read(0x02);	// FUSE2
+	xprintf_P( PSTR("FUSE2=0x%x\r\n\0"),fuse2);
+
+	fuse4 = nvm_fuses_read(0x04);	// FUSE4
+	xprintf_P( PSTR("FUSE4=0x%x\r\n\0"),fuse4);
+
+	fuse5 = nvm_fuses_read(0x05);	// FUSE5
+	xprintf_P( PSTR("FUSE5=0x%x\r\n\0"),fuse5);
+
+	if ( (fuse0 != 0xFF) || ( fuse1 != 0xAA) || (fuse2 != 0xFD) || (fuse4 != 0xF5) || ( fuse5 != 0xD4) ) {
+		xprintf_P( PSTR("FUSES ERROR !!!.\r\n\0"));
+		xprintf_P( PSTR("Los valores deben ser: FUSE0=0xFF,FUSE1=0xAA,FUSE2=0xFD,FUSE4=0xF5,FUSE5=0xD4\r\n\0"));
+		xprintf_P( PSTR("Deben reconfigurarse !!.\r\n\0"));
+		pv_snprintfP_ERR();
+		return;
+	}
+	pv_snprintfP_OK();
+	return;
 }
 //------------------------------------------------------------------------------------
 

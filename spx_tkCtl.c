@@ -16,8 +16,8 @@ static void pv_tkCtl_ajust_timerPoll(void);
 static void pv_daily_reset(void);
 
 static bool f_terminal_is_on;
-static uint16_t watchdog_timers[NRO_WDGS];
 static uint16_t time_to_next_poll;
+static uint16_t watchdog_timers[NRO_WDGS];
 
 // Timpo que espera la tkControl entre round-a-robin
 #define TKCTL_DELAY_S	5
@@ -102,6 +102,9 @@ uint8_t wdg;
 		pub_load_defaults( MODO_SP5K );
 #endif
 
+#ifdef PROTO_SPX_UTE
+		pub_load_defaults( MODO_SPX );
+#endif
 		//pub_load_defaults( MODO_SP5K );
 		//pub_load_defaults( MODO_SPX );
 		xprintf_P( PSTR("\r\nLoading defaults !!\r\n\0"));
@@ -189,33 +192,33 @@ static void pv_tkCtl_check_wdg(void)
 	// Esta tarea los decrementa cada 5 segundos.
 	// Si alguno llego a 0 es que la tarea se colgo y entonces se reinicia el sistema.
 
-uint8_t wdg;
-char buffer[10];
+	uint8_t wdg;
+	char buffer[10];
 
-	// Cada ciclo reseteo el wdg para que no expire.
-	WDT_Reset();
-	
-	// Si algun WDG no se borro, me reseteo
-	while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
-		taskYIELD();
+		// Cada ciclo reseteo el wdg para que no expire.
+		WDT_Reset();
 
-	for ( wdg = 0; wdg < NRO_WDGS; wdg++ ) {
-		if ( --watchdog_timers[wdg] <= 0 ) {
-			memset(buffer,'\0', 10);
-			strcpy_P(buffer, (PGM_P)pgm_read_word(&(wdg_names[wdg])));
-			xprintf_P( PSTR("CTL: WDG TO(%s) !!\r\n\0"),buffer);
-			vTaskDelay( ( TickType_t)( 500 / portTICK_RATE_MS ) );
+		// Si algun WDG no se borro, me reseteo
+		while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
+			taskYIELD();
 
-			// Me reseteo por watchdog
-			//while(1)
-			//	;
-			CCPWrite( &RST.CTRL, RST_SWRST_bm );   /* Issue a Software Reset to initilize the CPU */
+		for ( wdg = 0; wdg < NRO_WDGS; wdg++ ) {
+			watchdog_timers[wdg]--;
+			if ( watchdog_timers[wdg] == 0 ) {
+				memset(buffer,'\0', 10);
+				strcpy_P(buffer, (PGM_P)pgm_read_word(&(wdg_names[wdg])));
+				xprintf_P( PSTR("CTL: WDG TO(%s) !!\r\n\0"),buffer);
+				vTaskDelay( ( TickType_t)( 500 / portTICK_RATE_MS ) );
 
+				// Me reseteo por watchdog
+				while(1)
+				  ;
+				//CCPWrite( &RST.CTRL, RST_SWRST_bm );   /* Issue a Software Reset to initilize the CPU */
+
+			}
 		}
-	}
 
-	xSemaphoreGive( sem_SYSVars );
-
+		xSemaphoreGive( sem_SYSVars );
 }
 //------------------------------------------------------------------------------------
 static void pv_tkCtl_ajust_timerPoll(void)

@@ -334,6 +334,19 @@ uint16_t time_num;
 
 }
 //------------------------------------------------------------------------------------
+void u_convert_int_to_time_t ( int int16time, time_t *time_struct )
+{
+
+	// Convierte un int16  hhmm en una estructura time_type que tiene
+	// un campo hora y otro minuto
+
+	time_struct->hour = (uint8_t) (int16time / 100);
+	time_struct->min = (uint8_t)(int16time % 100);
+
+//	xprintf_P( PSTR("DEBUG: u_convert_str_to_time_t (hh=%d,mm=%d)\r\n\0"), time_struct->hour,time_struct->min );
+
+}
+//------------------------------------------------------------------------------------
 void pub_configPwrSave(uint8_t modoPwrSave, char *s_startTime, char *s_endTime)
 {
 	// Recibe como parametros el modo ( 0,1) y punteros a string con las horas de inicio y fin del pwrsave

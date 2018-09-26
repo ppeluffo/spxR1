@@ -540,23 +540,36 @@ quit:
 //--------------------------------------------------------------------------------------
 static uint8_t pv_gprs_config_RangeMeter(void)
 {
+	// ?DIST=1,58
 
 uint8_t ret = 0;
+char localStr[32];
+char *stringp;
+char *token;
+char *delim = ",=:><";
+char *p1;
+uint8_t modo;
+uint16_t factor;
 char *p;
 
-	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "DIST=1");
-	if ( p != NULL ) {
-		pub_rangeMeter_config("ON\0");
-		ret = 1;
+	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "DIST");
+	if ( p == NULL ) {
 		goto quit;
 	}
 
-	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "DIST=0");
-	if ( p != NULL ) {
-		pub_rangeMeter_config("OFF\0");
-		ret = 1;
-		goto quit;
-	}
+	// Copio el mensaje enviado a un buffer local porque la funcion strsep lo modifica.
+	memset(localStr,'\0',32);
+	memcpy(localStr,p,sizeof(localStr));
+
+	stringp = localStr;
+	token = strsep(&stringp,delim);	//DIST
+
+	token = strsep(&stringp,delim);	// modo
+	modo = atoi(token);
+	p1 = strsep(&stringp,delim);	// factor
+	factor = atoi(p1);
+
+	pub_rangeMeter_config(modo, factor );
 
 	if ( ( ret == 1 ) && ( systemVars.debug == DEBUG_GPRS ) ) {
 		xprintf_P( PSTR("GPRS: Reconfig DIST\r\n\0"));
@@ -719,7 +732,8 @@ char *stringp;
 char *token;
 char *delim = ",=:><";
 char *p0,*p1,*p2;
-
+t_outputs modo;
+uint16_t hhmm1, hhmm2;
 char *p;
 
 	p = strstr( (const char *)&pv_gprsRxCbuffer.buffer, "OUTS");
@@ -734,15 +748,19 @@ char *p;
 	token = strsep(&stringp,delim);	//OUTS
 
 	p0 = strsep(&stringp,delim);	// modo 0,1,2
+	modo = atoi(p0);
 	p1 = strsep(&stringp,delim);	// consigna_diurna
+	hhmm1 = atoi(p1);
 	p2 = strsep(&stringp,delim); 	// consigna_nocturna
+	hhmm2 = atoi(p2);
 
-	pub_output_config(p0, p1, p2);
+	pub_output_config(modo, hhmm1, hhmm2);
 	ret = 1;
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
-	//	xprintf_P( PSTR("GPRS: Reconfig OUTPUTS (p0=%s,p1=%s,p2=%s)\r\n\0"), p0, p1,p2);
 		xprintf_P( PSTR("GPRS: Reconfig OUTPUTS\r\n\0"));
+//		xprintf_P( PSTR("GPRS: Reconfig OUTPUTS (p0=%s,p1=%s,p2=%s)\r\n\0"), p0, p1,p2);
+//		xprintf_P( PSTR("GPRS: Reconfig OUTPUTS (modo=%d,hhmm1=%d,hhmm2=%d\r\n\0"), modo,hhmm1,hhmm2);
 	}
 
 quit:

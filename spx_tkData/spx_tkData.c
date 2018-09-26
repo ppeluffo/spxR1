@@ -29,10 +29,10 @@ static void pv_data_print_frame_modo_SP5K(void);
 
 // VARIABLES LOCALES
 static st_data_frame pv_data_frame;
+uint8_t wdg_counter_data;
 
 // La tarea pasa por el mismo lugar c/timerPoll secs.
 #define WDG_DAT_TIMEOUT	 ( systemVars.timerPoll + 60 )
-
 //------------------------------------------------------------------------------------
 void tkData(void * pvParameters)
 {
@@ -60,10 +60,18 @@ TickType_t xLastWakeTime;
     // Al arrancar poleo a los 10s
     waiting_ticks = (uint32_t)(10) * 1000 / portTICK_RATE_MS;
 
+    wdg_counter_data = 3;
+
 	// loop
 	for( ;; )
 	{
-		pub_ctl_watchdog_kick(WDG_DAT, WDG_DAT_TIMEOUT);
+		// El sanity chech pasa por 3 puntos.
+		if ( wdg_counter_data == 3 ) {
+			pub_ctl_watchdog_kick(WDG_DAT, WDG_DAT_TIMEOUT);
+			wdg_counter_data = 0;
+		} else {
+			xprintf_P( PSTR("DATA: WDG ERROR sanity check (%d)\r\n\0"), wdg_counter_data );
+		}
 
 		vTaskDelayUntil( &xLastWakeTime, waiting_ticks ); // Da el tiempo para entrar en tickless.
 
@@ -87,9 +95,10 @@ TickType_t xLastWakeTime;
 		// Espero un ciclo
 		while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )
 			taskYIELD();
-		waiting_ticks = (uint32_t)(systemVars.timerPoll) * 1000 / portTICK_RATE_MS;
 
+		waiting_ticks = (uint32_t)(systemVars.timerPoll) * 1000 / portTICK_RATE_MS;
 		pub_ctl_reload_timerPoll();
+
 		xSemaphoreGive( sem_SYSVars );
 
 	}
@@ -105,6 +114,10 @@ static bool pv_data_guardar_BD(void)
 FAT_t l_fat;
 int8_t bytes_written;
 static bool primer_frame = true;
+
+	wdg_counter_data++;
+	if ( wdg_counter_data != 3 )
+		xprintf_P( PSTR("guardar_en_BD (%d)\r\n\0"),wdg_counter_data);
 
 	// Para no incorporar el error de los contadores en el primer frame no lo guardo.
 	if ( primer_frame ) {
@@ -153,6 +166,10 @@ static void pv_data_xbee_print_frame(void)
 		pv_data_xbee_print_frame_SP5K();
 		break;
 	}
+
+	wdg_counter_data++;
+	if ( wdg_counter_data != 3 )
+		xprintf_P( PSTR("xbee_print_frame (%d)\r\n\0"),wdg_counter_data);
 }
 //------------------------------------------------------------------------------------
 static void pv_data_xbee_print_frame_SPX(void)
@@ -374,6 +391,11 @@ int8_t xBytes;
 	if ( systemVars.rangeMeter_enabled ==  modoRANGEMETER_ON ) {
 		pub_rangeMeter_ping( &pv_data_frame.range);
 	}
+
+	wdg_counter_data++;
+	if ( wdg_counter_data != 1 )
+		xprintf_P( PSTR("read_frame (%d)\r\n\0"),wdg_counter_data);
+
 }
 //------------------------------------------------------------------------------------
 void pub_data_print_frame(void)
@@ -400,6 +422,9 @@ void pub_data_print_frame(void)
 
 	// TAIL
 	xprintf_P(PSTR("\r\n\0") );
+	wdg_counter_data++;
+	if ( wdg_counter_data != 2 )
+		xprintf_P( PSTR("print_frame (%d)\r\n\0"),wdg_counter_data);
 
 }
 //------------------------------------------------------------------------------------

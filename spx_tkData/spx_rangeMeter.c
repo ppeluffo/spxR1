@@ -117,22 +117,30 @@ void pub_rangeMeter_load_defaults(void)
 	// Realiza la configuracion por defecto del medidor de ancho de pulsos.
 	// Por defecto esta apagado.
 	systemVars.rangeMeter_enabled = modoRANGEMETER_OFF;
+	systemVars.rangeMeter_factor = 58;
 
 }
 //------------------------------------------------------------------------------------
-bool pub_rangeMeter_config( char *s )
+bool pub_rangeMeter_config( uint8_t modo, uint16_t factor )
 {
 bool retS;
 
-	if (!strcmp_P( strupr(s), PSTR("ON\0"))) {
-		systemVars.rangeMeter_enabled =  modoRANGEMETER_ON;
-		retS = true;
-	} else if (!strcmp_P( strupr(s), PSTR("OFF\0"))) {
+	switch(modo) {
+	case modoRANGEMETER_OFF:
 		systemVars.rangeMeter_enabled =  modoRANGEMETER_OFF;
 		retS = true;
-	} else {
+		break;
+	case modoRANGEMETER_ON:
+		systemVars.rangeMeter_enabled =  modoRANGEMETER_ON;
+		retS = true;
+		break;
+	default:
+		systemVars.rangeMeter_enabled =  modoRANGEMETER_OFF;
 		retS = false;
+		break;
 	}
+
+	systemVars.rangeMeter_factor = factor;
 
 	return(retS);
 }
@@ -197,7 +205,7 @@ int16_t ping;
 
 	pv_rangeMeter_statistics(&avg, &var);
 	us = USxTICK * avg;						// Convierto a us.
-	distancia = (uint16_t)( us / 58);		// Calculo la distancia ( 58us - 1cms )
+	distancia = (uint16_t)( us / systemVars.rangeMeter_factor );		// Calculo la distancia ( 58us - 1cms )
 	if ( (distancia > 0) && (distancia < 600) ) {
 		ping = distancia;
 	} else {

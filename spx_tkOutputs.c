@@ -266,48 +266,34 @@ void pub_output_load_defaults(void)
 
 }
 //------------------------------------------------------------------------------------
-void pub_output_config( char *param0, char *param1, char *param2 )
+void pub_output_config( t_outputs modo, uint16_t hhmm1, uint16_t hhmm2 )
 {
 	// Configura las salidas en el systemVars.
 	// Es Configuracion , NO operacion por lo tanto solo configuro el modo, y en
 	// caso de consigna, las horas.
 
-uint8_t modo = 0;
+//	xprintf_P( PSTR("DEBUG OUTPUTS (modo=%d,hhmm1=%d,hhmm2=%d\r\n\0"), modo,hhmm1,hhmm2);
 
-	// Modo desde cmdMode
-	if ( !strcmp_P( strupr(param0), PSTR("OFF\0")) ) {
-		modo = OUT_OFF;
-	} else if (!strcmp_P( strupr(param0), PSTR("0\0")) ) {
-		modo = OUT_OFF;
-	} else if (!strcmp_P( strupr(param0), PSTR("CONSIGNA\0")) ) {
-		modo = OUT_CONSIGNA;
-	} else if (!strcmp_P( strupr(param0), PSTR("1\0")) ) {
-		modo = OUT_CONSIGNA;
-	} else if (!strcmp_P( strupr(param0), PSTR("NORMAL\0")) ) {
-		modo = OUT_NORMAL;
-	} else if (!strcmp_P( strupr(param0), PSTR("2\0")) ) {
-		modo = OUT_NORMAL;
-	}
-
-	systemVars.outputs.modo = modo;
-
-	switch ( systemVars.outputs.modo ) {
+	switch ( modo ) {
 	case OUT_OFF:
+		systemVars.outputs.modo = OUT_OFF;
 		break;
 	case OUT_CONSIGNA:
-		if ( param1 != NULL ) { u_convert_str_to_time_t(param1, &systemVars.outputs.consigna_diurna); }
-		if ( param2 != NULL ) { u_convert_str_to_time_t(param2, &systemVars.outputs.consigna_nocturna); }
+		systemVars.outputs.modo = OUT_CONSIGNA;
+		u_convert_int_to_time_t(hhmm1, &systemVars.outputs.consigna_diurna);
+		u_convert_int_to_time_t(hhmm2, &systemVars.outputs.consigna_nocturna);
+		reinit_consignas = true;
+//		xprintf_P( PSTR("DEBUG OUTPUTS CONSIGNA: (modo=%d\r\n\0"), systemVars.outputs.modo);
 		break;
 	case OUT_NORMAL:
+		systemVars.outputs.modo = OUT_NORMAL;
 		systemVars.outputs.out_A = 0;
-		if ( param1 != NULL ) {  ( atoi(param1) == 0 )? (systemVars.outputs.out_A = 0 ) : ( systemVars.outputs.out_A = 1 ); }
 		systemVars.outputs.out_B = 0;
-		if ( param2 != NULL ) {  ( atoi(param2) == 0 )? (systemVars.outputs.out_B = 0 ) : ( systemVars.outputs.out_B = 1 ); }
-		break;
-	}
+//		xprintf_P( PSTR("DEBUG OUTPUTS NORMAL: (modo=%d\r\n\0"), systemVars.outputs.modo);
 
-	// Indico que se deben reinicializar las consignas
-	reinit_consignas = true;
+		break;
+
+	}
 
 }
 //----------------------------------------------------------------------------------------

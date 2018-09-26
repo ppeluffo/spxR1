@@ -9,6 +9,7 @@
 #define SRC_SPX_LIBS_L_NVM_H_
 
 #include "frtos-io.h"
+#include "clksys_driver.h"
 
 typedef uint16_t eeprom_addr_t;
 
@@ -75,6 +76,7 @@ int NVMEE_read_buffer(eeprom_addr_t address, char *buf, uint16_t len);
 uint8_t NVMEE_ReadByte( eeprom_addr_t address );
 void NVMEE_EraseAll( void );
 
+uint8_t nvm_fuses_read(uint8_t fuse);
 
 /*  Non-Volatile Memory Execute Command
  *  This macro set the CCP register before setting the CMDEX bit in the
