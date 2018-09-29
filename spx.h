@@ -56,18 +56,18 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "1.0.10"
-#define SPX_FW_DATE "@ 20180926"
+#define SPX_FW_REV "1.0.11"
+#define SPX_FW_DATE "@ 20180929"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
 
 // Compatibilidad del protocolo
-#define CONFIG_SPX_SPYMOVIL
+//#define CONFIG_SPX_SPYMOVIL
 //#define CONFIG_SPX_TAHONA
 //#define CONFIG_SP5K_SPYMOVIL
 //#define CONFIG_SP5K_OSE
-//#define CONFIG_UTE
+#define CONFIG_UTE
 //----------------------------------------------------------------------------------
 #ifdef CONFIG_SPX_SPYMOVIL
 	// Protocolo SPX,App SPYMOVIL
@@ -309,8 +309,8 @@ void pub_analog_prender_12vsensor ( void );
 void pub_analog_apagar_12vsensor ( void );
 
 // tkData
-void pub_data_print_frame(void);
-void pub_data_read_frame(void);
+void pub_data_print_frame(bool wdg_control );
+void pub_data_read_frame(bool wdg_control);
 
 // digital
 void pub_digital_read_frame( st_digital_frame * dframe, bool reset_counters );

@@ -347,7 +347,7 @@ FAT_t l_fat;
 	}
 
 	// Valores actuales:
-	pub_data_print_frame();
+	pub_data_print_frame( false );
 }
 //-----------------------------------------------------------------------------------
 static void cmdResetFunction(void)
@@ -559,8 +559,8 @@ float mag_val;
 	// FRAME
 	// read frame
 	if (!strcmp_P( strupr(argv[1]), PSTR("FRAME\0")) ) {
-		pub_data_read_frame();
-		pub_data_print_frame();
+		pub_data_read_frame( false );
+		pub_data_print_frame( false );
 		return;
 	}
 
@@ -1920,8 +1920,8 @@ static void pv_config_modo( char *tipo_canal, char *nro_canal, char *modo )
 
 uint8_t channel;
 
-	if ( systemVars.xbee != XBEE_SLAVE ) {
-		xprintf_P( PSTR("Debe configurar xbee a modo remoto !!\r\n\0"));
+	if ( systemVars.xbee != XBEE_MASTER ) {
+		xprintf_P( PSTR("Debe configurar xbee a modo master !!\r\n\0"));
 		return;
 	}
 

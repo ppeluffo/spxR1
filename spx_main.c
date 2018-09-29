@@ -20,10 +20,17 @@
  *  avr-nm -n spxR1.elf | more
  *
  *------------------------------------------------------------------------------------------
+ * -2018-09-27: R1.0.11
+ * - Las funciones publicas del data, al invocarlas desde CMD me destrolan la secuencia del
+ *   watchdog por lo tanto debo pasar un parametro para indicar si tocan o no el watchdog.
+ * - Hago arreglos en XBEE tanto en formato de log como en configuracion de canales remotos.
+ *------------------------------------------------------------------------------------------
  * -2018-09-26: R1.0.10
  * - Agrego un comando para leer los fuses y ver si estan bien configurados o no. Se usa porque
  * el fuse del watchdog si no esta bien puede causar problemas.
  * - Mejoro el watchdog de DATA para detectar fallas.
+ * - Las funciones publicas del data, al invocarlas desde CMD me destrolan la secuencia del
+ *   watchdog por lo tanto debo pasar un parametro para indicar si tocan o no el watchdog.
  *------------------------------------------------------------------------------------------
  * -2018-09-06: R1.0.8
  * - Agrego la variable uint8_t pwr_settle_time para configurar el tiempo de espera entre

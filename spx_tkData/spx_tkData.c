@@ -76,17 +76,17 @@ TickType_t xLastWakeTime;
 		vTaskDelayUntil( &xLastWakeTime, waiting_ticks ); // Da el tiempo para entrar en tickless.
 
 		// Leo analog,digital,rtc,salvo en BD e imprimo.
-		pub_data_read_frame();
+		pub_data_read_frame( true );	// wdg_counter_data = 1
 
 		// Muestro en pantalla.
-		pub_data_print_frame();
+		pub_data_print_frame( true );	// wdg_counter_data = 2
 
 		if ( systemVars.xbee == XBEE_SLAVE ) {
 			// En modo XBEE slave solo trasmito el frame por el xbee pero no lo salvo
-			pv_data_xbee_print_frame();
+			pv_data_xbee_print_frame();	// wdg_counter_data = 3
 		} else {
 			// Salvo en BD ( si no es el primer frame )
-			if ( pv_data_guardar_BD() ) {
+			if ( pv_data_guardar_BD() ) {	// wdg_counter_data = 3
 				// Aviso a tkGPRS ( si estoy en modo continuo )
 				pv_data_signal_to_tkgprs();
 			}
@@ -117,7 +117,7 @@ static bool primer_frame = true;
 
 	wdg_counter_data++;
 	if ( wdg_counter_data != 3 )
-		xprintf_P( PSTR("guardar_en_BD (%d)\r\n\0"),wdg_counter_data);
+		xprintf_P( PSTR("DATA: WDG guardar_en_BD 3->(%d)\r\n\0"),wdg_counter_data);
 
 	// Para no incorporar el error de los contadores en el primer frame no lo guardo.
 	if ( primer_frame ) {
@@ -169,26 +169,39 @@ static void pv_data_xbee_print_frame(void)
 
 	wdg_counter_data++;
 	if ( wdg_counter_data != 3 )
-		xprintf_P( PSTR("xbee_print_frame (%d)\r\n\0"),wdg_counter_data);
+		xprintf_P( PSTR("DATA: WDG xbee_print_frame 3->(%d)\r\n\0"),wdg_counter_data);
 }
 //------------------------------------------------------------------------------------
 static void pv_data_xbee_print_frame_SPX(void)
 {
 uint8_t channel;
+uint8_t count = 0;
 
 	// Valores analogicos
 	// Solo muestro los que tengo configurados.
+
+	if ( systemVars.debug ==  DEBUG_XBEE ) {
+		xprintf_P( PSTR("XBEE_SENT> \0") );
+	}
 
 	for ( channel = 0; channel < NRO_ANALOG_CHANNELS; channel++) {
 		if ( ! strcmp ( systemVars.an_ch_name[channel], "X" ) )
 			continue;
 
-		xCom_printf_P( fdXBEE, PSTR("%s=%.02f,"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
-
-		if ( systemVars.debug ==  DEBUG_XBEE ) {
-			xprintf_P( PSTR("%s=%.02f,"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+		if ( count != 0 ) {
+			// El primer canal no lleva el separador, el resto si.
+			xCom_printf_P( fdXBEE, PSTR(","));
+			if ( systemVars.debug ==  DEBUG_XBEE ) {
+				xprintf_P( PSTR(","));
+			}
 		}
 
+		xCom_printf_P( fdXBEE, PSTR("%s=%.02f"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+		if ( systemVars.debug ==  DEBUG_XBEE ) {
+			xprintf_P( PSTR("%s=%.02f"),systemVars.an_ch_name[channel],pv_data_frame.analog_frame.mag_val[channel] );
+		}
+
+		count++;
 	}
 
 	// Valores digitales. Lo que mostramos depende de lo que tenemos configurado
@@ -198,23 +211,43 @@ uint8_t channel;
 		if ( ! strcmp ( systemVars.d_ch_name[channel], "X" ) ) {
 			continue;
 		}
+
+		if ( count != 0 ) {
+			// El primer canal no lleva el separador, el resto si.
+			xCom_printf_P( fdXBEE, PSTR(","));
+			if ( systemVars.debug ==  DEBUG_XBEE ) {
+				xprintf_P( PSTR(","));
+			}
+		}
+
 		// Level ?
 		if ( systemVars.d_ch_type[channel] == 'L') {
-			xCom_printf_P( fdXBEE, PSTR("%s=%d,"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
+			xCom_printf_P( fdXBEE, PSTR("%s=%d"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
 			if ( systemVars.debug ==  DEBUG_XBEE ) {
-				xprintf_P( PSTR("%s=%d,"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
+				xprintf_P( PSTR("%s=%d"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.level[channel] );
 			}
 		} else {
 		// Counter ?
-			xCom_printf_P( fdXBEE, PSTR("%s=%.02f,"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
+			xCom_printf_P( fdXBEE, PSTR("%s=%.02f"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
 			if ( systemVars.debug ==  DEBUG_XBEE ) {
-				xprintf_P( PSTR("%s=%.02f,"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
+				xprintf_P( PSTR("%s=%.02f"),systemVars.d_ch_name[channel],pv_data_frame.digital_frame.magnitud[channel] );
 			}
 		}
+
+		count++;
 	}
 
 	// Range Meter
 	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
+
+		if ( count != 0 ) {
+			// El primer canal no lleva el separador, el resto si.
+			xCom_printf_P( fdXBEE, PSTR(","));
+			if ( systemVars.debug ==  DEBUG_XBEE ) {
+				xprintf_P( PSTR(","));
+			}
+		}
+
 		xCom_printf_P( fdXBEE, PSTR("PW=%d"), pv_data_frame.range );
 		if ( systemVars.debug ==  DEBUG_XBEE ) {
 			xprintf_P( PSTR("PW=%d"), pv_data_frame.range );
@@ -223,6 +256,9 @@ uint8_t channel;
 
 	// TAIL
 	xCom_printf_P( fdXBEE, PSTR("\r\n\0") );
+	if ( systemVars.debug ==  DEBUG_XBEE ) {
+		xprintf_P( PSTR("\r\n\0"));
+	}
 
 }
 //------------------------------------------------------------------------------------
@@ -232,7 +268,7 @@ static void pv_data_xbee_print_frame_SP5K(void)
 	uint8_t i;
 
 	if ( systemVars.debug ==  DEBUG_XBEE ) {
-		xprintf_P( PSTR("XBEE>\0") );
+		xprintf_P( PSTR("XBEE_SENT> \0") );
 	}
 	// Canales analogicos
 	for ( i = 0; i < 3; i++) {
@@ -350,7 +386,7 @@ st_remote_values *rv;
 //------------------------------------------------------------------------------------
 // FUNCIONES PUBLICAS
 //------------------------------------------------------------------------------------
-void pub_data_read_frame(void)
+void pub_data_read_frame(bool wdg_control)
 {
 
 int8_t xBytes;
@@ -392,13 +428,15 @@ int8_t xBytes;
 		pub_rangeMeter_ping( &pv_data_frame.range);
 	}
 
-	wdg_counter_data++;
-	if ( wdg_counter_data != 1 )
-		xprintf_P( PSTR("read_frame (%d)\r\n\0"),wdg_counter_data);
+	if ( wdg_control ) {
+		wdg_counter_data++;
+		if ( wdg_counter_data != 1 )
+			xprintf_P( PSTR("DATA: WDG read_frame 1->(%d)\r\n\0"),wdg_counter_data);
+	}
 
 }
 //------------------------------------------------------------------------------------
-void pub_data_print_frame(void)
+void pub_data_print_frame(bool wdg_control)
 {
 	// Imprime el frame actual en consola
 
@@ -422,10 +460,12 @@ void pub_data_print_frame(void)
 
 	// TAIL
 	xprintf_P(PSTR("\r\n\0") );
-	wdg_counter_data++;
-	if ( wdg_counter_data != 2 )
-		xprintf_P( PSTR("print_frame (%d)\r\n\0"),wdg_counter_data);
 
+	if ( wdg_control ) {
+		wdg_counter_data++;
+		if ( wdg_counter_data != 2 )
+			xprintf_P( PSTR("DATA: WDG print_frame 2->(%d)\r\n\0"),wdg_counter_data);
+	}
 }
 //------------------------------------------------------------------------------------
 static void pv_data_print_frame_modo_SPX(void)

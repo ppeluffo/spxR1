@@ -82,7 +82,7 @@ loop:
 		while ( frtos_read( fdXBEE, &c, 1 ) == 1 ) {
 			pv_xbee_rxbuffer_push(c);
 			if ( c == '\n') {
-				xprintf_P (PSTR("RcvdXbee>%s"), pv_xbeeRxCbuffer.buffer );
+				xprintf_P (PSTR("XBEE_RCVD> %s"), pv_xbeeRxCbuffer.buffer );
 				pv_xbee_parse_rxframe();
 				pub_xbee_flush_RX_buffer();
 			}
