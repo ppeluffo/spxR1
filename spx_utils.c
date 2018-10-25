@@ -53,7 +53,7 @@ void initMCU(void)
 	IO_config_UPULSE_WIDTH();
 
 	// TICK:
-	//IO_config_TICK();
+//	IO_config_TICK();
 
 	// PWR_SLEEP
 	IO_config_PWR_SLEEP();

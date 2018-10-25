@@ -500,7 +500,7 @@ static void prvSetupTimerInterrupt(void) {
     TC0_ConfigClockSource(tickTimer, TC_CLKSEL_DIV64_gc);
 
     //set period of counter
-    tickTimer->PER = configCPU_CLOCK_HZ / configTICK_RATE_HZ / 64 - 1;
+    tickTimer->PER = ( ( configCPU_CLOCK_HZ ) / configTICK_RATE_HZ / 64 ) - 1;
 
     //enable interrupt and set low level
     TC0_SetOverflowIntLevel(tickTimer, TC_OVFINTLVL_LO_gc);
@@ -530,7 +530,15 @@ ISR (TCC0_OVF_vect, ISR_NAKED) {
 //    vTaskIncrementTick();
 //    vTaskSwitchContext();
 //   portRESTORE_CONTEXT();
+
+	/*
+	 * La frecuencia que vemos en un pin es la mitad del configTICK_RATE_HZ
+	 * ya que la interrupcion al generar un toggle, en un periodo son 2 flancos.
+	 *
+	 */
 //	PORTA.OUTTGL = 0x04;	// Toggle A2
+//	PORTC.OUTTGL = 0x02;	// Toggle C1
+//	PORTB.OUTTGL = 0x10;	// Toggle B4
 	vPortYieldFromTick();
     asm volatile ( "reti" );
 }

@@ -20,6 +20,18 @@
  *  avr-nm -n spxR1.elf | more
  *
  *------------------------------------------------------------------------------------------
+ * -2018-10-13: R1.0.13
+ * - En modo SP5K, cuando mide distancia, al trasmitir el frame no separa el campo DIST del
+ * ultimo campo de canal digital, y luego de DIST pone 2 comas.
+ * Se corrige en la funcion gprs_data::pv_tx_dataRecord_modo_SP5K().
+
+ *------------------------------------------------------------------------------------------
+ * -2018-10-06: R1.0.12
+ * - En pv_process_init_response la salida por default es INIT_OK lo que hace que si no
+ *   puede procesar la respuesta igual salga OK y pase a DATA.
+ *   Ahora lo cambio el default a INIT_ERROR de modo que explicitamente la funcin deba cambiarlo
+ *   a INIT_OK
+ *------------------------------------------------------------------------------------------
  * -2018-09-27: R1.0.11
  * - Las funciones publicas del data, al invocarlas desde CMD me destrolan la secuencia del
  *   watchdog por lo tanto debo pasar un parametro para indicar si tocan o no el watchdog.

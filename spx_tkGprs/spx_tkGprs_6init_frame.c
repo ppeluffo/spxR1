@@ -154,7 +154,7 @@ static t_init_responses pv_process_init_response(void)
 	// Salgo por timeout 10s o por socket closed.
 
 uint8_t timeout;
-uint8_t exit_code = INIT_OK;
+uint8_t exit_code = INIT_ERROR;
 
 	for ( timeout = 0; timeout < 10; timeout++) {
 
@@ -754,8 +754,8 @@ char *p;
 	p2 = strsep(&stringp,delim); 	// consigna_nocturna
 	hhmm2 = atoi(p2);
 
-	pub_output_config(modo, hhmm1, hhmm2);
-	ret = 1;
+//	pub_output_config(modo, hhmm1, hhmm2);
+//	ret = 1;
 
 	if ( systemVars.debug == DEBUG_GPRS ) {
 		xprintf_P( PSTR("GPRS: Reconfig OUTPUTS\r\n\0"));

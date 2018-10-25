@@ -489,10 +489,10 @@ FAT_t l_fat;
 	}
 
 	if ( systemVars.rangeMeter_enabled == modoRANGEMETER_ON ) {
-		xCom_printf_P( fdGPRS, PSTR("DIST=%d,\0"), pv_data_frame.range );
+		xCom_printf_P( fdGPRS, PSTR(",DIST=%d\0"), pv_data_frame.range );
 		// DEBUG & LOG
 		if ( systemVars.debug ==  DEBUG_GPRS ) {
-			xprintf_P(PSTR("DIST=%d,\0"), pv_data_frame.range );
+			xprintf_P(PSTR(",DIST=%d\0"), pv_data_frame.range );
 		}
 	}
 

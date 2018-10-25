@@ -197,7 +197,7 @@ static void pv_tkCtl_check_wdg(void)
 
 		// Cada ciclo reseteo el wdg para que no expire.
 		WDT_Reset();
-		return;
+		//return;
 
 		// Si algun WDG no se borro, me reseteo
 		while ( xSemaphoreTake( sem_SYSVars, ( TickType_t ) 5 ) != pdTRUE )

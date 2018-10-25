@@ -25,12 +25,12 @@ void PORT_ConfigureInterrupt0( PORT_t * port,PORT_INT0LVL_t intLevel,uint8_t pin
 void PORT_ConfigureInterrupt1( PORT_t * port,PORT_INT1LVL_t intLevel, uint8_t pinMask);
 //------------------------------------------------------------------------------------
 // Control de Frecuencia del TICK
-//#define TICK_BITPOS		2
-//#define TICK_PORT		PORTA
+#define TICK_BITPOS		1
+#define TICK_PORT		PORTC
 
-//#define IO_config_TICK()	PORT_SetPinAsOutput( &TICK_PORT, TICK_BITPOS)
-//#define IO_set_TICK()		PORT_SetOutputBit( &TICK_PORT, TICK_BITPOS)
-//#define IO_clr_TICK()		PORT_ClearOutputBit( &TICK_PORT, TICK_BITPOS)
+#define IO_config_TICK()	PORT_SetPinAsOutput( &TICK_PORT, TICK_BITPOS)
+#define IO_set_TICK()		PORT_SetOutputBit( &TICK_PORT, TICK_BITPOS)
+#define IO_clr_TICK()		PORT_ClearOutputBit( &TICK_PORT, TICK_BITPOS)
 //------------------------------------------------------------------------------------
 // TWI PE0(SDA)/PE1(SCL)
 #define SCL_BITPOS		1
@@ -265,7 +265,7 @@ uint8_t IO_read_RI(void);
 //
 // FLASH MEMORY SELECT
 
-#define SPIMEM_CS_BITPOS		4
+#define SPIMEM_CS_BITPOS		0
 #define SPIMEM_CS_PORT			PORTC
 #define IO_config_SPIMEM_CS()	PORT_SetPinAsOutput( &SPIMEM_CS_PORT, SPIMEM_CS_BITPOS)
 #define IO_set_SPIMEM_CS()		PORT_SetOutputBit( &SPIMEM_CS_PORT, SPIMEM_CS_BITPOS)

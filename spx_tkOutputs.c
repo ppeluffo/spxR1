@@ -272,7 +272,7 @@ void pub_output_config( t_outputs modo, uint16_t hhmm1, uint16_t hhmm2 )
 	// Es Configuracion , NO operacion por lo tanto solo configuro el modo, y en
 	// caso de consigna, las horas.
 
-//	xprintf_P( PSTR("DEBUG OUTPUTS (modo=%d,hhmm1=%d,hhmm2=%d\r\n\0"), modo,hhmm1,hhmm2);
+	xprintf_P( PSTR("DEBUG OUTPUTS (modo=%d,hhmm1=%d,hhmm2=%d)\r\n\0"), modo,hhmm1,hhmm2);
 
 	switch ( modo ) {
 	case OUT_OFF:
@@ -290,9 +290,7 @@ void pub_output_config( t_outputs modo, uint16_t hhmm1, uint16_t hhmm2 )
 		systemVars.outputs.out_A = 0;
 		systemVars.outputs.out_B = 0;
 //		xprintf_P( PSTR("DEBUG OUTPUTS NORMAL: (modo=%d\r\n\0"), systemVars.outputs.modo);
-
 		break;
-
 	}
 
 }

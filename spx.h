@@ -56,18 +56,18 @@
 //------------------------------------------------------------------------------------
 // DEFINES
 //------------------------------------------------------------------------------------
-#define SPX_FW_REV "1.0.11"
-#define SPX_FW_DATE "@ 20180929"
+#define SPX_FW_REV "1.0.13"
+#define SPX_FW_DATE "@ 20181013"
 
 #define SPX_HW_MODELO "spxR1 HW:xmega256A3B R1.0"
 #define SPX_FTROS_VERSION "FW:FRTOS10 TICKLESS"
 
 // Compatibilidad del protocolo
-//#define CONFIG_SPX_SPYMOVIL
+#define CONFIG_SPX_SPYMOVIL
 //#define CONFIG_SPX_TAHONA
 //#define CONFIG_SP5K_SPYMOVIL
 //#define CONFIG_SP5K_OSE
-#define CONFIG_UTE
+//#define CONFIG_UTE
 //----------------------------------------------------------------------------------
 #ifdef CONFIG_SPX_SPYMOVIL
 	// Protocolo SPX,App SPYMOVIL
